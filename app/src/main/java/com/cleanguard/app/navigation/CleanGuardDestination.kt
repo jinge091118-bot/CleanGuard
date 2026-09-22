@@ -1,0 +1,11 @@
+package com.cleanguard.app.navigation
+
+sealed class CleanGuardDestination(val route: String) {
+    data object Home : CleanGuardDestination("home")
+    data object Scanning : CleanGuardDestination("scanning")
+    data object ScanResults : CleanGuardDestination("scan-results")
+    data object CleanupDetail : CleanGuardDestination("cleanup-detail")
+    data object StorageInsights : CleanGuardDestination("storage-insights")
+    data object CleanupResult : CleanGuardDestination("cleanup-result")
+}
+

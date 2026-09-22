@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "id": "danger_android_private_paths",
+      "riskLevel": "DANGER",
+      "reason": "该路径属于 Android 系统或应用私有数据区域。",
+      "deletionImpact": "删除可能导致应用数据丢失、登录状态失效或系统异常。",
+      "allowedActions": ["NONE", "PREVIEW"],
+      "matcher": {
+        "sources": ["MEDIA_STORE", "SAF", "APP_STATS"],
+        "pathContains": ["android/data/", "android/obb/", "data/data/", "data/user/", "system/"]
+      }
+    },
+    {
+      "id": "danger_databases",
+      "riskLevel": "DANGER",
+      "reason": "该文件看起来是应用数据库。",
+      "deletionImpact": "删除可能造成应用数据永久丢失。",
+      "allowedActions": ["NONE", "PREVIEW"],
+      "matcher": {
+        "fileExtensions": ["db", "sqlite", "sqlite3"]
+      }
+    },
+    {
+      "id": "danger_database_mime_types",
+      "riskLevel": "DANGER",
+      "reason": "该项目的媒体类型表明它是数据库。",
+      "deletionImpact": "删除可能造成应用数据永久丢失。",
+      "allowedActions": ["NONE", "PREVIEW"],
+      "matcher": {
+        "mimeTypes": ["application/x-sqlite3", "application/vnd.sqlite3"]
+      }
+    },
+    {
+      "id": "danger_keys_and_credentials",
+      "riskLevel": "DANGER",
+      "reason": "该文件可能包含密钥或身份凭据。",
+      "deletionImpact": "删除可能导致账号、证书或加密数据不可访问。",
+      "allowedActions": ["NONE", "PREVIEW"],
+      "matcher": {
+        "fileExtensions": ["key", "pem", "keystore", "jks", "p12", "pfx"]
+      }
+    },
+    {
+      "id": "danger_unknown_configurations",
+      "riskLevel": "DANGER",
+      "reason": "该文件可能是未知用途的配置数据。",
+      "deletionImpact": "无法确认配置依赖，删除可能影响应用或系统功能。",
+      "allowedActions": ["NONE", "PREVIEW"],
+      "matcher": {
+        "fileExtensions": ["cfg", "conf", "ini", "properties", "yaml", "yml"]
+      }
+    },
+    {
+      "id": "review_user_media",
+      "riskLevel": "REVIEW",
+      "reason": "这是用户可识别的照片、视频或音频。",
+      "deletionImpact": "处理后内容可能从媒体库移除，请先确认。",
+      "allowedActions": ["NONE", "PREVIEW", "TRASH"],
+      "matcher": {
+        "categories": ["IMAGE", "VIDEO", "AUDIO"]
+      }
+    },
+    {
+      "id": "review_user_managed_files",
+      "riskLevel": "REVIEW",
+      "reason": "这是用户可管理的文件或待复核项目。",
+      "deletionImpact": "处理前需要确认文件用途和保留需要。",
+      "allowedActions": ["NONE", "PREVIEW"],
+      "matcher": {
+        "categories": ["APK", "DOCUMENT", "DOWNLOAD", "LARGE_FILE", "DUPLICATE_CANDIDATE"]
+      }
+    },
+    {
+      "id": "review_apk_extension",
+      "riskLevel": "REVIEW",
+      "reason": "这是 Android 安装包。",
+      "deletionImpact": "删除后将无法使用该文件再次安装应用。",
+      "allowedActions": ["NONE", "PREVIEW"],
+      "matcher": {
+        "fileExtensions": ["apk"]
+      }
+    },
+    {
+      "id": "review_apk_mime_type",
+      "riskLevel": "REVIEW",
+      "reason": "这是 Android 安装包。",
+      "deletionImpact": "删除后将无法使用该文件再次安装应用。",
+      "allowedActions": ["NONE", "PREVIEW"],
+      "matcher": {
+        "mimeTypes": ["application/vnd.android.package-archive"]
+      }
+    },
+    {
+      "id": "review_documents_and_archives",
+      "riskLevel": "REVIEW",
+      "reason": "这是文档或压缩归档文件。",
+      "deletionImpact": "删除可能丢失个人资料或归档内容。",
+      "allowedActions": ["NONE", "PREVIEW"],
+      "matcher": {
+        "fileExtensions": ["pdf", "zip"]
+      }
+    },
+    {
+      "id": "safe_cleanguard_rebuildable_cache",
+      "riskLevel": "SAFE",
+      "reason": "这是 CleanGuard 自身可重新生成的临时缓存。",
+      "deletionImpact": "删除后应用会在需要时重新生成，不影响个人文件。",
+      "allowedActions": ["NONE", "PREVIEW", "PERMANENT_DELETE"],
+      "matcher": {
+        "sources": ["APP_OWNED"],
+        "categories": ["TEMPORARY"],
+        "pathContains": ["com.cleanguard.app/cache/", "cleanguard/cache/"],
+        "requiresAppOwnedRebuildable": true
+      }
+    }
+  ]
+}

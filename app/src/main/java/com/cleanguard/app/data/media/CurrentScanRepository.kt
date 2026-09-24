@@ -4,6 +4,7 @@ import com.cleanguard.app.domain.model.AppStorageItem
 import com.cleanguard.app.domain.model.LargeFileThreshold
 import com.cleanguard.app.domain.model.ScannedFile
 import com.cleanguard.app.domain.model.ScanItem
+import com.cleanguard.app.domain.model.ScanRunInfo
 import com.cleanguard.app.domain.model.ScanSummary
 import com.cleanguard.app.domain.model.toScanSummary
 import com.cleanguard.app.domain.repository.ScanSessionRepository
@@ -30,11 +31,15 @@ class CurrentScanRepository : ScanSessionRepository {
     override val hasCompletedScan: Flow<Boolean> = session
         .map { it.hasCompletedScan }
         .distinctUntilChanged()
+    override val scanRunInfo: Flow<ScanRunInfo?> = session
+        .map { it.scanRunInfo }
+        .distinctUntilChanged()
 
     override suspend fun replaceScanSession(
         scannedFiles: List<ScannedFile>,
         analyzedItems: List<ScanItem>,
         threshold: LargeFileThreshold,
+        scanRunInfo: ScanRunInfo?,
     ) {
         session.value = CurrentScanSession(
             scannedFiles = scannedFiles.toList(),
@@ -42,6 +47,7 @@ class CurrentScanRepository : ScanSessionRepository {
             summary = analyzedItems.toScanSummary(),
             threshold = threshold,
             hasCompletedScan = true,
+            scanRunInfo = scanRunInfo,
         )
     }
 
@@ -66,4 +72,5 @@ private data class CurrentScanSession(
     val summary: ScanSummary = ScanSummary.EMPTY,
     val threshold: LargeFileThreshold = LargeFileThreshold.DEFAULT,
     val hasCompletedScan: Boolean = false,
+    val scanRunInfo: ScanRunInfo? = null,
 )

@@ -14,11 +14,14 @@ import com.cleanguard.app.data.local.entity.IndexedItemEntity
 import com.cleanguard.app.data.local.entity.MediaSyncStateEntity
 import com.cleanguard.app.data.local.entity.ScanSnapshotEntity
 import com.cleanguard.app.data.local.repository.RoomScanHistoryRepository
+import com.cleanguard.app.data.local.repository.RoomIncrementalScanPersistenceRepository
 import com.cleanguard.app.data.local.repository.RoomScanPersistenceTransactionRepository
 import com.cleanguard.app.domain.model.FileCategory
 import com.cleanguard.app.domain.model.RiskLevel
 import com.cleanguard.app.domain.model.ScanSource
 import com.cleanguard.app.domain.model.persistence.IndexedItemRecord
+import com.cleanguard.app.domain.model.persistence.MediaSyncState
+import com.cleanguard.app.domain.model.persistence.MediaVolumeIndexUpdate
 import com.cleanguard.app.domain.model.persistence.PersistedMediaAccessState
 import com.cleanguard.app.domain.model.persistence.PersistedScanStatus
 import com.cleanguard.app.domain.model.persistence.ScanHistoryRetentionPolicy
@@ -248,6 +251,52 @@ class CleanGuardDatabaseTest {
         assertEquals(
             PersistedScanStatus.COMPLETED.name,
             database.scanHistoryDao().findById("scan-transaction")?.scanStatus,
+        )
+    }
+
+    @Test
+    fun incrementalScanTransaction_reconcilesVolumesAndCompletesAtomically() = runBlocking {
+        val repository = RoomIncrementalScanPersistenceRepository(database)
+        database.indexedItemDao().upsert(
+            indexedItem("primary-old", "content://media/primary-old"),
+        )
+        database.indexedItemDao().upsert(
+            indexedItem("sd-old", "content://media/sd-old").copy(volumeName = "0123-4567"),
+        )
+        database.mediaSyncStateDao().upsert(
+            MediaSyncStateEntity("external_primary", "v1", 1L, 10L),
+        )
+        database.mediaSyncStateDao().upsert(
+            MediaSyncStateEntity("0123-4567", "sd-v1", 1L, 10L),
+        )
+        repository.recordScanState(
+            scanSnapshot("scan-incremental", 1_000L).copy(
+                completedAt = null,
+                durationMs = null,
+                scanStatus = PersistedScanStatus.STARTED,
+            ),
+        )
+
+        repository.commitCompletedScan(
+            scanId = "scan-incremental",
+            volumeUpdates = listOf(
+                MediaVolumeIndexUpdate(
+                    volumeName = "external_primary",
+                    upsertItems = listOf(indexedItemRecord("primary-new")),
+                    staleItemIds = listOf("primary-old"),
+                    syncState = MediaSyncState("external_primary", "v1", 2L, 1_010L),
+                ),
+            ),
+            removedVolumes = setOf("0123-4567"),
+            completedSnapshot = scanSnapshot("scan-incremental", 1_000L),
+        )
+
+        assertEquals(listOf("primary-new"), database.indexedItemDao().findAll().map { it.id })
+        assertEquals(2L, database.mediaSyncStateDao().findByVolume("external_primary")?.lastGeneration)
+        assertNull(database.mediaSyncStateDao().findByVolume("0123-4567"))
+        assertEquals(
+            PersistedScanStatus.COMPLETED.name,
+            database.scanHistoryDao().findById("scan-incremental")?.scanStatus,
         )
     }
 

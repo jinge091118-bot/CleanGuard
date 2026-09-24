@@ -6,6 +6,7 @@ import com.cleanguard.app.domain.model.persistence.HashCacheEntry
 import com.cleanguard.app.domain.model.persistence.IgnoredItem
 import com.cleanguard.app.domain.model.persistence.IndexedItemRecord
 import com.cleanguard.app.domain.model.persistence.MediaSyncState
+import com.cleanguard.app.domain.model.persistence.MediaVolumeIndexUpdate
 import com.cleanguard.app.domain.model.persistence.ScanHistoryRetentionPolicy
 import com.cleanguard.app.domain.model.persistence.ScanSnapshot
 import kotlinx.coroutines.flow.Flow
@@ -70,6 +71,21 @@ interface ScanPersistenceTransactionRepository {
     suspend fun persistBatchAndComplete(
         scanId: String,
         items: List<IndexedItemRecord>,
+        completedSnapshot: ScanSnapshot,
+    )
+}
+
+interface IncrementalScanPersistenceRepository {
+    suspend fun findSyncState(volumeName: String): MediaSyncState?
+    suspend fun findAllSyncStates(): List<MediaSyncState>
+    suspend fun findIndexedItems(volumeName: String): List<IndexedItemRecord>
+    suspend fun findAllIndexedItems(): List<IndexedItemRecord>
+    suspend fun recordScanState(snapshot: ScanSnapshot)
+
+    suspend fun commitCompletedScan(
+        scanId: String,
+        volumeUpdates: List<MediaVolumeIndexUpdate>,
+        removedVolumes: Set<String>,
         completedSnapshot: ScanSnapshot,
     )
 }

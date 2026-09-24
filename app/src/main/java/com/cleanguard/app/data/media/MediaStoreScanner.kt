@@ -1,6 +1,7 @@
 package com.cleanguard.app.data.media
 
 import android.content.ContentResolver
+import android.content.ContentUris
 import android.database.Cursor
 import android.net.Uri
 import android.os.CancellationSignal
@@ -291,6 +292,8 @@ private fun Cursor.toMediaStoreItem(
         modifiedAtEpochMillis = secondsToMillis(modifiedSeconds),
         relativePath = getString(columns.relativePath),
         category = collection.category,
+        contentUri = ContentUris.withAppendedId(collection.uri, mediaStoreId).toString(),
+        volumeName = MediaStore.VOLUME_EXTERNAL,
     )
 }
 

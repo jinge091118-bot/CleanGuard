@@ -25,10 +25,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.res.stringResource
+import com.cleanguard.app.R
 import com.cleanguard.app.ui.components.CleanGuardTopBar
 import com.cleanguard.app.ui.components.InfoCard
 import com.cleanguard.app.ui.components.MetricTile
 import com.cleanguard.app.ui.util.formatBytes
+import com.cleanguard.app.ui.util.labelResource
 import kotlin.math.roundToInt
 
 @Composable
@@ -88,6 +91,18 @@ fun ScanningScreen(
 
             InfoCard("扫描进度") {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    MetricTile(
+                        stringResource(R.string.scan_type_label),
+                        stringResource(uiState.scanExecutionType.labelResource()),
+                        Modifier.weight(1f),
+                    )
+                    MetricTile(
+                        stringResource(R.string.scan_duration_label),
+                        stringResource(R.string.scan_duration_value, uiState.scanDurationMs / 1_000.0),
+                        Modifier.weight(1f),
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     MetricTile("已扫描文件", uiState.scannedFileCount.toString(), Modifier.weight(1f))
                     MetricTile("已扫描容量", uiState.scannedBytes.formatBytes(), Modifier.weight(1f))
                 }
@@ -96,6 +111,20 @@ fun ScanningScreen(
                     MetricTile("读取异常", uiState.errorCount.toString(), Modifier.weight(1f))
                 }
                 MetricTile("已发现大文件容量", uiState.largeFileBytes.formatBytes(), Modifier.fillMaxWidth())
+                if (uiState.isComplete) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        MetricTile(
+                            stringResource(R.string.scan_changed_label),
+                            uiState.changedItemCount.toString(),
+                            Modifier.weight(1f),
+                        )
+                        MetricTile(
+                            stringResource(R.string.scan_removed_label),
+                            uiState.removedItemCount.toString(),
+                            Modifier.weight(1f),
+                        )
+                    }
+                }
             }
 
             if (uiState.isScanning) {

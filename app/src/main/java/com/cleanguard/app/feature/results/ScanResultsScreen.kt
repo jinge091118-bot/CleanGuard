@@ -23,7 +23,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.cleanguard.app.R
 import com.cleanguard.app.domain.model.FileCategory
 import com.cleanguard.app.domain.model.LargeFileThreshold
 import com.cleanguard.app.domain.model.RiskLevel
@@ -35,6 +37,7 @@ import com.cleanguard.app.ui.theme.GuardAmber
 import com.cleanguard.app.ui.theme.GuardGreen
 import com.cleanguard.app.ui.theme.GuardRed
 import com.cleanguard.app.ui.util.formatBytes
+import com.cleanguard.app.ui.util.labelResource
 
 @Composable
 fun ScanResultsRoute(
@@ -100,6 +103,40 @@ private fun ResultsContent(
                 },
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+
+        uiState.scanRunInfo?.let { runInfo ->
+            InfoCard(stringResource(R.string.scan_type_label)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    MetricTile(
+                        stringResource(R.string.scan_type_label),
+                        stringResource(runInfo.executionType.labelResource()),
+                        Modifier.weight(1f),
+                    )
+                    MetricTile(
+                        stringResource(R.string.scan_duration_label),
+                        stringResource(R.string.scan_duration_value, runInfo.durationMs / 1_000.0),
+                        Modifier.weight(1f),
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    MetricTile(
+                        stringResource(R.string.scan_changed_label),
+                        runInfo.changedItemCount.toString(),
+                        Modifier.weight(1f),
+                    )
+                    MetricTile(
+                        stringResource(R.string.scan_removed_label),
+                        runInfo.removedItemCount.toString(),
+                        Modifier.weight(1f),
+                    )
+                }
+                MetricTile(
+                    stringResource(R.string.scan_volume_label),
+                    runInfo.scannedVolumeCount.toString(),
+                    Modifier.fillMaxWidth(),
+                )
+            }
         }
 
         InfoCard("大文件条件") {

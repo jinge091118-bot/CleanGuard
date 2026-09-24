@@ -1,4 +1,13 @@
 <resources>
     <string name="app_name">CleanGuard</string>
+    <string name="scan_type_label">本次扫描</string>
+    <string name="scan_type_full">完整扫描</string>
+    <string name="scan_type_incremental">增量扫描</string>
+    <string name="scan_type_full_resync">完整重新同步</string>
+    <string name="scan_type_api29_full">完整扫描（Android 10 兼容模式）</string>
+    <string name="scan_duration_label">耗时</string>
+    <string name="scan_duration_value">%1$.1f 秒</string>
+    <string name="scan_changed_label">变化项目</string>
+    <string name="scan_removed_label">已移除索引</string>
+    <string name="scan_volume_label">媒体卷</string>
 </resources>
-

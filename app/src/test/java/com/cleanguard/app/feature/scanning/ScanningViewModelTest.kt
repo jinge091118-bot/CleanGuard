@@ -7,6 +7,8 @@ import com.cleanguard.app.domain.model.MediaPermissionStatus
 import com.cleanguard.app.domain.model.MediaScanEvent
 import com.cleanguard.app.domain.model.MediaScanProgress
 import com.cleanguard.app.domain.model.MediaScanResult
+import com.cleanguard.app.domain.model.MediaScanExecutionType
+import com.cleanguard.app.domain.model.MediaScanMetadata
 import com.cleanguard.app.domain.model.MediaScanStage
 import com.cleanguard.app.domain.model.MediaStoreItem
 import com.cleanguard.app.domain.model.RiskLevel
@@ -93,7 +95,17 @@ class ScanningViewModelTest {
                 relativePath = "Pictures/",
                 category = FileCategory.IMAGE,
             )
-            val result = MediaScanResult(listOf(item), emptyList())
+            val result = MediaScanResult(
+                items = listOf(item),
+                errors = emptyList(),
+                metadata = MediaScanMetadata(
+                    executionType = MediaScanExecutionType.INCREMENTAL,
+                    changedItemCount = 1,
+                    removedItemCount = 2,
+                    durationMs = 350L,
+                    scannedVolumeCount = 1,
+                ),
+            )
             val scanRepository = CurrentScanRepository()
             val scanner = StubMediaScanner(
                 flowOf(
@@ -127,6 +139,11 @@ class ScanningViewModelTest {
             assertEquals(1L, viewModel.uiState.value.scannedFileCount)
             assertEquals(2_048L, viewModel.uiState.value.scannedBytes)
             assertEquals(1L, viewModel.uiState.value.classifiedFileCount)
+            assertEquals(MediaScanExecutionType.INCREMENTAL, viewModel.uiState.value.scanExecutionType)
+            assertEquals(1, viewModel.uiState.value.changedItemCount)
+            assertEquals(2, viewModel.uiState.value.removedItemCount)
+            assertEquals(350L, viewModel.uiState.value.scanDurationMs)
+            assertEquals(MediaScanExecutionType.INCREMENTAL, scanRepository.scanRunInfo.first()?.executionType)
             assertEquals(1, scanRepository.currentScannedFiles().size)
         } finally {
             Dispatchers.resetMain()

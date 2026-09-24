@@ -1,6 +1,7 @@
 package com.cleanguard.app.di
 
 import android.content.Context
+import android.os.Build
 import com.cleanguard.app.data.apps.AndroidAppStorageRepository
 import com.cleanguard.app.data.cleanup.MediaStoreCleanupRepository
 import com.cleanguard.app.data.local.CleanGuardDatabase
@@ -15,11 +16,14 @@ import com.cleanguard.app.data.local.repository.RoomAppStorageHistoryRepository
 import com.cleanguard.app.data.local.repository.RoomCleanupHistoryRepository
 import com.cleanguard.app.data.local.repository.RoomHashCacheRepository
 import com.cleanguard.app.data.local.repository.RoomIgnoreRuleRepository
+import com.cleanguard.app.data.local.repository.RoomIncrementalScanPersistenceRepository
 import com.cleanguard.app.data.local.repository.RoomIndexedItemRepository
 import com.cleanguard.app.data.local.repository.RoomMediaSyncStateRepository
 import com.cleanguard.app.data.local.repository.RoomScanHistoryRepository
 import com.cleanguard.app.data.local.repository.RoomScanPersistenceTransactionRepository
 import com.cleanguard.app.data.media.CurrentScanRepository
+import com.cleanguard.app.data.media.AndroidMediaStoreGateway
+import com.cleanguard.app.data.media.IncrementalMediaStoreScanner
 import com.cleanguard.app.data.media.MediaStoreScanner
 import com.cleanguard.app.data.rules.AssetSafetyRuleRepository
 import com.cleanguard.app.data.saf.SafDownloadAccessRepository
@@ -33,6 +37,7 @@ import com.cleanguard.app.domain.repository.DownloadAccessRepository
 import com.cleanguard.app.domain.repository.MediaScanner
 import com.cleanguard.app.domain.repository.HashCacheRepository
 import com.cleanguard.app.domain.repository.IgnoreRuleRepository
+import com.cleanguard.app.domain.repository.IncrementalScanPersistenceRepository
 import com.cleanguard.app.domain.repository.IndexedItemPersistenceRepository
 import com.cleanguard.app.domain.repository.MediaSyncStateRepository
 import com.cleanguard.app.domain.repository.PermissionRepository
@@ -64,6 +69,8 @@ interface AppContainer {
     val ignoreRuleRepository: IgnoreRuleRepository get() = persistenceNotConfigured()
     val cleanupHistoryRepository: CleanupHistoryRepository get() = persistenceNotConfigured()
     val scanPersistenceTransactionRepository: ScanPersistenceTransactionRepository
+        get() = persistenceNotConfigured()
+    val incrementalScanPersistenceRepository: IncrementalScanPersistenceRepository
         get() = persistenceNotConfigured()
     val appStorageRepository: AppStorageRepository
     val mediaScanner: MediaScanner
@@ -132,11 +139,22 @@ class DefaultAppContainer(
     override val scanPersistenceTransactionRepository: ScanPersistenceTransactionRepository by lazy {
         RoomScanPersistenceTransactionRepository(cleanGuardDatabase)
     }
+    override val incrementalScanPersistenceRepository: IncrementalScanPersistenceRepository by lazy {
+        RoomIncrementalScanPersistenceRepository(cleanGuardDatabase)
+    }
     override val appStorageRepository: AppStorageRepository by lazy {
         AndroidAppStorageRepository(context)
     }
     override val mediaScanner: MediaScanner by lazy {
-        MediaStoreScanner(context.contentResolver)
+        IncrementalMediaStoreScanner(
+            sdkInt = Build.VERSION.SDK_INT,
+            gateway = AndroidMediaStoreGateway(
+                context = context.applicationContext,
+                contentResolver = context.contentResolver,
+            ),
+            persistence = incrementalScanPersistenceRepository,
+            legacyScanner = MediaStoreScanner(context.contentResolver),
+        )
     }
     override val scanRepository: ScanSessionRepository by lazy { CurrentScanRepository() }
     override val cleanupRepository: CleanupRepository by lazy {

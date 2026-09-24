@@ -6,9 +6,11 @@ import com.cleanguard.app.domain.model.MediaPermissionStatus
 import com.cleanguard.app.domain.model.FileCategory
 import com.cleanguard.app.domain.model.LargeFileThreshold
 import com.cleanguard.app.domain.model.MediaScanEvent
+import com.cleanguard.app.domain.model.MediaScanMetadata
 import com.cleanguard.app.domain.model.MediaScanStage
 import com.cleanguard.app.domain.model.SafScanEvent
 import com.cleanguard.app.domain.model.ScannedFile
+import com.cleanguard.app.domain.model.ScanRunInfo
 import com.cleanguard.app.domain.model.toScannedFile
 import com.cleanguard.app.domain.repository.DownloadAccessRepository
 import com.cleanguard.app.domain.repository.PermissionRepository
@@ -73,6 +75,7 @@ class ScanningViewModel(
                 var errorCount = 0
                 var mediaFileCount = 0L
                 var mediaBytes = 0L
+                var mediaScanMetadata = MediaScanMetadata()
 
                 if (hasMediaAccess) {
                     scanMedia().collect { event ->
@@ -90,6 +93,7 @@ class ScanningViewModel(
                                         isScanning = true,
                                         isComplete = false,
                                         failureMessage = null,
+                                        scanExecutionType = progress.executionType,
                                     )
                                 }
                             }
@@ -101,6 +105,7 @@ class ScanningViewModel(
                                 mediaBytes = event.result.totalBytes
                                 scannedBytes = mediaBytes
                                 errorCount = event.result.errors.size
+                                mediaScanMetadata = event.result.metadata
                             }
                         }
                     }
@@ -163,6 +168,14 @@ class ScanningViewModel(
                     scannedFiles = scannedFiles,
                     analyzedItems = classifiedItems,
                     threshold = threshold,
+                    scanRunInfo = ScanRunInfo(
+                        executionType = mediaScanMetadata.executionType,
+                        durationMs = mediaScanMetadata.durationMs,
+                        scannedItemCount = scannedFiles.size,
+                        changedItemCount = mediaScanMetadata.changedItemCount,
+                        removedItemCount = mediaScanMetadata.removedItemCount,
+                        scannedVolumeCount = mediaScanMetadata.scannedVolumeCount,
+                    ),
                 )
                 val largeFileBytes = classifiedItems
                     .filter { it.category == FileCategory.LARGE_FILE }
@@ -183,6 +196,10 @@ class ScanningViewModel(
                         errorCount = errorCount,
                         isScanning = false,
                         isComplete = true,
+                        scanExecutionType = mediaScanMetadata.executionType,
+                        changedItemCount = mediaScanMetadata.changedItemCount,
+                        removedItemCount = mediaScanMetadata.removedItemCount,
+                        scanDurationMs = mediaScanMetadata.durationMs,
                     )
                 }
                 if (currentCoroutineContext().job === scanJob) {

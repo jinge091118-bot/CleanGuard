@@ -24,8 +24,9 @@ class ScanResultsViewModel(
         scanRepository.scanSummary,
         scanRepository.largeFileThreshold,
         scanRepository.hasCompletedScan,
+        scanRepository.scanRunInfo,
         updateState,
-    ) { summary, threshold, hasCompletedScan, update ->
+    ) { summary, threshold, hasCompletedScan, scanRunInfo, update ->
         ScanResultsUiState(
             summary = summary,
             isLoading = false,
@@ -33,6 +34,7 @@ class ScanResultsViewModel(
             selectedLargeFileThreshold = threshold,
             isUpdatingLargeFiles = update.isUpdating,
             updateErrorMessage = update.errorMessage,
+            scanRunInfo = scanRunInfo,
         )
     }
         .stateIn(viewModelScope, SharingStarted.Eagerly, ScanResultsUiState())

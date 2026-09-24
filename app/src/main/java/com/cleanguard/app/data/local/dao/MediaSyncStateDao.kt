@@ -18,6 +18,12 @@ interface MediaSyncStateDao {
     @Query("SELECT * FROM media_sync_states ORDER BY volumeName")
     fun observeAll(): Flow<List<MediaSyncStateEntity>>
 
+    @Query("SELECT * FROM media_sync_states ORDER BY volumeName")
+    suspend fun findAll(): List<MediaSyncStateEntity>
+
+    @Query("DELETE FROM media_sync_states WHERE volumeName = :volumeName")
+    suspend fun deleteByVolume(volumeName: String): Int
+
     @Query("SELECT COUNT(*) FROM media_sync_states")
     suspend fun count(): Int
 }

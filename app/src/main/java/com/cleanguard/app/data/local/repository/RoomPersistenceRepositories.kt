@@ -18,6 +18,7 @@ import com.cleanguard.app.domain.model.persistence.HashCacheEntry
 import com.cleanguard.app.domain.model.persistence.IgnoredItem
 import com.cleanguard.app.domain.model.persistence.IndexedItemRecord
 import com.cleanguard.app.domain.model.persistence.MediaSyncState
+import com.cleanguard.app.domain.model.persistence.MediaVolumeIndexUpdate
 import com.cleanguard.app.domain.model.persistence.ScanHistoryRetentionPolicy
 import com.cleanguard.app.domain.model.persistence.ScanSnapshot
 import com.cleanguard.app.domain.repository.AppStorageHistoryRepository
@@ -25,6 +26,7 @@ import com.cleanguard.app.domain.repository.CleanupHistoryRepository
 import com.cleanguard.app.domain.repository.HashCacheRepository
 import com.cleanguard.app.domain.repository.IgnoreRuleRepository
 import com.cleanguard.app.domain.repository.IndexedItemPersistenceRepository
+import com.cleanguard.app.domain.repository.IncrementalScanPersistenceRepository
 import com.cleanguard.app.domain.repository.MediaSyncStateRepository
 import com.cleanguard.app.domain.repository.ScanHistoryRepository
 import com.cleanguard.app.domain.repository.ScanPersistenceTransactionRepository
@@ -161,5 +163,59 @@ class RoomScanPersistenceTransactionRepository(
             )
             database.scanHistoryDao().upsert(completedSnapshot.toEntity())
         }
+    }
+}
+
+class RoomIncrementalScanPersistenceRepository(
+    private val database: CleanGuardDatabase,
+) : IncrementalScanPersistenceRepository {
+    override suspend fun findSyncState(volumeName: String): MediaSyncState? =
+        database.mediaSyncStateDao().findByVolume(volumeName)?.toDomain()
+
+    override suspend fun findAllSyncStates(): List<MediaSyncState> =
+        database.mediaSyncStateDao().findAll().map { it.toDomain() }
+
+    override suspend fun findIndexedItems(volumeName: String): List<IndexedItemRecord> =
+        database.indexedItemDao().findByVolume(volumeName).map { it.toDomain() }
+
+    override suspend fun findAllIndexedItems(): List<IndexedItemRecord> =
+        database.indexedItemDao().findAll().map { it.toDomain() }
+
+    override suspend fun recordScanState(snapshot: ScanSnapshot) {
+        database.scanHistoryDao().upsert(snapshot.toEntity())
+    }
+
+    override suspend fun commitCompletedScan(
+        scanId: String,
+        volumeUpdates: List<MediaVolumeIndexUpdate>,
+        removedVolumes: Set<String>,
+        completedSnapshot: ScanSnapshot,
+    ) {
+        require(completedSnapshot.scanId == scanId) {
+            "Completed snapshot must belong to the persisted scan"
+        }
+        database.withTransaction {
+            removedVolumes.forEach { volumeName ->
+                database.indexedItemDao().deleteByVolume(volumeName)
+                database.mediaSyncStateDao().deleteByVolume(volumeName)
+            }
+            volumeUpdates.forEach { update ->
+                database.indexedItemDao().markVolumeSeen(update.volumeName, scanId)
+                update.staleItemIds.chunked(SQLITE_BATCH_SIZE).forEach { itemIds ->
+                    database.indexedItemDao().deleteByIds(itemIds)
+                }
+                update.upsertItems
+                    .map(IndexedItemRecord::toEntity)
+                    .chunked(INDEX_UPSERT_BATCH_SIZE)
+                    .forEach { entities -> database.indexedItemDao().upsertAll(entities) }
+                database.mediaSyncStateDao().upsert(update.syncState.toEntity())
+            }
+            database.scanHistoryDao().upsert(completedSnapshot.toEntity())
+        }
+    }
+
+    private companion object {
+        const val INDEX_UPSERT_BATCH_SIZE = 250
+        const val SQLITE_BATCH_SIZE = 500
     }
 }

@@ -30,6 +30,21 @@ interface IndexedItemDao {
     @Query("SELECT * FROM indexed_items WHERE volumeName = :volumeName ORDER BY displayName")
     fun observeByVolume(volumeName: String): Flow<List<IndexedItemEntity>>
 
+    @Query("SELECT * FROM indexed_items WHERE volumeName = :volumeName ORDER BY id")
+    suspend fun findByVolume(volumeName: String): List<IndexedItemEntity>
+
+    @Query("SELECT * FROM indexed_items ORDER BY volumeName, id")
+    suspend fun findAll(): List<IndexedItemEntity>
+
+    @Query("UPDATE indexed_items SET lastSeenScanId = :scanId WHERE volumeName = :volumeName")
+    suspend fun markVolumeSeen(volumeName: String, scanId: String): Int
+
+    @Query("DELETE FROM indexed_items WHERE id IN (:itemIds)")
+    suspend fun deleteByIds(itemIds: List<String>): Int
+
+    @Query("DELETE FROM indexed_items WHERE volumeName = :volumeName")
+    suspend fun deleteByVolume(volumeName: String): Int
+
     @Query("DELETE FROM indexed_items WHERE contentUri = :contentUri")
     suspend fun deleteByContentUri(contentUri: String): Int
 

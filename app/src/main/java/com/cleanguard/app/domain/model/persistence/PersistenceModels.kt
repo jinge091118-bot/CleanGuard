@@ -31,11 +31,20 @@ data class MediaSyncState(
 )
 
 enum class PersistedScanStatus {
+    STARTED,
+    @Deprecated("Use STARTED for new scan state records")
     RUNNING,
     COMPLETED,
     CANCELLED,
     FAILED,
 }
+
+data class MediaVolumeIndexUpdate(
+    val volumeName: String,
+    val upsertItems: List<IndexedItemRecord>,
+    val staleItemIds: List<String>,
+    val syncState: MediaSyncState,
+)
 
 enum class PersistedMediaAccessState {
     GRANTED,

@@ -31,6 +31,9 @@ import com.cleanguard.app.domain.model.ScanItem
 import com.cleanguard.app.domain.model.ScanSource
 import com.cleanguard.app.domain.model.StorageOverview
 import com.cleanguard.app.domain.model.UsageAccessStatus
+import com.cleanguard.app.domain.recommendation.Recommendation
+import com.cleanguard.app.domain.recommendation.RecommendationPriority
+import com.cleanguard.app.domain.recommendation.RecommendationReason
 import com.cleanguard.app.domain.repository.AppStorageRepository
 import com.cleanguard.app.domain.repository.CleanupRepository
 import com.cleanguard.app.domain.repository.DownloadAccessRepository
@@ -107,6 +110,37 @@ class Phase10UiTest {
         composeRule.onNodeWithContentDescription("选择 受保护数据库.db")
             .performScrollTo()
             .assertIsNotEnabled()
+    }
+
+    @Test
+    fun recommendationPriority_isDisplayedSeparatelyFromReviewRisk() {
+        val review = testScanItem("review-high", "较早的录屏.mp4", RiskLevel.REVIEW, true)
+        composeRule.setContent {
+            CleanGuardTheme {
+                CleanupDetailScreen(
+                    uiState = CleanupDetailUiState(
+                        items = listOf(review),
+                        recommendations = mapOf(
+                            review.id to Recommendation(
+                                itemId = review.id,
+                                priority = RecommendationPriority.HIGH,
+                                reasons = listOf(RecommendationReason.LARGE_SCREEN_RECORDING),
+                                explanation = "建议查看：较早的大型录屏。",
+                            ),
+                        ),
+                        isLoading = false,
+                    ),
+                    onBack = {},
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("REVIEW").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("建议优先级：优先查看").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("选择 较早的录屏.mp4")
+            .performScrollTo()
+            .assertIsOff()
     }
 
     @Test

@@ -61,6 +61,52 @@ class ApplySafetyRulesUseCaseTest {
         assertEquals(FileCategory.VIDEO, result.category)
         assertEquals("视频规则", result.safetyDecision.reason)
     }
+
+    @Test
+    fun `screenshot directory is classified as screenshot and remains review`() = runTest {
+        val useCase = ApplySafetyRulesUseCase(
+            repository = LargeFileRuleRepository,
+            evaluationDispatcher = StandardTestDispatcher(testScheduler),
+        )
+        val item = MediaStoreItem(
+            id = "media:image:3",
+            mediaStoreId = 3L,
+            displayName = "IMG_0003.png",
+            mimeType = "image/png",
+            sizeBytes = LargeFileThreshold.MB_500.bytes,
+            modifiedAtEpochMillis = 1_000L,
+            relativePath = "Pictures/Screenshots/",
+            category = FileCategory.IMAGE,
+        )
+
+        val result = useCase(listOf(item.toScannedFile())).getOrThrow().single()
+
+        assertEquals(FileCategory.SCREENSHOT, result.category)
+        assertEquals(RiskLevel.REVIEW, result.safetyDecision.riskLevel)
+    }
+
+    @Test
+    fun `screen recording directory is classified before large file rule and remains review`() = runTest {
+        val useCase = ApplySafetyRulesUseCase(
+            repository = LargeFileRuleRepository,
+            evaluationDispatcher = StandardTestDispatcher(testScheduler),
+        )
+        val item = MediaStoreItem(
+            id = "media:video:4",
+            mediaStoreId = 4L,
+            displayName = "recording.mp4",
+            mimeType = "video/mp4",
+            sizeBytes = LargeFileThreshold.GB_1.bytes,
+            modifiedAtEpochMillis = 1_000L,
+            relativePath = "Movies/Screen recordings/",
+            category = FileCategory.VIDEO,
+        )
+
+        val result = useCase(listOf(item.toScannedFile())).getOrThrow().single()
+
+        assertEquals(FileCategory.SCREEN_RECORDING, result.category)
+        assertEquals(RiskLevel.REVIEW, result.safetyDecision.riskLevel)
+    }
 }
 
 private data object LargeFileRuleRepository : SafetyRuleRepository {
@@ -68,6 +114,8 @@ private data object LargeFileRuleRepository : SafetyRuleRepository {
         listOf(
             testRule("large", "大文件规则", setOf(FileCategory.LARGE_FILE)),
             testRule("video", "视频规则", setOf(FileCategory.VIDEO)),
+            testRule("screenshot", "截图规则", setOf(FileCategory.SCREENSHOT)),
+            testRule("screen-recording", "录屏规则", setOf(FileCategory.SCREEN_RECORDING)),
         ),
     )
 }

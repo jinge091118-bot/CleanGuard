@@ -8,6 +8,9 @@ import com.cleanguard.app.domain.model.MediaStoreItem
 import com.cleanguard.app.domain.model.RiskLevel
 import com.cleanguard.app.domain.model.toScannedFile
 import com.cleanguard.app.domain.repository.SafetyRuleRepository
+import com.cleanguard.app.data.recommendation.RecommendationEngineImpl
+import com.cleanguard.app.domain.recommendation.RecommendationExplanationProvider
+import com.cleanguard.app.domain.recommendation.RecommendationPriority
 import com.cleanguard.app.domain.rules.SafetyRule
 import com.cleanguard.app.domain.rules.SafetyRuleMatcher
 import com.cleanguard.app.domain.usecase.ApplySafetyRulesUseCase
@@ -64,6 +67,47 @@ class ScanResultsViewModelTest {
             assertEquals(LargeFileThreshold.MB_50, viewModel.uiState.value.selectedLargeFileThreshold)
             assertEquals(mediaItem.sizeBytes, viewModel.uiState.value.summary?.largeFileBytes)
             assertFalse(viewModel.uiState.value.isUpdatingLargeFiles)
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
+    fun `high recommendation is exposed without changing review risk`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        Dispatchers.setMain(dispatcher)
+        try {
+            val repository = CurrentScanRepository()
+            val applyRules = ApplySafetyRulesUseCase(ResultRuleRepository, dispatcher)
+            val scannedFile = MediaStoreItem(
+                id = "media:video:large",
+                mediaStoreId = 61L,
+                displayName = "recording.mp4",
+                mimeType = "video/mp4",
+                sizeBytes = 1024L * 1024L * 1024L,
+                modifiedAtEpochMillis = 1_000L,
+                relativePath = "Movies/",
+                category = FileCategory.VIDEO,
+            ).toScannedFile()
+            val analyzed = applyRules(listOf(scannedFile)).getOrThrow()
+            repository.replaceScanSession(
+                scannedFiles = listOf(scannedFile),
+                analyzedItems = analyzed,
+                threshold = LargeFileThreshold.DEFAULT,
+            )
+            val viewModel = ScanResultsViewModel(
+                scanRepository = repository,
+                updateLargeFileThreshold = UpdateLargeFileThresholdUseCase(repository, applyRules),
+                recommendationEngine = RecommendationEngineImpl(
+                    explanationProvider = RecommendationExplanationProvider { "test" },
+                    currentTimeMillis = { 2_000_000_000_000L },
+                ),
+            )
+
+            advanceUntilIdle()
+
+            assertEquals(RecommendationPriority.HIGH, viewModel.uiState.value.recommendations.single().priority)
+            assertEquals(RiskLevel.REVIEW, analyzed.single().safetyDecision.riskLevel)
         } finally {
             Dispatchers.resetMain()
         }

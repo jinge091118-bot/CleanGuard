@@ -4,6 +4,8 @@ enum class FileCategory {
     IMAGE,
     VIDEO,
     AUDIO,
+    SCREENSHOT,
+    SCREEN_RECORDING,
     DOWNLOAD,
     APK,
     LARGE_FILE,
@@ -13,4 +15,3 @@ enum class FileCategory {
     DOCUMENT,
     OTHER,
 }
-

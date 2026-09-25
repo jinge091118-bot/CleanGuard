@@ -33,16 +33,21 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cleanguard.app.domain.model.RiskLevel
 import com.cleanguard.app.domain.model.CleanupRequestStatus
 import com.cleanguard.app.domain.model.ScanItem
+import com.cleanguard.app.domain.recommendation.Recommendation
+import com.cleanguard.app.domain.recommendation.RecommendationPriority
+import com.cleanguard.app.R
 import com.cleanguard.app.ui.components.CleanGuardTopBar
 import com.cleanguard.app.ui.theme.GuardAmber
 import com.cleanguard.app.ui.theme.GuardGreen
 import com.cleanguard.app.ui.theme.GuardRed
 import com.cleanguard.app.ui.util.formatBytes
 import com.cleanguard.app.ui.util.formatDate
+import com.cleanguard.app.ui.util.labelResource
 
 @Composable
 fun CleanupDetailRoute(
@@ -145,6 +150,7 @@ fun CleanupDetailScreen(
                 items(uiState.items, key = { it.id }) { item ->
                     CleanupItemCard(
                         item = item,
+                        recommendation = uiState.recommendations[item.id],
                         checked = item.id in uiState.selectedIds,
                         onToggle = { onEvent(CleanupDetailUiEvent.ToggleItem(item.id)) },
                     )
@@ -183,6 +189,7 @@ fun CleanupDetailScreen(
 @Composable
 private fun CleanupItemCard(
     item: ScanItem,
+    recommendation: Recommendation?,
     checked: Boolean,
     onToggle: () -> Unit,
 ) {
@@ -218,6 +225,21 @@ private fun CleanupItemCard(
                 )
             }
             Text(risk.name, color = riskColor, fontWeight = FontWeight.Bold)
+            if (recommendation != null && recommendation.priority != RecommendationPriority.NONE) {
+                Text(
+                    stringResource(
+                        R.string.recommendation_priority_format,
+                        stringResource(recommendation.priority.labelResource()),
+                    ),
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    recommendation.explanation,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
             DetailLine("来源", item.source.name)
             DetailLine(
                 "文件类型",

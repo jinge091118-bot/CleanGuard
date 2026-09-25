@@ -59,7 +59,7 @@
       "deletionImpact": "处理后内容可能从媒体库移除，请先确认。",
       "allowedActions": ["NONE", "PREVIEW", "TRASH"],
       "matcher": {
-        "categories": ["IMAGE", "VIDEO", "AUDIO"]
+        "categories": ["IMAGE", "VIDEO", "AUDIO", "SCREENSHOT", "SCREEN_RECORDING"]
       }
     },
     {

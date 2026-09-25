@@ -12,6 +12,9 @@ import com.cleanguard.app.domain.model.ScanSource
 import com.cleanguard.app.domain.model.SystemConfirmationOutcome
 import com.cleanguard.app.domain.repository.CleanupRepository
 import com.cleanguard.app.domain.repository.ScanRepository
+import com.cleanguard.app.domain.recommendation.NoOpRecommendationEngine
+import com.cleanguard.app.domain.recommendation.RecommendationEngine
+import com.cleanguard.app.domain.recommendation.RecommendationPriority
 import com.cleanguard.app.domain.usecase.CreateCleanupPlanUseCase
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +27,7 @@ import kotlinx.coroutines.launch
 
 class CleanupDetailViewModel(
     scanRepository: ScanRepository,
+    private val recommendationEngine: RecommendationEngine = NoOpRecommendationEngine,
     private val cleanupRepository: CleanupRepository,
     private val createCleanupPlan: CreateCleanupPlanUseCase,
 ) : ViewModel() {
@@ -37,6 +41,13 @@ class CleanupDetailViewModel(
         selectedIds,
         cleanupState,
     ) { items, selected, requestState ->
+        val recommendations = recommendationEngine.recommend(items)
+            .associateBy { it.itemId }
+        val sortedItems = items.sortedWith(
+            compareByDescending<ScanItem> {
+                recommendations[it.id]?.priority?.sortRank ?: 0
+            }.thenByDescending(ScanItem::sizeBytes).thenBy(ScanItem::id),
+        )
         val selectableIds = items.filter(ScanItem::canEnterMediaTrashPlan).mapTo(mutableSetOf()) { it.id }
         val initialSafeSelection = if (selected == null) {
             items.filter {
@@ -46,12 +57,13 @@ class CleanupDetailViewModel(
             selected.intersect(selectableIds)
         }
         CleanupDetailUiState(
-            items = items,
+            items = sortedItems,
             selectedIds = initialSafeSelection,
             pendingPlan = requestState.pendingPlan,
             requestStatus = requestState.status,
             statusMessage = requestState.message,
             isLoading = false,
+            recommendations = recommendations,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CleanupDetailUiState())
 
@@ -137,6 +149,14 @@ class CleanupDetailViewModel(
         }
     }
 }
+
+private val RecommendationPriority.sortRank: Int
+    get() = when (this) {
+        RecommendationPriority.HIGH -> 3
+        RecommendationPriority.MEDIUM -> 2
+        RecommendationPriority.LOW -> 1
+        RecommendationPriority.NONE -> 0
+    }
 
 sealed interface CleanupDetailEffect {
     data class LaunchSystemTrashConfirmation(

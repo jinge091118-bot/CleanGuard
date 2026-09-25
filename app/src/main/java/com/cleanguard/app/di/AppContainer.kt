@@ -26,6 +26,8 @@ import com.cleanguard.app.data.media.AndroidMediaStoreGateway
 import com.cleanguard.app.data.media.IncrementalMediaStoreScanner
 import com.cleanguard.app.data.media.MediaStoreScanner
 import com.cleanguard.app.data.rules.AssetSafetyRuleRepository
+import com.cleanguard.app.data.recommendation.AndroidRecommendationExplanationProvider
+import com.cleanguard.app.data.recommendation.RecommendationEngineImpl
 import com.cleanguard.app.data.saf.SafDownloadAccessRepository
 import com.cleanguard.app.data.saf.SafScannerImpl
 import com.cleanguard.app.data.storage.AndroidStorageRepository
@@ -47,6 +49,8 @@ import com.cleanguard.app.domain.repository.ScanPersistenceTransactionRepository
 import com.cleanguard.app.domain.repository.SafetyRuleRepository
 import com.cleanguard.app.domain.repository.SafScanner
 import com.cleanguard.app.domain.repository.StorageRepository
+import com.cleanguard.app.domain.recommendation.NoOpRecommendationEngine
+import com.cleanguard.app.domain.recommendation.RecommendationEngine
 import com.cleanguard.app.platform.permissions.PermissionManager
 import com.cleanguard.app.platform.intents.DownloadTreeIntentFactory
 import com.cleanguard.app.platform.intents.AppSettingsIntentFactory
@@ -79,6 +83,7 @@ interface AppContainer {
     val storageRepository: StorageRepository
     val permissionRepository: PermissionRepository
     val safetyRuleRepository: SafetyRuleRepository
+    val recommendationEngine: RecommendationEngine get() = NoOpRecommendationEngine
     val downloadAccessRepository: DownloadAccessRepository
     val safScanner: SafScanner
     val downloadTreeIntentFactory: DownloadTreeIntentFactory
@@ -171,6 +176,11 @@ class DefaultAppContainer(
     }
     override val safetyRuleRepository: SafetyRuleRepository by lazy {
         AssetSafetyRuleRepository(context)
+    }
+    override val recommendationEngine: RecommendationEngine by lazy {
+        RecommendationEngineImpl(
+            explanationProvider = AndroidRecommendationExplanationProvider(context.applicationContext),
+        )
     }
     override val downloadAccessRepository: DownloadAccessRepository by lazy {
         SafDownloadAccessRepository(context)

@@ -5,6 +5,7 @@ import com.cleanguard.app.domain.model.LargeFileThreshold
 import com.cleanguard.app.domain.model.ScannedFile
 import com.cleanguard.app.domain.model.ScanItem
 import com.cleanguard.app.domain.repository.SafetyRuleRepository
+import com.cleanguard.app.domain.recommendation.classifyMediaCategory
 import com.cleanguard.app.domain.rules.SafetyRuleEngine
 import com.cleanguard.app.domain.rules.SafetySubject
 import kotlinx.coroutines.CancellationException
@@ -52,10 +53,12 @@ private fun ScannedFile.toScanItem(
     engine: SafetyRuleEngine,
     largeFileThreshold: LargeFileThreshold,
 ): ScanItem {
-    val analyzedCategory = if (sizeBytes >= largeFileThreshold.bytes) {
-        FileCategory.LARGE_FILE
-    } else {
-        category
+    val mediaCategory = classifyMediaCategory(category, mimeType, relativePath)
+    val analyzedCategory = when {
+        mediaCategory == FileCategory.SCREENSHOT ||
+            mediaCategory == FileCategory.SCREEN_RECORDING -> mediaCategory
+        sizeBytes >= largeFileThreshold.bytes -> FileCategory.LARGE_FILE
+        else -> mediaCategory
     }
     val decision = engine.evaluate(
         SafetySubject(

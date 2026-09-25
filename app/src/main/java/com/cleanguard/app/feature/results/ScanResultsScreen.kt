@@ -30,6 +30,7 @@ import com.cleanguard.app.domain.model.FileCategory
 import com.cleanguard.app.domain.model.LargeFileThreshold
 import com.cleanguard.app.domain.model.RiskLevel
 import com.cleanguard.app.domain.model.ScanSummary
+import com.cleanguard.app.domain.recommendation.RecommendationPriority
 import com.cleanguard.app.ui.components.CleanGuardTopBar
 import com.cleanguard.app.ui.components.InfoCard
 import com.cleanguard.app.ui.components.MetricTile
@@ -171,6 +172,46 @@ private fun ResultsContent(
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 RiskTile("DANGER", summary.riskBytes.getValue(RiskLevel.DANGER), GuardRed, Modifier.weight(1f))
                 RiskTile("UNKNOWN", summary.riskBytes.getValue(RiskLevel.UNKNOWN), Color.Gray, Modifier.weight(1f))
+            }
+        }
+
+        InfoCard(stringResource(R.string.recommendation_section_title)) {
+            Text(
+                stringResource(R.string.recommendation_safety_separation),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                MetricTile(
+                    stringResource(R.string.recommendation_priority_high),
+                    uiState.recommendations.count {
+                        it.priority == RecommendationPriority.HIGH
+                    }.toString(),
+                    Modifier.weight(1f),
+                )
+                MetricTile(
+                    stringResource(R.string.recommendation_priority_medium),
+                    uiState.recommendations.count {
+                        it.priority == RecommendationPriority.MEDIUM
+                    }.toString(),
+                    Modifier.weight(1f),
+                )
+                MetricTile(
+                    stringResource(R.string.recommendation_priority_low),
+                    uiState.recommendations.count {
+                        it.priority == RecommendationPriority.LOW
+                    }.toString(),
+                    Modifier.weight(1f),
+                )
+            }
+            MetricTile(
+                stringResource(R.string.recommendation_candidate_space),
+                uiState.recommendedBytes.formatBytes(),
+            )
+            if (uiState.recommendations.isEmpty()) {
+                Text(
+                    stringResource(R.string.recommendation_empty),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
 

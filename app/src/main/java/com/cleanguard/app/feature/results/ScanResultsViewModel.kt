@@ -2,7 +2,14 @@ package com.cleanguard.app.feature.results
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cleanguard.app.domain.model.LargeFileThreshold
+import com.cleanguard.app.domain.model.ScanItem
+import com.cleanguard.app.domain.model.ScanRunInfo
+import com.cleanguard.app.domain.model.ScanSummary
 import com.cleanguard.app.domain.repository.ScanSessionRepository
+import com.cleanguard.app.domain.recommendation.NoOpRecommendationEngine
+import com.cleanguard.app.domain.recommendation.RecommendationEngine
+import com.cleanguard.app.domain.recommendation.RecommendationPriority
 import com.cleanguard.app.domain.usecase.UpdateLargeFileThresholdUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,25 +23,40 @@ import kotlinx.coroutines.launch
 class ScanResultsViewModel(
     private val scanRepository: ScanSessionRepository,
     private val updateLargeFileThreshold: UpdateLargeFileThresholdUseCase,
+    private val recommendationEngine: RecommendationEngine = NoOpRecommendationEngine,
 ) : ViewModel() {
     private val updateState = MutableStateFlow(ThresholdUpdateState())
     private var updateJob: Job? = null
 
-    val uiState: StateFlow<ScanResultsUiState> = combine(
+    private val scanData = combine(
         scanRepository.scanSummary,
+        scanRepository.scanItems,
         scanRepository.largeFileThreshold,
         scanRepository.hasCompletedScan,
         scanRepository.scanRunInfo,
+    ) { summary, items, threshold, hasCompletedScan, scanRunInfo ->
+        ScanResultData(summary, items, threshold, hasCompletedScan, scanRunInfo)
+    }
+
+    val uiState: StateFlow<ScanResultsUiState> = combine(
+        scanData,
         updateState,
-    ) { summary, threshold, hasCompletedScan, scanRunInfo, update ->
+    ) { data, update ->
+        val recommendations = recommendationEngine.recommend(data.items)
+            .filterNot { it.priority == RecommendationPriority.NONE }
+        val recommendedIds = recommendations.mapTo(hashSetOf()) { it.itemId }
         ScanResultsUiState(
-            summary = summary,
+            summary = data.summary,
             isLoading = false,
-            hasCompletedScan = hasCompletedScan,
-            selectedLargeFileThreshold = threshold,
+            hasCompletedScan = data.hasCompletedScan,
+            selectedLargeFileThreshold = data.threshold,
             isUpdatingLargeFiles = update.isUpdating,
             updateErrorMessage = update.errorMessage,
-            scanRunInfo = scanRunInfo,
+            scanRunInfo = data.scanRunInfo,
+            recommendations = recommendations,
+            recommendedBytes = data.items.asSequence()
+                .filter { it.id in recommendedIds }
+                .fold(0L) { total, item -> saturatingAdd(total, item.sizeBytes) },
         )
     }
         .stateIn(viewModelScope, SharingStarted.Eagerly, ScanResultsUiState())
@@ -59,3 +81,14 @@ private data class ThresholdUpdateState(
     val isUpdating: Boolean = false,
     val errorMessage: String? = null,
 )
+
+private data class ScanResultData(
+    val summary: ScanSummary,
+    val items: List<ScanItem>,
+    val threshold: LargeFileThreshold,
+    val hasCompletedScan: Boolean,
+    val scanRunInfo: ScanRunInfo?,
+)
+
+private fun saturatingAdd(total: Long, value: Long): Long =
+    if (value > 0L && total > Long.MAX_VALUE - value) Long.MAX_VALUE else total + value

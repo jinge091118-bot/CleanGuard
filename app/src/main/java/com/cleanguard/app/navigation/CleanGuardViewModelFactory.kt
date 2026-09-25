@@ -41,6 +41,7 @@ class CleanGuardViewModelFactory(
         modelClass.isAssignableFrom(ScanResultsViewModel::class.java) ->
             ScanResultsViewModel(
                 scanRepository = container.scanRepository,
+                recommendationEngine = container.recommendationEngine,
                 updateLargeFileThreshold = UpdateLargeFileThresholdUseCase(
                     repository = container.scanRepository,
                     applySafetyRules = ApplySafetyRulesUseCase(container.safetyRuleRepository),
@@ -50,6 +51,7 @@ class CleanGuardViewModelFactory(
         modelClass.isAssignableFrom(CleanupDetailViewModel::class.java) ->
             CleanupDetailViewModel(
                 scanRepository = container.scanRepository,
+                recommendationEngine = container.recommendationEngine,
                 cleanupRepository = container.cleanupRepository,
                 createCleanupPlan = CreateCleanupPlanUseCase(),
             )

@@ -10,4 +10,27 @@
     <string name="scan_changed_label">变化项目</string>
     <string name="scan_removed_label">已移除索引</string>
     <string name="scan_volume_label">媒体卷</string>
+    <string name="recommendation_section_title">值得看看</string>
+    <string name="recommendation_safety_separation">推荐等级只用于排序，不代表可以安全删除；处理资格仍由安全规则决定。</string>
+    <string name="recommendation_candidate_space">候选项目空间</string>
+    <string name="recommendation_empty">本次没有发现需要优先查看的项目。</string>
+    <string name="recommendation_priority_high">优先查看</string>
+    <string name="recommendation_priority_medium">建议查看</string>
+    <string name="recommendation_priority_low">稍后查看</string>
+    <string name="recommendation_priority_none">不提示</string>
+    <string name="recommendation_priority_format">建议优先级：%1$s</string>
+    <string name="recommendation_explanation_format">建议查看：%1$s。</string>
+    <string name="recommendation_explanation_none">暂未发现需要优先查看的特征。</string>
+    <string name="recommendation_reason_separator">、</string>
+    <string name="recommendation_reason_confirmed_duplicate">已确认内容相同的文件</string>
+    <string name="recommendation_reason_old_apk">30 天以上的 APK 候选</string>
+    <string name="recommendation_reason_old_download">90 天以上的下载文件</string>
+    <string name="recommendation_reason_long_unused_download">180 天以上的下载文件</string>
+    <string name="recommendation_reason_large_screen_recording">90 天以上且超过 500 MB 的录屏</string>
+    <string name="recommendation_reason_old_screenshot">180 天以上的截图</string>
+    <string name="recommendation_reason_large_file">100 MB 以上的大文件</string>
+    <string name="recommendation_reason_very_large_file">1 GB 以上的大文件</string>
+    <string name="recommendation_reason_app_storage_growth">应用占用增长</string>
+    <string name="recommendation_reason_recent_file">最近 7 天的文件</string>
+    <string name="recommendation_reason_user_ignored">用户已忽略</string>
 </resources>

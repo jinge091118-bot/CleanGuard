@@ -3,6 +3,10 @@ package com.cleanguard.app.di
 import android.content.Context
 import android.os.Build
 import com.cleanguard.app.data.apps.AndroidAppStorageRepository
+import com.cleanguard.app.data.apk.AndroidApkArchiveInspector
+import com.cleanguard.app.data.apk.AndroidInstalledPackageVersionProvider
+import com.cleanguard.app.data.apk.ApkAnalyzerImpl
+import com.cleanguard.app.data.download.DownloadInsightsEngineImpl
 import com.cleanguard.app.data.duplicate.CachingDuplicateFileHasher
 import com.cleanguard.app.data.duplicate.ContentResolverHashInputSource
 import com.cleanguard.app.data.duplicate.CurrentDuplicateSessionRepository
@@ -54,6 +58,9 @@ import com.cleanguard.app.domain.repository.ScanPersistenceTransactionRepository
 import com.cleanguard.app.domain.repository.SafetyRuleRepository
 import com.cleanguard.app.domain.repository.SafScanner
 import com.cleanguard.app.domain.repository.StorageRepository
+import com.cleanguard.app.domain.apk.ApkAnalyzer
+import com.cleanguard.app.domain.apk.NoOpApkAnalyzer
+import com.cleanguard.app.domain.download.DownloadInsightsEngine
 import com.cleanguard.app.domain.duplicate.DuplicateSessionRepository
 import com.cleanguard.app.domain.duplicate.DuplicateVerificationEngine
 import com.cleanguard.app.domain.duplicate.NoOpDuplicateSessionRepository
@@ -63,6 +70,7 @@ import com.cleanguard.app.domain.recommendation.RecommendationEngine
 import com.cleanguard.app.platform.permissions.PermissionManager
 import com.cleanguard.app.platform.intents.DownloadTreeIntentFactory
 import com.cleanguard.app.platform.intents.AppSettingsIntentFactory
+import com.cleanguard.app.platform.intents.FileActionIntentFactory
 
 interface AppContainer {
     val cleanGuardDatabase: CleanGuardDatabase get() = persistenceNotConfigured()
@@ -97,10 +105,13 @@ interface AppContainer {
         get() = NoOpDuplicateVerificationEngine
     val duplicateSessionRepository: DuplicateSessionRepository
         get() = NoOpDuplicateSessionRepository
+    val apkAnalyzer: ApkAnalyzer get() = NoOpApkAnalyzer
+    val downloadInsightsEngine: DownloadInsightsEngine get() = DownloadInsightsEngineImpl()
     val downloadAccessRepository: DownloadAccessRepository
     val safScanner: SafScanner
     val downloadTreeIntentFactory: DownloadTreeIntentFactory
     val appSettingsIntentFactory: AppSettingsIntentFactory
+    val fileActionIntentFactory: FileActionIntentFactory get() = FileActionIntentFactory()
 }
 
 private fun persistenceNotConfigured(): Nothing =
@@ -208,6 +219,15 @@ class DefaultAppContainer(
     override val duplicateSessionRepository: DuplicateSessionRepository by lazy {
         CurrentDuplicateSessionRepository()
     }
+    override val apkAnalyzer: ApkAnalyzer by lazy {
+        ApkAnalyzerImpl(
+            archiveInspector = AndroidApkArchiveInspector(context.applicationContext),
+            installedVersionProvider = AndroidInstalledPackageVersionProvider(context.packageManager),
+        )
+    }
+    override val downloadInsightsEngine: DownloadInsightsEngine by lazy {
+        DownloadInsightsEngineImpl()
+    }
     override val downloadAccessRepository: DownloadAccessRepository by lazy {
         SafDownloadAccessRepository(context)
     }
@@ -219,5 +239,8 @@ class DefaultAppContainer(
     }
     override val appSettingsIntentFactory: AppSettingsIntentFactory by lazy {
         AppSettingsIntentFactory()
+    }
+    override val fileActionIntentFactory: FileActionIntentFactory by lazy {
+        FileActionIntentFactory()
     }
 }

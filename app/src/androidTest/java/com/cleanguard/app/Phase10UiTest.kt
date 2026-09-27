@@ -34,6 +34,13 @@ import com.cleanguard.app.domain.model.UsageAccessStatus
 import com.cleanguard.app.domain.duplicate.DuplicateFile
 import com.cleanguard.app.domain.duplicate.DuplicateGroup
 import com.cleanguard.app.domain.duplicate.DuplicateVerificationStatus
+import com.cleanguard.app.domain.apk.ApkAnalysis
+import com.cleanguard.app.domain.apk.ApkArchiveMetadata
+import com.cleanguard.app.domain.apk.ApkCandidate
+import com.cleanguard.app.domain.apk.ApkInstalledComparison
+import com.cleanguard.app.domain.download.DownloadAgeBucket
+import com.cleanguard.app.domain.download.DownloadAgeInsight
+import com.cleanguard.app.domain.model.ScannedFile
 import com.cleanguard.app.domain.recommendation.Recommendation
 import com.cleanguard.app.domain.recommendation.RecommendationPriority
 import com.cleanguard.app.domain.recommendation.RecommendationReason
@@ -54,6 +61,11 @@ import com.cleanguard.app.feature.cleanupresult.CleanupResultScreen
 import com.cleanguard.app.feature.cleanupresult.CleanupResultUiState
 import com.cleanguard.app.feature.duplicates.DuplicateDetailScreen
 import com.cleanguard.app.feature.duplicates.DuplicateDetailUiState
+import com.cleanguard.app.feature.apkinsights.ApkInsightItem
+import com.cleanguard.app.feature.apkinsights.ApkInsightsScreen
+import com.cleanguard.app.feature.apkinsights.ApkInsightsUiState
+import com.cleanguard.app.feature.downloadinsights.DownloadInsightsScreen
+import com.cleanguard.app.feature.downloadinsights.DownloadInsightsUiState
 import com.cleanguard.app.navigation.CleanGuardNavHost
 import com.cleanguard.app.platform.intents.AppSettingsIntentFactory
 import com.cleanguard.app.platform.intents.DownloadTreeIntentFactory
@@ -188,6 +200,94 @@ class Phase10UiTest {
         composeRule.onNodeWithContentDescription("选择 a.jpg").performScrollTo().assertIsOff()
         composeRule.onNodeWithContentDescription("选择 b.jpg").performScrollTo().assertIsOff()
         composeRule.onNodeWithText("在安全清理流程中复核（0）").assertIsNotEnabled()
+    }
+
+    @Test
+    fun oldApkHighRecommendation_isVisuallySeparateFromReviewRisk() {
+        composeRule.setContent {
+            CleanGuardTheme {
+                ApkInsightsScreen(
+                    uiState = ApkInsightsUiState(
+                        isLoading = false,
+                        hasCompletedScan = true,
+                        items = listOf(
+                            ApkInsightItem(
+                                analysis = ApkAnalysis(
+                                    candidate = ApkCandidate(
+                                        itemId = "apk",
+                                        contentUri = "content://downloads/apk",
+                                        displayName = "旧安装包.apk",
+                                        sizeBytes = 326L * MIB,
+                                        modifiedAtEpochMillis = 1_700_000_000_000L,
+                                        riskLevel = RiskLevel.REVIEW,
+                                    ),
+                                    metadata = ApkArchiveMetadata(
+                                        packageName = "com.example.app",
+                                        versionName = "1.0",
+                                        longVersionCode = 10L,
+                                        applicationLabel = "示例应用",
+                                    ),
+                                    installedComparison = ApkInstalledComparison.OLDER_THAN_INSTALLED,
+                                    installedVersionCode = 11L,
+                                ),
+                                recommendationPriority = RecommendationPriority.HIGH,
+                            ),
+                        ),
+                    ),
+                    onBack = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("已安装版本比此安装包更新").assertIsDisplayed()
+        composeRule.onNodeWithText("风险等级：REVIEW · 仍需人工确认").assertIsDisplayed()
+        composeRule.onNodeWithText("建议优先查看 · HIGH（不是安全等级）").assertIsDisplayed()
+    }
+
+    @Test
+    fun downloadsInsight_statesSafNoDeleteBoundary() {
+        val file = ScannedFile(
+            id = "old-download",
+            displayName = "较早下载.zip",
+            mimeType = "application/zip",
+            sizeBytes = 12L * MIB,
+            modifiedAtEpochMillis = 1_600_000_000_000L,
+            relativePath = "Download/",
+            source = ScanSource.SAF,
+            category = FileCategory.DOWNLOAD,
+            contentUri = "content://downloads/old",
+        )
+        composeRule.setContent {
+            CleanGuardTheme {
+                DownloadInsightsScreen(
+                    uiState = DownloadInsightsUiState(
+                        isLoading = false,
+                        hasCompletedScan = true,
+                        hasSafAccess = true,
+                        insights = DownloadAgeBucket.entries.map { bucket ->
+                            DownloadAgeInsight(
+                                bucket = bucket,
+                                files = if (bucket == DownloadAgeBucket.OVER_180_DAYS) listOf(file) else emptyList(),
+                                fileCount = if (bucket == DownloadAgeBucket.OVER_180_DAYS) 1 else 0,
+                                totalBytes = if (bucket == DownloadAgeBucket.OVER_180_DAYS) file.sizeBytes else 0L,
+                                largestFile = file.takeIf { bucket == DownloadAgeBucket.OVER_180_DAYS },
+                                fileTypes = if (bucket == DownloadAgeBucket.OVER_180_DAYS) setOf("application") else emptySet(),
+                            )
+                        },
+                    ),
+                    onBack = {},
+                    onSelectBucket = {},
+                    onPreview = {},
+                    onShare = {},
+                    onLocate = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("CleanGuard 不会主动永久删除 SAF 文件。").assertIsDisplayed()
+        composeRule.onNodeWithText("建议优先查看 · HIGH；风险等级仍为 REVIEW")
+            .performScrollTo()
+            .assertIsDisplayed()
     }
 
     @Test

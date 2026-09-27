@@ -12,6 +12,8 @@ import com.cleanguard.app.domain.usecase.UpdateLargeFileThresholdUseCase
 import com.cleanguard.app.feature.cleanupdetail.CleanupDetailViewModel
 import com.cleanguard.app.feature.cleanupresult.CleanupResultViewModel
 import com.cleanguard.app.feature.home.HomeViewModel
+import com.cleanguard.app.feature.apkinsights.ApkInsightsViewModel
+import com.cleanguard.app.feature.downloadinsights.DownloadInsightsViewModel
 import com.cleanguard.app.feature.duplicates.DuplicateGroupsViewModel
 import com.cleanguard.app.feature.insights.StorageInsightsViewModel
 import com.cleanguard.app.feature.results.ScanResultsViewModel
@@ -69,6 +71,19 @@ class CleanGuardViewModelFactory(
                 scanRepository = container.scanRepository,
                 verificationEngine = container.duplicateVerificationEngine,
                 duplicateSessionRepository = container.duplicateSessionRepository,
+            )
+
+        modelClass.isAssignableFrom(ApkInsightsViewModel::class.java) ->
+            ApkInsightsViewModel(
+                scanRepository = container.scanRepository,
+                apkAnalyzer = container.apkAnalyzer,
+            )
+
+        modelClass.isAssignableFrom(DownloadInsightsViewModel::class.java) ->
+            DownloadInsightsViewModel(
+                scanRepository = container.scanRepository,
+                downloadAccessRepository = container.downloadAccessRepository,
+                insightsEngine = container.downloadInsightsEngine,
             )
 
         modelClass.isAssignableFrom(StorageInsightsViewModel::class.java) ->

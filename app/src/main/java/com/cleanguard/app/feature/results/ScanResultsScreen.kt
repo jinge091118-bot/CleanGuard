@@ -47,6 +47,8 @@ fun ScanResultsRoute(
     onViewSuggestions: () -> Unit,
     onOpenStorageInsights: () -> Unit,
     onOpenDuplicateGroups: () -> Unit,
+    onOpenApkInsights: () -> Unit,
+    onOpenDownloadInsights: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     ScanResultsScreen(
@@ -57,6 +59,8 @@ fun ScanResultsRoute(
                 ScanResultsUiEvent.ViewSuggestions -> onViewSuggestions()
                 ScanResultsUiEvent.OpenStorageInsights -> onOpenStorageInsights()
                 ScanResultsUiEvent.OpenDuplicateGroups -> onOpenDuplicateGroups()
+                ScanResultsUiEvent.OpenApkInsights -> onOpenApkInsights()
+                ScanResultsUiEvent.OpenDownloadInsights -> onOpenDownloadInsights()
                 is ScanResultsUiEvent.SelectLargeFileThreshold -> viewModel.onEvent(event)
             }
         },
@@ -230,6 +234,22 @@ private fun ResultsContent(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(stringResource(R.string.duplicate_open_verification))
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            OutlinedButton(
+                onClick = { onEvent(ScanResultsUiEvent.OpenApkInsights) },
+                enabled = uiState.hasCompletedScan,
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(stringResource(R.string.apk_open_insights))
+            }
+            OutlinedButton(
+                onClick = { onEvent(ScanResultsUiEvent.OpenDownloadInsights) },
+                enabled = uiState.hasCompletedScan,
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(stringResource(R.string.download_open_insights))
+            }
         }
 
         Button(

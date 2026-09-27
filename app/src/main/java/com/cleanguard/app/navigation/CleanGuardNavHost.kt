@@ -18,6 +18,10 @@ import com.cleanguard.app.feature.cleanupresult.CleanupResultRoute
 import com.cleanguard.app.feature.cleanupresult.CleanupResultViewModel
 import com.cleanguard.app.feature.home.HomeRoute
 import com.cleanguard.app.feature.home.HomeViewModel
+import com.cleanguard.app.feature.apkinsights.ApkInsightsRoute
+import com.cleanguard.app.feature.apkinsights.ApkInsightsViewModel
+import com.cleanguard.app.feature.downloadinsights.DownloadInsightsRoute
+import com.cleanguard.app.feature.downloadinsights.DownloadInsightsViewModel
 import com.cleanguard.app.feature.duplicates.DuplicateDetailRoute
 import com.cleanguard.app.feature.duplicates.DuplicateDetailViewModel
 import com.cleanguard.app.feature.duplicates.DuplicateGroupsRoute
@@ -62,6 +66,50 @@ fun CleanGuardNavHost(container: AppContainer) {
                 onOpenStorageInsights = { navController.navigate(CleanGuardDestination.StorageInsights.route) },
                 onOpenDuplicateGroups = {
                     navController.navigate(CleanGuardDestination.DuplicateGroups.route)
+                },
+                onOpenApkInsights = {
+                    navController.navigate(CleanGuardDestination.ApkInsights.route)
+                },
+                onOpenDownloadInsights = {
+                    navController.navigate(CleanGuardDestination.DownloadInsights.route)
+                },
+            )
+        }
+        composable(CleanGuardDestination.ApkInsights.route) {
+            ApkInsightsRoute(
+                viewModel = viewModel<ApkInsightsViewModel>(factory = factory),
+                onBack = { navController.navigateUp() },
+            )
+        }
+        composable(CleanGuardDestination.DownloadInsights.route) {
+            DownloadInsightsRoute(
+                viewModel = viewModel<DownloadInsightsViewModel>(factory = factory),
+                onBack = { navController.navigateUp() },
+                onPreview = { file ->
+                    file.contentUri?.let { uri ->
+                        runCatching {
+                            context.startActivity(
+                                container.fileActionIntentFactory.createPreview(uri, file.mimeType),
+                            )
+                        }
+                    }
+                },
+                onShare = { file ->
+                    file.contentUri?.let { uri ->
+                        runCatching {
+                            context.startActivity(
+                                android.content.Intent.createChooser(
+                                    container.fileActionIntentFactory.createShare(uri, file.mimeType),
+                                    null,
+                                ),
+                            )
+                        }
+                    }
+                },
+                onLocate = { treeUri ->
+                    runCatching {
+                        context.startActivity(container.fileActionIntentFactory.createLocate(treeUri))
+                    }
                 },
             )
         }

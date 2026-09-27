@@ -9,6 +9,7 @@ data class ScannedFile(
     val relativePath: String?,
     val source: ScanSource,
     val category: FileCategory,
+    val contentUri: String? = null,
 )
 
 fun MediaStoreItem.toScannedFile() = ScannedFile(
@@ -20,4 +21,5 @@ fun MediaStoreItem.toScannedFile() = ScannedFile(
     relativePath = relativePath,
     source = ScanSource.MEDIA_STORE,
     category = category,
+    contentUri = contentUri,
 )

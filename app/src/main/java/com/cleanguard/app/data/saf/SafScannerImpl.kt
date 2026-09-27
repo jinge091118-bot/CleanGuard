@@ -105,6 +105,10 @@ class SafScannerImpl(
                                 relativePath = "${directory.displayPath}/",
                                 source = ScanSource.SAF,
                                 category = classifySafFile(displayName, mimeType),
+                                contentUri = DocumentsContract.buildDocumentUriUsingTree(
+                                    rootUri,
+                                    documentId,
+                                ).toString(),
                             )
                             scannedBytes = saturatingAdd(scannedBytes, sizeBytes)
 

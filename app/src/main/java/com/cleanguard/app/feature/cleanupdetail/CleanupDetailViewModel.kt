@@ -30,8 +30,10 @@ class CleanupDetailViewModel(
     private val recommendationEngine: RecommendationEngine = NoOpRecommendationEngine,
     private val cleanupRepository: CleanupRepository,
     private val createCleanupPlan: CreateCleanupPlanUseCase,
+    initialSelectedIds: Set<String>? = null,
+    private val confirmedDuplicateIds: () -> Set<String> = { emptySet() },
 ) : ViewModel() {
-    private val selectedIds = MutableStateFlow<Set<String>?>(null)
+    private val selectedIds = MutableStateFlow(initialSelectedIds)
     private val cleanupState = MutableStateFlow(CleanupRequestState())
     private val effectChannel = Channel<CleanupDetailEffect>(Channel.BUFFERED)
     val effects = effectChannel.receiveAsFlow()
@@ -41,7 +43,7 @@ class CleanupDetailViewModel(
         selectedIds,
         cleanupState,
     ) { items, selected, requestState ->
-        val recommendations = recommendationEngine.recommend(items)
+        val recommendations = recommendationEngine.recommend(items, confirmedDuplicateIds())
             .associateBy { it.itemId }
         val sortedItems = items.sortedWith(
             compareByDescending<ScanItem> {

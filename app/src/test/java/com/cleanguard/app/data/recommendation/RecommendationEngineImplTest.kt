@@ -15,6 +15,22 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RecommendationEngineImplTest {
+    @Test
+    fun confirmedDuplicate_isHighWithoutChangingScanItemRisk() {
+        val item = item(
+            id = "duplicate",
+            sizeBytes = 10L,
+            modifiedAt = daysAgo(1),
+            category = FileCategory.IMAGE,
+        )
+
+        val recommendation = engine.evaluate(item, isConfirmedDuplicate = true)
+
+        assertEquals(RecommendationPriority.HIGH, recommendation.priority)
+        assertTrue(RecommendationReason.CONFIRMED_DUPLICATE in recommendation.reasons)
+        assertEquals(RiskLevel.REVIEW, item.safetyDecision.riskLevel)
+    }
+
     private val engine = RecommendationEngineImpl(
         explanationProvider = RecommendationExplanationProvider { reasons ->
             reasons.joinToString(",") { it.name }

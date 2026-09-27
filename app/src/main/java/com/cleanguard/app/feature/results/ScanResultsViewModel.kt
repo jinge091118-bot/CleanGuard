@@ -11,6 +11,8 @@ import com.cleanguard.app.domain.recommendation.NoOpRecommendationEngine
 import com.cleanguard.app.domain.recommendation.RecommendationEngine
 import com.cleanguard.app.domain.recommendation.RecommendationPriority
 import com.cleanguard.app.domain.usecase.UpdateLargeFileThresholdUseCase
+import com.cleanguard.app.domain.duplicate.DuplicateSessionRepository
+import com.cleanguard.app.domain.duplicate.NoOpDuplicateSessionRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -24,6 +26,7 @@ class ScanResultsViewModel(
     private val scanRepository: ScanSessionRepository,
     private val updateLargeFileThreshold: UpdateLargeFileThresholdUseCase,
     private val recommendationEngine: RecommendationEngine = NoOpRecommendationEngine,
+    private val duplicateSessionRepository: DuplicateSessionRepository = NoOpDuplicateSessionRepository,
 ) : ViewModel() {
     private val updateState = MutableStateFlow(ThresholdUpdateState())
     private var updateJob: Job? = null
@@ -41,8 +44,12 @@ class ScanResultsViewModel(
     val uiState: StateFlow<ScanResultsUiState> = combine(
         scanData,
         updateState,
-    ) { data, update ->
-        val recommendations = recommendationEngine.recommend(data.items)
+        duplicateSessionRepository.groups,
+    ) { data, update, duplicateGroups ->
+        val confirmedDuplicateIds = duplicateGroups.flatMapTo(hashSetOf()) { group ->
+            group.files.map { it.itemId }
+        }
+        val recommendations = recommendationEngine.recommend(data.items, confirmedDuplicateIds)
             .filterNot { it.priority == RecommendationPriority.NONE }
         val recommendedIds = recommendations.mapTo(hashSetOf()) { it.itemId }
         ScanResultsUiState(

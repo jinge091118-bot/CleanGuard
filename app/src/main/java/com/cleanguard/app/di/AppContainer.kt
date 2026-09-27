@@ -3,6 +3,11 @@ package com.cleanguard.app.di
 import android.content.Context
 import android.os.Build
 import com.cleanguard.app.data.apps.AndroidAppStorageRepository
+import com.cleanguard.app.data.duplicate.CachingDuplicateFileHasher
+import com.cleanguard.app.data.duplicate.ContentResolverHashInputSource
+import com.cleanguard.app.data.duplicate.CurrentDuplicateSessionRepository
+import com.cleanguard.app.data.duplicate.DuplicateVerificationEngineImpl
+import com.cleanguard.app.data.duplicate.StreamHashCalculator
 import com.cleanguard.app.data.cleanup.MediaStoreCleanupRepository
 import com.cleanguard.app.data.local.CleanGuardDatabase
 import com.cleanguard.app.data.local.dao.AppStorageHistoryDao
@@ -49,6 +54,10 @@ import com.cleanguard.app.domain.repository.ScanPersistenceTransactionRepository
 import com.cleanguard.app.domain.repository.SafetyRuleRepository
 import com.cleanguard.app.domain.repository.SafScanner
 import com.cleanguard.app.domain.repository.StorageRepository
+import com.cleanguard.app.domain.duplicate.DuplicateSessionRepository
+import com.cleanguard.app.domain.duplicate.DuplicateVerificationEngine
+import com.cleanguard.app.domain.duplicate.NoOpDuplicateSessionRepository
+import com.cleanguard.app.domain.duplicate.NoOpDuplicateVerificationEngine
 import com.cleanguard.app.domain.recommendation.NoOpRecommendationEngine
 import com.cleanguard.app.domain.recommendation.RecommendationEngine
 import com.cleanguard.app.platform.permissions.PermissionManager
@@ -84,6 +93,10 @@ interface AppContainer {
     val permissionRepository: PermissionRepository
     val safetyRuleRepository: SafetyRuleRepository
     val recommendationEngine: RecommendationEngine get() = NoOpRecommendationEngine
+    val duplicateVerificationEngine: DuplicateVerificationEngine
+        get() = NoOpDuplicateVerificationEngine
+    val duplicateSessionRepository: DuplicateSessionRepository
+        get() = NoOpDuplicateSessionRepository
     val downloadAccessRepository: DownloadAccessRepository
     val safScanner: SafScanner
     val downloadTreeIntentFactory: DownloadTreeIntentFactory
@@ -181,6 +194,19 @@ class DefaultAppContainer(
         RecommendationEngineImpl(
             explanationProvider = AndroidRecommendationExplanationProvider(context.applicationContext),
         )
+    }
+    override val duplicateVerificationEngine: DuplicateVerificationEngine by lazy {
+        DuplicateVerificationEngineImpl(
+            fileHasher = CachingDuplicateFileHasher(
+                cacheRepository = hashCacheRepository,
+                calculator = StreamHashCalculator(
+                    ContentResolverHashInputSource(context.contentResolver),
+                ),
+            ),
+        )
+    }
+    override val duplicateSessionRepository: DuplicateSessionRepository by lazy {
+        CurrentDuplicateSessionRepository()
     }
     override val downloadAccessRepository: DownloadAccessRepository by lazy {
         SafDownloadAccessRepository(context)

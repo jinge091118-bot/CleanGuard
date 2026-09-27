@@ -46,6 +46,7 @@ fun ScanResultsRoute(
     onBack: () -> Unit,
     onViewSuggestions: () -> Unit,
     onOpenStorageInsights: () -> Unit,
+    onOpenDuplicateGroups: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     ScanResultsScreen(
@@ -55,6 +56,7 @@ fun ScanResultsRoute(
             when (event) {
                 ScanResultsUiEvent.ViewSuggestions -> onViewSuggestions()
                 ScanResultsUiEvent.OpenStorageInsights -> onOpenStorageInsights()
+                ScanResultsUiEvent.OpenDuplicateGroups -> onOpenDuplicateGroups()
                 is ScanResultsUiEvent.SelectLargeFileThreshold -> viewModel.onEvent(event)
             }
         },
@@ -217,9 +219,17 @@ private fun ResultsContent(
 
         InfoCard("空间线索") {
             MetricTile("大文件", summary.largeFileBytes.formatBytes())
-            MetricTile("疑似重复 · 暂未提供", summary.categoryBytes[FileCategory.DUPLICATE_CANDIDATE].orZero().formatBytes())
+            MetricTile("疑似重复", summary.categoryBytes[FileCategory.DUPLICATE_CANDIDATE].orZero().formatBytes())
             MetricTile("APK", summary.categoryBytes[FileCategory.APK].orZero().formatBytes())
             MetricTile("应用占用", summary.categoryBytes[FileCategory.APP_CACHE].orZero().formatBytes())
+        }
+
+        OutlinedButton(
+            onClick = { onEvent(ScanResultsUiEvent.OpenDuplicateGroups) },
+            enabled = uiState.hasCompletedScan,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(stringResource(R.string.duplicate_open_verification))
         }
 
         Button(

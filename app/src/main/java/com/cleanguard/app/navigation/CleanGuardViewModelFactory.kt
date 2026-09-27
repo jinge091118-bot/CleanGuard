@@ -12,6 +12,7 @@ import com.cleanguard.app.domain.usecase.UpdateLargeFileThresholdUseCase
 import com.cleanguard.app.feature.cleanupdetail.CleanupDetailViewModel
 import com.cleanguard.app.feature.cleanupresult.CleanupResultViewModel
 import com.cleanguard.app.feature.home.HomeViewModel
+import com.cleanguard.app.feature.duplicates.DuplicateGroupsViewModel
 import com.cleanguard.app.feature.insights.StorageInsightsViewModel
 import com.cleanguard.app.feature.results.ScanResultsViewModel
 import com.cleanguard.app.feature.scanning.ScanningViewModel
@@ -42,6 +43,7 @@ class CleanGuardViewModelFactory(
             ScanResultsViewModel(
                 scanRepository = container.scanRepository,
                 recommendationEngine = container.recommendationEngine,
+                duplicateSessionRepository = container.duplicateSessionRepository,
                 updateLargeFileThreshold = UpdateLargeFileThresholdUseCase(
                     repository = container.scanRepository,
                     applySafetyRules = ApplySafetyRulesUseCase(container.safetyRuleRepository),
@@ -54,6 +56,19 @@ class CleanGuardViewModelFactory(
                 recommendationEngine = container.recommendationEngine,
                 cleanupRepository = container.cleanupRepository,
                 createCleanupPlan = CreateCleanupPlanUseCase(),
+                initialSelectedIds = container.duplicateSessionRepository.consumeCleanupSelection()
+                    .takeIf { it.isNotEmpty() },
+                confirmedDuplicateIds = {
+                    container.duplicateSessionRepository.groups.value
+                        .flatMapTo(hashSetOf()) { group -> group.files.map { it.itemId } }
+                },
+            )
+
+        modelClass.isAssignableFrom(DuplicateGroupsViewModel::class.java) ->
+            DuplicateGroupsViewModel(
+                scanRepository = container.scanRepository,
+                verificationEngine = container.duplicateVerificationEngine,
+                duplicateSessionRepository = container.duplicateSessionRepository,
             )
 
         modelClass.isAssignableFrom(StorageInsightsViewModel::class.java) ->

@@ -31,6 +31,9 @@ import com.cleanguard.app.domain.model.ScanItem
 import com.cleanguard.app.domain.model.ScanSource
 import com.cleanguard.app.domain.model.StorageOverview
 import com.cleanguard.app.domain.model.UsageAccessStatus
+import com.cleanguard.app.domain.duplicate.DuplicateFile
+import com.cleanguard.app.domain.duplicate.DuplicateGroup
+import com.cleanguard.app.domain.duplicate.DuplicateVerificationStatus
 import com.cleanguard.app.domain.recommendation.Recommendation
 import com.cleanguard.app.domain.recommendation.RecommendationPriority
 import com.cleanguard.app.domain.recommendation.RecommendationReason
@@ -49,6 +52,8 @@ import com.cleanguard.app.feature.cleanupdetail.CleanupDetailScreen
 import com.cleanguard.app.feature.cleanupdetail.CleanupDetailUiState
 import com.cleanguard.app.feature.cleanupresult.CleanupResultScreen
 import com.cleanguard.app.feature.cleanupresult.CleanupResultUiState
+import com.cleanguard.app.feature.duplicates.DuplicateDetailScreen
+import com.cleanguard.app.feature.duplicates.DuplicateDetailUiState
 import com.cleanguard.app.navigation.CleanGuardNavHost
 import com.cleanguard.app.platform.intents.AppSettingsIntentFactory
 import com.cleanguard.app.platform.intents.DownloadTreeIntentFactory
@@ -141,6 +146,48 @@ class Phase10UiTest {
         composeRule.onNodeWithContentDescription("选择 较早的录屏.mp4")
             .performScrollTo()
             .assertIsOff()
+    }
+
+    @Test
+    fun confirmedDuplicateFiles_defaultToEntirelyUnselected() {
+        val files = listOf("a", "b").map { id ->
+            DuplicateFile(
+                itemId = id,
+                contentUri = "content://media/$id",
+                displayName = "$id.jpg",
+                mimeType = "image/jpeg",
+                relativePath = "DCIM/Camera/",
+                sizeBytes = 5L * MIB,
+                modifiedAtEpochMillis = 1_700_000_000_000L,
+                source = ScanSource.MEDIA_STORE,
+                riskLevel = RiskLevel.REVIEW,
+            )
+        }
+        composeRule.setContent {
+            CleanGuardTheme {
+                DuplicateDetailScreen(
+                    uiState = DuplicateDetailUiState(
+                        group = DuplicateGroup(
+                            id = "duplicate:full",
+                            files = files,
+                            totalBytes = 10L * MIB,
+                            reclaimableBytes = 5L * MIB,
+                            verificationStatus = DuplicateVerificationStatus.CONFIRMED_DUPLICATE,
+                            quickHash = "quick",
+                            fullHash = "full",
+                        ),
+                    ),
+                    onBack = {},
+                    onToggle = {},
+                    onPreview = {},
+                    onReviewSelection = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("选择 a.jpg").performScrollTo().assertIsOff()
+        composeRule.onNodeWithContentDescription("选择 b.jpg").performScrollTo().assertIsOff()
+        composeRule.onNodeWithText("在安全清理流程中复核（0）").assertIsNotEnabled()
     }
 
     @Test

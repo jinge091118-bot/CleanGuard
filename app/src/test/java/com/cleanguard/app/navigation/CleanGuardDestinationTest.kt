@@ -5,7 +5,7 @@ import org.junit.Test
 
 class CleanGuardDestinationTest {
     @Test
-    fun sixDestinations_haveUniqueRoutes() {
+    fun destinations_haveUniqueRoutes() {
         val routes = listOf(
             CleanGuardDestination.Home.route,
             CleanGuardDestination.Scanning.route,
@@ -13,9 +13,11 @@ class CleanGuardDestinationTest {
             CleanGuardDestination.CleanupDetail.route,
             CleanGuardDestination.StorageInsights.route,
             CleanGuardDestination.CleanupResult.route,
+            CleanGuardDestination.DuplicateGroups.route,
+            CleanGuardDestination.DuplicateDetail.route,
         )
 
-        assertEquals(6, routes.distinct().size)
+        assertEquals(8, routes.distinct().size)
     }
 }
 

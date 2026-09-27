@@ -7,6 +7,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import com.cleanguard.app.di.AppContainer
 import com.cleanguard.app.feature.cleanupdetail.CleanupDetailRoute
 import com.cleanguard.app.feature.cleanupdetail.CleanupDetailViewModel
@@ -14,6 +18,10 @@ import com.cleanguard.app.feature.cleanupresult.CleanupResultRoute
 import com.cleanguard.app.feature.cleanupresult.CleanupResultViewModel
 import com.cleanguard.app.feature.home.HomeRoute
 import com.cleanguard.app.feature.home.HomeViewModel
+import com.cleanguard.app.feature.duplicates.DuplicateDetailRoute
+import com.cleanguard.app.feature.duplicates.DuplicateDetailViewModel
+import com.cleanguard.app.feature.duplicates.DuplicateGroupsRoute
+import com.cleanguard.app.feature.duplicates.DuplicateGroupsViewModel
 import com.cleanguard.app.feature.insights.StorageInsightsRoute
 import com.cleanguard.app.feature.insights.StorageInsightsViewModel
 import com.cleanguard.app.feature.results.ScanResultsRoute
@@ -52,6 +60,44 @@ fun CleanGuardNavHost(container: AppContainer) {
                 onBack = { navController.navigateUp() },
                 onViewSuggestions = { navController.navigate(CleanGuardDestination.CleanupDetail.route) },
                 onOpenStorageInsights = { navController.navigate(CleanGuardDestination.StorageInsights.route) },
+                onOpenDuplicateGroups = {
+                    navController.navigate(CleanGuardDestination.DuplicateGroups.route)
+                },
+            )
+        }
+        composable(CleanGuardDestination.DuplicateGroups.route) {
+            DuplicateGroupsRoute(
+                viewModel = viewModel<DuplicateGroupsViewModel>(factory = factory),
+                onBack = { navController.navigateUp() },
+                onOpenGroup = { groupId ->
+                    navController.navigate(CleanGuardDestination.DuplicateDetail.createRoute(groupId))
+                },
+            )
+        }
+        composable(
+            route = CleanGuardDestination.DuplicateDetail.route,
+            arguments = listOf(navArgument("groupId") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val groupId = backStackEntry.arguments?.getString("groupId").orEmpty()
+            val detailFactory = remember(container, groupId) {
+                object : ViewModelProvider.Factory {
+                    @Suppress("UNCHECKED_CAST")
+                    override fun <T : ViewModel> create(modelClass: Class<T>): T =
+                        DuplicateDetailViewModel(
+                            groupId = groupId,
+                            duplicateSessionRepository = container.duplicateSessionRepository,
+                        ) as T
+                }
+            }
+            DuplicateDetailRoute(
+                viewModel = viewModel<DuplicateDetailViewModel>(
+                    key = groupId,
+                    factory = detailFactory,
+                ),
+                onBack = { navController.navigateUp() },
+                onReviewSelection = {
+                    navController.navigate(CleanGuardDestination.CleanupDetail.route)
+                },
             )
         }
         composable(CleanGuardDestination.CleanupDetail.route) {

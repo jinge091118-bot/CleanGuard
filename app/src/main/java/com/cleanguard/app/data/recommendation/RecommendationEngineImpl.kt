@@ -13,12 +13,14 @@ class RecommendationEngineImpl(
     private val explanationProvider: RecommendationExplanationProvider,
     private val currentTimeMillis: () -> Long = System::currentTimeMillis,
 ) : RecommendationEngine {
-    override fun evaluate(item: ScanItem): Recommendation = evaluate(item, currentTimeMillis())
+    override fun evaluate(item: ScanItem, isConfirmedDuplicate: Boolean): Recommendation =
+        evaluate(item, currentTimeMillis(), isConfirmedDuplicate)
 
-    private fun evaluate(item: ScanItem, now: Long): Recommendation {
+    private fun evaluate(item: ScanItem, now: Long, isConfirmedDuplicate: Boolean): Recommendation {
         val age = item.ageMillis(now)
         val category = classifyMediaCategory(item.category, item.mimeType, item.relativePath)
         val reasons = buildList {
+            if (isConfirmedDuplicate) add(RecommendationReason.CONFIRMED_DUPLICATE)
             when {
                 category == FileCategory.APK && age >= DAYS_30 -> {
                     add(RecommendationReason.OLD_APK)
@@ -56,10 +58,13 @@ class RecommendationEngineImpl(
         )
     }
 
-    override fun recommend(items: List<ScanItem>): List<Recommendation> {
+    override fun recommend(
+        items: List<ScanItem>,
+        confirmedDuplicateIds: Set<String>,
+    ): List<Recommendation> {
         val evaluatedAt = currentTimeMillis()
         return items
-            .map { evaluate(it, evaluatedAt) }
+            .map { evaluate(it, evaluatedAt, it.id in confirmedDuplicateIds) }
             .sortedWith(
                 compareByDescending<Recommendation> { it.priority.rank }
                     .thenBy(Recommendation::itemId),

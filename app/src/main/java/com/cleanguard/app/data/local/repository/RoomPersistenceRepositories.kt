@@ -13,6 +13,7 @@ import com.cleanguard.app.data.local.mapper.toDomain
 import com.cleanguard.app.data.local.mapper.toEntity
 import com.cleanguard.app.data.local.mapper.toItemEntities
 import com.cleanguard.app.domain.model.persistence.AppStorageSnapshot
+import com.cleanguard.app.domain.model.persistence.AppStorageHistoryRecord
 import com.cleanguard.app.domain.model.persistence.CleanupHistoryEntry
 import com.cleanguard.app.domain.model.persistence.HashCacheEntry
 import com.cleanguard.app.domain.model.persistence.IgnoredItem
@@ -90,15 +91,47 @@ class RoomScanHistoryRepository(
 }
 
 class RoomAppStorageHistoryRepository(
-    private val dao: AppStorageHistoryDao,
+    private val database: CleanGuardDatabase,
 ) : AppStorageHistoryRepository {
+    private val dao: AppStorageHistoryDao
+        get() = database.appStorageHistoryDao()
+
     override suspend fun insert(snapshot: AppStorageSnapshot): Long = dao.insert(snapshot.toEntity())
+
+    override suspend fun recordSuccessfulScan(
+        snapshots: List<AppStorageSnapshot>,
+    ): AppStorageHistoryRecord {
+        require(snapshots.isNotEmpty()) { "A successful app storage scan must contain snapshots" }
+        return database.withTransaction {
+            val previousRecordedAt = dao.findLatestTimestamp()
+            val previousSnapshots = previousRecordedAt
+                ?.let { dao.findAtTimestamp(it).map { entity -> entity.toDomain() } }
+                .orEmpty()
+            val requestedTimestamp = snapshots.maxOf(AppStorageSnapshot::timestamp)
+            val recordedAt = nextTimestamp(requestedTimestamp, previousRecordedAt)
+            val normalizedSnapshots = snapshots
+                .distinctBy(AppStorageSnapshot::packageName)
+                .map { snapshot -> snapshot.copy(id = 0, timestamp = recordedAt) }
+            dao.insertAll(normalizedSnapshots.map(AppStorageSnapshot::toEntity))
+            AppStorageHistoryRecord(
+                recordedAt = recordedAt,
+                previousRecordedAt = previousRecordedAt,
+                previousSnapshots = previousSnapshots,
+            )
+        }
+    }
 
     override fun observeForPackage(packageName: String): Flow<List<AppStorageSnapshot>> =
         dao.observeForPackage(packageName).map { entities -> entities.map { it.toDomain() } }
 
     override suspend fun deleteBefore(cutoffEpochMillis: Long): Int =
         dao.deleteBefore(cutoffEpochMillis)
+
+    private fun nextTimestamp(requested: Long, previous: Long?): Long = when {
+        previous == null -> requested
+        previous == Long.MAX_VALUE -> Long.MAX_VALUE
+        else -> maxOf(requested, previous + 1L)
+    }
 }
 
 class RoomHashCacheRepository(

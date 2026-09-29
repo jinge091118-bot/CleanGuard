@@ -89,6 +89,12 @@ data class AppStorageSnapshot(
     val totalBytes: Long,
 )
 
+data class AppStorageHistoryRecord(
+    val recordedAt: Long,
+    val previousRecordedAt: Long?,
+    val previousSnapshots: List<AppStorageSnapshot>,
+)
+
 data class HashCacheEntry(
     val id: String,
     val contentUri: String,

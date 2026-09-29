@@ -16,10 +16,12 @@ import com.cleanguard.app.data.local.entity.ScanSnapshotEntity
 import com.cleanguard.app.data.local.repository.RoomScanHistoryRepository
 import com.cleanguard.app.data.local.repository.RoomIncrementalScanPersistenceRepository
 import com.cleanguard.app.data.local.repository.RoomScanPersistenceTransactionRepository
+import com.cleanguard.app.data.local.repository.RoomAppStorageHistoryRepository
 import com.cleanguard.app.domain.model.FileCategory
 import com.cleanguard.app.domain.model.RiskLevel
 import com.cleanguard.app.domain.model.ScanSource
 import com.cleanguard.app.domain.model.persistence.IndexedItemRecord
+import com.cleanguard.app.domain.model.persistence.AppStorageSnapshot
 import com.cleanguard.app.domain.model.persistence.MediaSyncState
 import com.cleanguard.app.domain.model.persistence.MediaVolumeIndexUpdate
 import com.cleanguard.app.domain.model.persistence.PersistedMediaAccessState
@@ -157,6 +159,30 @@ class CleanGuardDatabaseTest {
             listOf(300L, 200L, 100L),
             dao.observeForPackage("com.example.app").first().map { it.timestamp },
         )
+    }
+
+    @Test
+    fun appStorageHistory_successfulBatchesAreAtomicAndReturnPreviousCapture() = runBlocking {
+        val repository = RoomAppStorageHistoryRepository(database)
+        val first = repository.recordSuccessfulScan(
+            listOf(
+                appStorageSnapshot("com.example.one", timestamp = 100L, totalBytes = 60L),
+                appStorageSnapshot("com.example.two", timestamp = 100L, totalBytes = 90L),
+            ),
+        )
+        val second = repository.recordSuccessfulScan(
+            listOf(
+                appStorageSnapshot("com.example.one", timestamp = 100L, totalBytes = 80L),
+                appStorageSnapshot("com.example.two", timestamp = 100L, totalBytes = 70L),
+            ),
+        )
+
+        assertEquals(100L, first.recordedAt)
+        assertNull(first.previousRecordedAt)
+        assertEquals(101L, second.recordedAt)
+        assertEquals(100L, second.previousRecordedAt)
+        assertEquals(setOf("com.example.one", "com.example.two"), second.previousSnapshots.map { it.packageName }.toSet())
+        assertEquals(2, database.appStorageHistoryDao().findAtTimestamp(101L).size)
     }
 
     @Test
@@ -405,6 +431,20 @@ class CleanGuardDatabaseTest {
         dataBytes = 20L,
         cacheBytes = 30L,
         totalBytes = 60L,
+    )
+
+    private fun appStorageSnapshot(
+        packageName: String,
+        timestamp: Long,
+        totalBytes: Long,
+    ) = AppStorageSnapshot(
+        packageName = packageName,
+        appName = packageName,
+        timestamp = timestamp,
+        appBytes = totalBytes / 2,
+        dataBytes = totalBytes - totalBytes / 2,
+        cacheBytes = 0L,
+        totalBytes = totalBytes,
     )
 
     private fun hashEntity(

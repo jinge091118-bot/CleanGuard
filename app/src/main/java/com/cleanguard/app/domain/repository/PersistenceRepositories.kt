@@ -1,6 +1,7 @@
 package com.cleanguard.app.domain.repository
 
 import com.cleanguard.app.domain.model.persistence.AppStorageSnapshot
+import com.cleanguard.app.domain.model.persistence.AppStorageHistoryRecord
 import com.cleanguard.app.domain.model.persistence.CleanupHistoryEntry
 import com.cleanguard.app.domain.model.persistence.HashCacheEntry
 import com.cleanguard.app.domain.model.persistence.IgnoredItem
@@ -37,6 +38,7 @@ interface ScanHistoryRepository {
 
 interface AppStorageHistoryRepository {
     suspend fun insert(snapshot: AppStorageSnapshot): Long
+    suspend fun recordSuccessfulScan(snapshots: List<AppStorageSnapshot>): AppStorageHistoryRecord
     fun observeForPackage(packageName: String): Flow<List<AppStorageSnapshot>>
     suspend fun deleteBefore(cutoffEpochMillis: Long): Int
 }

@@ -3,6 +3,7 @@ package com.cleanguard.app
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -14,6 +15,8 @@ import com.cleanguard.app.data.fake.FakeCleanupRepository
 import com.cleanguard.app.data.media.CurrentScanRepository
 import com.cleanguard.app.di.AppContainer
 import com.cleanguard.app.domain.model.AppStorageScanResult
+import com.cleanguard.app.domain.model.AppStorageChange
+import com.cleanguard.app.domain.model.AppStorageItem
 import com.cleanguard.app.domain.model.CleanupAction
 import com.cleanguard.app.domain.model.CleanupOutcome
 import com.cleanguard.app.domain.model.CleanupResult
@@ -66,6 +69,9 @@ import com.cleanguard.app.feature.apkinsights.ApkInsightsScreen
 import com.cleanguard.app.feature.apkinsights.ApkInsightsUiState
 import com.cleanguard.app.feature.downloadinsights.DownloadInsightsScreen
 import com.cleanguard.app.feature.downloadinsights.DownloadInsightsUiState
+import com.cleanguard.app.feature.insights.InsightsTab
+import com.cleanguard.app.feature.insights.StorageInsightsScreen
+import com.cleanguard.app.feature.insights.StorageInsightsUiState
 import com.cleanguard.app.navigation.CleanGuardNavHost
 import com.cleanguard.app.platform.intents.AppSettingsIntentFactory
 import com.cleanguard.app.platform.intents.DownloadTreeIntentFactory
@@ -288,6 +294,67 @@ class Phase10UiTest {
         composeRule.onNodeWithText("建议优先查看 · HIGH；风险等级仍为 REVIEW")
             .performScrollTo()
             .assertIsDisplayed()
+    }
+
+    @Test
+    fun appStorageHistory_showsGrowthAndReductionWithoutCleanupClaim() {
+        val growing = AppStorageItem(
+            packageName = "com.example.growing",
+            appName = "增长应用",
+            appBytes = 120L * MIB,
+            dataBytes = 40L * MIB,
+            cacheBytes = 30L * MIB,
+        )
+        val shrinking = AppStorageItem(
+            packageName = "com.example.shrinking",
+            appName = "减少应用",
+            appBytes = 60L * MIB,
+            dataBytes = 30L * MIB,
+            cacheBytes = 10L * MIB,
+        )
+        composeRule.setContent {
+            CleanGuardTheme {
+                StorageInsightsScreen(
+                    uiState = StorageInsightsUiState(
+                        selectedTab = InsightsTab.APP_STORAGE,
+                        apps = listOf(growing, shrinking),
+                        appStorageChanges = mapOf(
+                            growing.packageName to AppStorageChange(
+                                packageName = growing.packageName,
+                                previousTimestamp = 1_700_000_000_000L,
+                                previousTotalBytes = 170L * MIB,
+                                totalBytesDelta = 20L * MIB,
+                                cacheBytesDelta = 10L * MIB,
+                            ),
+                            shrinking.packageName to AppStorageChange(
+                                packageName = shrinking.packageName,
+                                previousTimestamp = 1_700_000_000_000L,
+                                previousTotalBytes = 115L * MIB,
+                                totalBytesDelta = -15L * MIB,
+                                cacheBytesDelta = -5L * MIB,
+                            ),
+                        ),
+                        previousAppStorageScanAt = 1_700_000_000_000L,
+                        appStorageRecordedAt = 1_700_086_400_000L,
+                        usageAccessStatus = UsageAccessStatus.GRANTED,
+                        hasLoadedAppStorage = true,
+                        isLoading = false,
+                    ),
+                    onBack = {},
+                    onOpenUsageAccessSettings = {},
+                    onOpenApplicationSettings = {},
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("自上次成功扫描增加 20 MB").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("缓存占用增加 10 MB；不代表可以安全清理。")
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("自上次成功扫描减少 15 MB").performScrollTo().assertIsDisplayed()
+        composeRule.onAllNodesWithText("垃圾", substring = true).assertCountEquals(0)
+        composeRule.onAllNodesWithText("打开系统应用设置").assertCountEquals(2)
     }
 
     @Test

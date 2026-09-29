@@ -2,6 +2,7 @@ package com.cleanguard.app.feature.insights
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cleanguard.app.domain.model.AppStorageChange
 import com.cleanguard.app.domain.model.AppStorageItem
 import com.cleanguard.app.domain.model.FileCategory
 import com.cleanguard.app.domain.model.LargeFileThreshold
@@ -61,6 +62,9 @@ class StorageInsightsViewModel(
             selectedThreshold = data.threshold,
             largeFiles = sortedItems,
             apps = appStorage.items.sortedByDescending { it.totalBytes },
+            appStorageChanges = appStorage.changes,
+            previousAppStorageScanAt = appStorage.previousRecordedAt,
+            appStorageRecordedAt = appStorage.recordedAt,
             usageAccessStatus = appStorage.usageAccessStatus,
             isAppStorageLoading = appStorage.isLoading,
             hasLoadedAppStorage = appStorage.hasLoaded,
@@ -87,7 +91,7 @@ class StorageInsightsViewModel(
     }
 
     private fun refreshAppStorage() {
-        appStorageJob?.cancel()
+        if (appStorageJob?.isActive == true) return
         appStorageJob = viewModelScope.launch {
             appStorageState.value = appStorageState.value.copy(
                 isLoading = true,
@@ -102,6 +106,9 @@ class StorageInsightsViewModel(
                     AppStorageLoadState(
                         usageAccessStatus = UsageAccessStatus.GRANTED,
                         items = result.scanResult.items,
+                        changes = result.historyComparison.changes.associateBy { it.packageName },
+                        previousRecordedAt = result.historyComparison.previousRecordedAt,
+                        recordedAt = result.historyComparison.recordedAt,
                         skippedAppCount = result.scanResult.skippedAppCount,
                         hasLoaded = true,
                     )
@@ -140,6 +147,9 @@ private data class ScanData(
 private data class AppStorageLoadState(
     val usageAccessStatus: UsageAccessStatus = UsageAccessStatus.UNKNOWN,
     val items: List<AppStorageItem> = emptyList(),
+    val changes: Map<String, AppStorageChange> = emptyMap(),
+    val previousRecordedAt: Long? = null,
+    val recordedAt: Long? = null,
     val isLoading: Boolean = false,
     val hasLoaded: Boolean = false,
     val errorMessage: String? = null,

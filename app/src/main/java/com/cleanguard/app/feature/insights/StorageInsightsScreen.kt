@@ -25,14 +25,20 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.cleanguard.app.R
+import com.cleanguard.app.domain.model.AppStorageChange
 import com.cleanguard.app.domain.model.LargeFileThreshold
 import com.cleanguard.app.domain.model.ScanItem
 import com.cleanguard.app.domain.model.UsageAccessStatus
@@ -49,10 +55,15 @@ fun StorageInsightsRoute(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
+    var hasSeenInitialResume by remember(viewModel) { mutableStateOf(false) }
     DisposableEffect(lifecycleOwner, viewModel) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.onEvent(StorageInsightsUiEvent.RefreshAppStorage)
+                if (hasSeenInitialResume) {
+                    viewModel.onEvent(StorageInsightsUiEvent.RefreshAppStorage)
+                } else {
+                    hasSeenInitialResume = true
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -208,10 +219,25 @@ private fun AppStorageTab(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Text(
-                "仅统计可从桌面正常启动的应用，并按总占用从高到低排列。CleanGuard 不会自行清理其他应用的缓存。",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    "仅统计可从桌面正常启动的应用，并按总占用从高到低排列。CleanGuard 不会自行清理其他应用的缓存。",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                when {
+                    uiState.previousAppStorageScanAt != null -> Text(
+                        stringResource(
+                            R.string.app_storage_comparison_available,
+                            uiState.previousAppStorageScanAt.formatDate(),
+                        ),
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    uiState.appStorageRecordedAt != null -> Text(
+                        stringResource(R.string.app_storage_baseline_saved),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
         }
         when (uiState.usageAccessStatus) {
             UsageAccessStatus.UNKNOWN -> item {
@@ -270,6 +296,7 @@ private fun AppStorageTab(
             }
         }
         items(uiState.apps, key = { it.packageName }) { app ->
+            val change = uiState.appStorageChanges[app.packageName]
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -281,6 +308,13 @@ private fun AppStorageTab(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    when {
+                        change != null -> AppStorageChangeSummary(change)
+                        uiState.previousAppStorageScanAt != null -> Text(
+                            stringResource(R.string.app_storage_no_previous_app_record),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     Text(
                         app.packageName,
                         style = MaterialTheme.typography.bodySmall,
@@ -294,6 +328,49 @@ private fun AppStorageTab(
         }
     }
 }
+
+@Composable
+private fun AppStorageChangeSummary(change: AppStorageChange) {
+    Text(
+        stringResource(
+            R.string.app_storage_previous_total,
+            change.previousTotalBytes.formatBytes(),
+        ),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Text(
+        when {
+            change.totalBytesDelta > 0L -> stringResource(
+                R.string.app_storage_total_increased,
+                change.totalBytesDelta.formatBytes(),
+            )
+            change.totalBytesDelta < 0L -> stringResource(
+                R.string.app_storage_total_decreased,
+                change.totalBytesDelta.safeMagnitude().formatBytes(),
+            )
+            else -> stringResource(R.string.app_storage_total_unchanged)
+        },
+        color = MaterialTheme.colorScheme.primary,
+    )
+    if (change.cacheBytesDelta != 0L) {
+        Text(
+            if (change.cacheBytesDelta > 0L) {
+                stringResource(
+                    R.string.app_storage_cache_increased,
+                    change.cacheBytesDelta.formatBytes(),
+                )
+            } else {
+                stringResource(
+                    R.string.app_storage_cache_decreased,
+                    change.cacheBytesDelta.safeMagnitude().formatBytes(),
+                )
+            },
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+private fun Long.safeMagnitude(): Long = if (this == Long.MIN_VALUE) Long.MAX_VALUE else kotlin.math.abs(this)
 
 @Composable
 private fun AppStorageLoadingCard(message: String) {

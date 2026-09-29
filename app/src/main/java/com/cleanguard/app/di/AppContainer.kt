@@ -154,7 +154,7 @@ class DefaultAppContainer(
         RoomScanHistoryRepository(scanHistoryDao)
     }
     override val appStorageHistoryRepository: AppStorageHistoryRepository by lazy {
-        RoomAppStorageHistoryRepository(appStorageHistoryDao)
+        RoomAppStorageHistoryRepository(cleanGuardDatabase)
     }
     override val hashCacheRepository: HashCacheRepository by lazy {
         RoomHashCacheRepository(hashCacheDao)

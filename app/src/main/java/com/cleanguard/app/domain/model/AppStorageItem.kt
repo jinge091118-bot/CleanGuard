@@ -10,3 +10,17 @@ data class AppStorageItem(
     val totalBytes: Long = appBytes + dataBytes + cacheBytes
 }
 
+data class AppStorageChange(
+    val packageName: String,
+    val previousTimestamp: Long,
+    val previousTotalBytes: Long,
+    val totalBytesDelta: Long,
+    val cacheBytesDelta: Long,
+)
+
+data class AppStorageHistoryComparison(
+    val recordedAt: Long?,
+    val previousRecordedAt: Long?,
+    val changes: List<AppStorageChange> = emptyList(),
+)
+

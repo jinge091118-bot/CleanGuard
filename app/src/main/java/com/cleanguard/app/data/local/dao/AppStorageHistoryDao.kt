@@ -12,6 +12,18 @@ interface AppStorageHistoryDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(snapshot: AppStorageSnapshotEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertAll(snapshots: List<AppStorageSnapshotEntity>): List<Long>
+
+    @Query("SELECT MAX(timestamp) FROM app_storage_snapshots")
+    suspend fun findLatestTimestamp(): Long?
+
+    @Query(
+        "SELECT * FROM app_storage_snapshots " +
+            "WHERE timestamp = :timestamp ORDER BY totalBytes DESC, packageName ASC",
+    )
+    suspend fun findAtTimestamp(timestamp: Long): List<AppStorageSnapshotEntity>
+
     @Query(
         "SELECT * FROM app_storage_snapshots " +
             "WHERE packageName = :packageName ORDER BY timestamp DESC",

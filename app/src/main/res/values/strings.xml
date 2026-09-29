@@ -100,4 +100,13 @@
     <string name="download_type_unknown">未知类型</string>
     <string name="download_preview">预览</string>
     <string name="download_share">分享</string>
+    <string name="app_storage_comparison_available">已与上一次成功扫描比较（%1$s）。占用变化仅供参考。</string>
+    <string name="app_storage_baseline_saved">当前应用空间统计已保存；下一次成功扫描后将显示变化。</string>
+    <string name="app_storage_no_previous_app_record">上一次成功扫描中没有此应用的可比较记录。</string>
+    <string name="app_storage_previous_total">上次占用：%1$s</string>
+    <string name="app_storage_total_increased">自上次成功扫描增加 %1$s</string>
+    <string name="app_storage_total_decreased">自上次成功扫描减少 %1$s</string>
+    <string name="app_storage_total_unchanged">与上次成功扫描相比无变化</string>
+    <string name="app_storage_cache_increased">缓存占用增加 %1$s；不代表可以安全清理。</string>
+    <string name="app_storage_cache_decreased">缓存占用减少 %1$s</string>
 </resources>

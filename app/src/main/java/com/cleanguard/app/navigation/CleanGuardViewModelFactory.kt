@@ -93,7 +93,10 @@ class CleanGuardViewModelFactory(
                     repository = container.scanRepository,
                     applySafetyRules = ApplySafetyRulesUseCase(container.safetyRuleRepository),
                 ),
-                loadAppStorage = LoadAppStorageUseCase(container.appStorageRepository),
+                loadAppStorage = LoadAppStorageUseCase(
+                    repository = container.appStorageRepository,
+                    historyRepository = container.appStorageHistoryRepository,
+                ),
             )
 
         modelClass.isAssignableFrom(CleanupResultViewModel::class.java) ->

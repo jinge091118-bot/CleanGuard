@@ -1,6 +1,7 @@
 package com.cleanguard.app.feature.insights
 
 import com.cleanguard.app.domain.model.AppStorageItem
+import com.cleanguard.app.domain.model.AppStorageChange
 import com.cleanguard.app.domain.model.LargeFileThreshold
 import com.cleanguard.app.domain.model.ScanItem
 import com.cleanguard.app.domain.model.UsageAccessStatus
@@ -15,6 +16,9 @@ data class StorageInsightsUiState(
     val selectedThreshold: LargeFileThreshold = LargeFileThreshold.DEFAULT,
     val largeFiles: List<ScanItem> = emptyList(),
     val apps: List<AppStorageItem> = emptyList(),
+    val appStorageChanges: Map<String, AppStorageChange> = emptyMap(),
+    val previousAppStorageScanAt: Long? = null,
+    val appStorageRecordedAt: Long? = null,
     val usageAccessStatus: UsageAccessStatus = UsageAccessStatus.UNKNOWN,
     val isAppStorageLoading: Boolean = false,
     val hasLoadedAppStorage: Boolean = false,

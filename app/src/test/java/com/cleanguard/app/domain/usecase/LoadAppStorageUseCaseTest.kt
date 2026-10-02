@@ -5,6 +5,7 @@ import com.cleanguard.app.domain.model.AppStorageChange
 import com.cleanguard.app.domain.model.AppStorageScanResult
 import com.cleanguard.app.domain.model.UsageAccessStatus
 import com.cleanguard.app.domain.model.persistence.AppStorageHistoryRecord
+import com.cleanguard.app.domain.model.persistence.AppStorageTotalSnapshot
 import com.cleanguard.app.domain.model.persistence.AppStorageSnapshot
 import com.cleanguard.app.domain.repository.AppStorageHistoryRepository
 import com.cleanguard.app.domain.repository.AppStorageRepository
@@ -163,6 +164,9 @@ private class FakeAppStorageHistoryRepository(
     }
 
     override fun observeForPackage(packageName: String): Flow<List<AppStorageSnapshot>> = flowOf(emptyList())
+
+    override fun observeRecentTotals(limit: Int): Flow<List<AppStorageTotalSnapshot>> =
+        flowOf(emptyList())
 
     override suspend fun deleteBefore(cutoffEpochMillis: Long): Int = 0
 }

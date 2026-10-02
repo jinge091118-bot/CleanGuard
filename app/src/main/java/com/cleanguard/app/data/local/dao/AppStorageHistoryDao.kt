@@ -7,6 +7,11 @@ import androidx.room.Query
 import com.cleanguard.app.data.local.entity.AppStorageSnapshotEntity
 import kotlinx.coroutines.flow.Flow
 
+data class AppStorageTotalRow(
+    val timestamp: Long,
+    val totalBytes: Long,
+)
+
 @Dao
 interface AppStorageHistoryDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
@@ -29,6 +34,12 @@ interface AppStorageHistoryDao {
             "WHERE packageName = :packageName ORDER BY timestamp DESC",
     )
     fun observeForPackage(packageName: String): Flow<List<AppStorageSnapshotEntity>>
+
+    @Query(
+        "SELECT timestamp, SUM(totalBytes) AS totalBytes FROM app_storage_snapshots " +
+            "GROUP BY timestamp ORDER BY timestamp DESC LIMIT :limit",
+    )
+    fun observeRecentTotals(limit: Int): Flow<List<AppStorageTotalRow>>
 
     @Query("DELETE FROM app_storage_snapshots WHERE timestamp < :cutoffEpochMillis")
     suspend fun deleteBefore(cutoffEpochMillis: Long): Int

@@ -14,12 +14,14 @@ import com.cleanguard.app.data.local.mapper.toEntity
 import com.cleanguard.app.data.local.mapper.toItemEntities
 import com.cleanguard.app.domain.model.persistence.AppStorageSnapshot
 import com.cleanguard.app.domain.model.persistence.AppStorageHistoryRecord
+import com.cleanguard.app.domain.model.persistence.AppStorageTotalSnapshot
 import com.cleanguard.app.domain.model.persistence.CleanupHistoryEntry
 import com.cleanguard.app.domain.model.persistence.HashCacheEntry
 import com.cleanguard.app.domain.model.persistence.IgnoredItem
 import com.cleanguard.app.domain.model.persistence.IndexedItemRecord
 import com.cleanguard.app.domain.model.persistence.MediaSyncState
 import com.cleanguard.app.domain.model.persistence.MediaVolumeIndexUpdate
+import com.cleanguard.app.domain.model.persistence.PersistedScanStatus
 import com.cleanguard.app.domain.model.persistence.ScanHistoryRetentionPolicy
 import com.cleanguard.app.domain.model.persistence.ScanSnapshot
 import com.cleanguard.app.domain.repository.AppStorageHistoryRepository
@@ -76,18 +78,8 @@ class RoomScanHistoryRepository(
     override fun observeRecent(limit: Int): Flow<List<ScanSnapshot>> =
         dao.observeRecent(limit).map { entities -> entities.map { it.toDomain() } }
 
-    override suspend fun prune(
-        policy: ScanHistoryRetentionPolicy,
-        nowEpochMillis: Long,
-    ): Int {
-        val retentionDays = policy.retentionDays ?: return 0
-        val cutoff = nowEpochMillis - retentionDays * MILLIS_PER_DAY
-        return dao.deleteBefore(cutoff)
-    }
-
-    private companion object {
-        const val MILLIS_PER_DAY = 86_400_000L
-    }
+    override suspend fun prune(policy: ScanHistoryRetentionPolicy): Int =
+        policy.maxSuccessfulScans?.let { dao.pruneCompleted(it) } ?: 0
 }
 
 class RoomAppStorageHistoryRepository(
@@ -123,6 +115,11 @@ class RoomAppStorageHistoryRepository(
 
     override fun observeForPackage(packageName: String): Flow<List<AppStorageSnapshot>> =
         dao.observeForPackage(packageName).map { entities -> entities.map { it.toDomain() } }
+
+    override fun observeRecentTotals(limit: Int): Flow<List<AppStorageTotalSnapshot>> =
+        dao.observeRecentTotals(limit).map { rows ->
+            rows.map { row -> AppStorageTotalSnapshot(row.timestamp, row.totalBytes) }
+        }
 
     override suspend fun deleteBefore(cutoffEpochMillis: Long): Int =
         dao.deleteBefore(cutoffEpochMillis)
@@ -189,12 +186,18 @@ class RoomScanPersistenceTransactionRepository(
         require(completedSnapshot.scanId == scanId) {
             "Completed snapshot must belong to the persisted scan"
         }
+        require(completedSnapshot.scanStatus == PersistedScanStatus.COMPLETED) {
+            "Completed scan transaction requires a COMPLETED snapshot"
+        }
         database.withTransaction {
             database.indexedItemDao().upsertScanBatch(
                 scanId = scanId,
                 items = items.map(IndexedItemRecord::toEntity),
             )
             database.scanHistoryDao().upsert(completedSnapshot.toEntity())
+            database.scanHistoryDao().pruneCompleted(
+                ScanHistoryRetentionPolicy.DEFAULT.maxSuccessfulScans!!,
+            )
         }
     }
 }
@@ -227,6 +230,9 @@ class RoomIncrementalScanPersistenceRepository(
         require(completedSnapshot.scanId == scanId) {
             "Completed snapshot must belong to the persisted scan"
         }
+        require(completedSnapshot.scanStatus == PersistedScanStatus.COMPLETED) {
+            "Completed scan transaction requires a COMPLETED snapshot"
+        }
         database.withTransaction {
             removedVolumes.forEach { volumeName ->
                 database.indexedItemDao().deleteByVolume(volumeName)
@@ -244,6 +250,9 @@ class RoomIncrementalScanPersistenceRepository(
                 database.mediaSyncStateDao().upsert(update.syncState.toEntity())
             }
             database.scanHistoryDao().upsert(completedSnapshot.toEntity())
+            database.scanHistoryDao().pruneCompleted(
+                ScanHistoryRetentionPolicy.DEFAULT.maxSuccessfulScans!!,
+            )
         }
     }
 

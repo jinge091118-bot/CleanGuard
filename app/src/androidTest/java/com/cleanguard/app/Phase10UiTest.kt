@@ -56,6 +56,13 @@ import com.cleanguard.app.domain.repository.SafetyRuleRepository
 import com.cleanguard.app.domain.repository.SafScanner
 import com.cleanguard.app.domain.repository.ScanSessionRepository
 import com.cleanguard.app.domain.repository.StorageRepository
+import com.cleanguard.app.domain.repository.ScanHistoryRepository
+import com.cleanguard.app.domain.repository.AppStorageHistoryRepository
+import com.cleanguard.app.domain.model.persistence.AppStorageHistoryRecord
+import com.cleanguard.app.domain.model.persistence.AppStorageSnapshot
+import com.cleanguard.app.domain.model.persistence.AppStorageTotalSnapshot
+import com.cleanguard.app.domain.model.persistence.ScanHistoryRetentionPolicy
+import com.cleanguard.app.domain.model.persistence.ScanSnapshot
 import com.cleanguard.app.domain.rules.SafetyRule
 import com.cleanguard.app.domain.rules.SafetyRuleMatcher
 import com.cleanguard.app.feature.cleanupdetail.CleanupDetailScreen
@@ -72,6 +79,8 @@ import com.cleanguard.app.feature.downloadinsights.DownloadInsightsUiState
 import com.cleanguard.app.feature.insights.InsightsTab
 import com.cleanguard.app.feature.insights.StorageInsightsScreen
 import com.cleanguard.app.feature.insights.StorageInsightsUiState
+import com.cleanguard.app.feature.scanhistory.ScanHistoryScreen
+import com.cleanguard.app.feature.scanhistory.ScanHistoryUiState
 import com.cleanguard.app.navigation.CleanGuardNavHost
 import com.cleanguard.app.platform.intents.AppSettingsIntentFactory
 import com.cleanguard.app.platform.intents.DownloadTreeIntentFactory
@@ -107,6 +116,30 @@ class Phase10UiTest {
 
         composeRule.waitForText("清理建议")
         composeRule.onNodeWithText("清理建议").assertIsDisplayed()
+    }
+
+    @Test
+    fun scanHistoryPage_showsSuccessfulHistoryAndTrend() {
+        composeRule.setContent {
+            CleanGuardTheme {
+                ScanHistoryScreen(
+                    uiState = ScanHistoryUiState(
+                        isLoading = false,
+                        snapshots = listOf(
+                            historySnapshot("new", 200L, usedBytes = 70L * GIB),
+                            historySnapshot("old", 100L, usedBytes = 64L * GIB),
+                        ),
+                    ),
+                    onBack = {},
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("扫描历史").assertIsDisplayed()
+        composeRule.onNodeWithText("最近扫描").assertIsDisplayed()
+        composeRule.onNodeWithText("最新记录：70.0 GB").assertIsDisplayed()
+        composeRule.onAllNodesWithText("完整扫描").assertCountEquals(2)
     }
 
     @Test
@@ -394,6 +427,28 @@ class Phase10UiTest {
 }
 
 private class Phase10TestContainer : AppContainer {
+    override val scanHistoryRepository: ScanHistoryRepository = object : ScanHistoryRepository {
+        override suspend fun upsert(snapshot: ScanSnapshot) = Unit
+        override suspend fun findById(scanId: String): ScanSnapshot? = null
+        override fun observeRecent(limit: Int) = flowOf(emptyList<ScanSnapshot>())
+        override suspend fun prune(policy: ScanHistoryRetentionPolicy): Int = 0
+    }
+    override val appStorageHistoryRepository: AppStorageHistoryRepository =
+        object : AppStorageHistoryRepository {
+            override suspend fun insert(snapshot: AppStorageSnapshot): Long = 0L
+            override suspend fun recordSuccessfulScan(
+                snapshots: List<AppStorageSnapshot>,
+            ) = AppStorageHistoryRecord(
+                recordedAt = snapshots.firstOrNull()?.timestamp ?: 0L,
+                previousRecordedAt = null,
+                previousSnapshots = emptyList(),
+            )
+            override fun observeForPackage(packageName: String) =
+                flowOf(emptyList<AppStorageSnapshot>())
+            override fun observeRecentTotals(limit: Int) =
+                flowOf(emptyList<AppStorageTotalSnapshot>())
+            override suspend fun deleteBefore(cutoffEpochMillis: Long): Int = 0
+        }
     override val appStorageRepository: AppStorageRepository = object : AppStorageRepository {
         override fun usageAccessStatus() = UsageAccessStatus.NOT_GRANTED
         override suspend fun loadLaunchableAppStorage() =
@@ -493,6 +548,35 @@ private fun testScanItem(
             setOf(CleanupAction.NONE, CleanupAction.PREVIEW)
         },
     ),
+)
+
+private fun historySnapshot(
+    id: String,
+    completedAt: Long,
+    usedBytes: Long,
+) = ScanSnapshot(
+    scanId = id,
+    startedAt = completedAt - 10L,
+    completedAt = completedAt,
+    durationMs = 10L,
+    scanStatus = com.cleanguard.app.domain.model.persistence.PersistedScanStatus.COMPLETED,
+    usedBytes = usedBytes,
+    freeBytes = 128L * GIB - usedBytes,
+    totalBytes = 128L * GIB,
+    imageBytes = 10L * GIB,
+    videoBytes = 20L * GIB,
+    audioBytes = 1L * GIB,
+    downloadBytes = 2L * GIB,
+    apkBytes = 0L,
+    largeFileBytes = 0L,
+    duplicateCandidateBytes = 0L,
+    safeBytes = 0L,
+    reviewBytes = 0L,
+    dangerBytes = 0L,
+    unknownBytes = 0L,
+    scannedItemCount = 12,
+    isIncremental = false,
+    mediaAccessState = com.cleanguard.app.domain.model.persistence.PersistedMediaAccessState.GRANTED,
 )
 
 private const val MIB = 1024L * 1024L

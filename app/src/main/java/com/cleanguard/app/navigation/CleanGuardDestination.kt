@@ -10,6 +10,7 @@ sealed class CleanGuardDestination(val route: String) {
     data object DuplicateGroups : CleanGuardDestination("duplicate-groups")
     data object ApkInsights : CleanGuardDestination("apk-insights")
     data object DownloadInsights : CleanGuardDestination("download-insights")
+    data object ScanHistory : CleanGuardDestination("scan-history")
     data object DuplicateDetail : CleanGuardDestination("duplicate-detail/{groupId}") {
         fun createRoute(groupId: String): String = "duplicate-detail/${android.net.Uri.encode(groupId)}"
     }

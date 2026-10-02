@@ -149,6 +149,24 @@ class CleanGuardDatabaseTest {
     }
 
     @Test
+    fun scanHistory_onlyCompletedScansAreVisibleAsSuccessfulHistory() = runBlocking {
+        val dao = database.scanHistoryDao()
+        dao.upsert(scanSnapshotEntity("completed", 100L))
+        dao.upsert(
+            scanSnapshotEntity("failed", 200L).copy(scanStatus = PersistedScanStatus.FAILED.name),
+        )
+        dao.upsert(
+            scanSnapshotEntity("cancelled", 300L).copy(
+                scanStatus = PersistedScanStatus.CANCELLED.name,
+            ),
+        )
+
+        assertEquals(listOf("completed"), dao.observeRecent(10).first().map { it.scanId })
+        assertNotNull(dao.findById("failed"))
+        assertNotNull(dao.findById("cancelled"))
+    }
+
+    @Test
     fun appStorageHistory_ordersNewestFirst() = runBlocking {
         val dao = database.appStorageHistoryDao()
         dao.insert(appStorageEntity(timestamp = 100L))
@@ -183,6 +201,19 @@ class CleanGuardDatabaseTest {
         assertEquals(100L, second.previousRecordedAt)
         assertEquals(setOf("com.example.one", "com.example.two"), second.previousSnapshots.map { it.packageName }.toSet())
         assertEquals(2, database.appStorageHistoryDao().findAtTimestamp(101L).size)
+    }
+
+    @Test
+    fun appStorageHistory_recentTotalsAreGroupedAndOrderedByCapture() = runBlocking {
+        val dao = database.appStorageHistoryDao()
+        dao.insert(appStorageEntity(100L).copy(packageName = "one", totalBytes = 10L))
+        dao.insert(appStorageEntity(100L).copy(packageName = "two", totalBytes = 20L))
+        dao.insert(appStorageEntity(200L).copy(packageName = "one", totalBytes = 40L))
+
+        val totals = dao.observeRecentTotals(10).first()
+
+        assertEquals(listOf(200L, 100L), totals.map { it.timestamp })
+        assertEquals(listOf(40L, 30L), totals.map { it.totalBytes })
     }
 
     @Test
@@ -252,16 +283,20 @@ class CleanGuardDatabaseTest {
     }
 
     @Test
-    fun scanHistoryPrune_usesRetentionPolicyAndPreservesUnlimited() = runBlocking {
-        val now = 100L * MILLIS_PER_DAY
+    fun scanHistoryPrune_keepsNewestSuccessfulScansAndPreservesOtherStates() = runBlocking {
         val dao = database.scanHistoryDao()
         val repository = RoomScanHistoryRepository(dao)
-        dao.upsert(scanSnapshotEntity("old", now - 31L * MILLIS_PER_DAY))
-        dao.upsert(scanSnapshotEntity("recent", now - 5L * MILLIS_PER_DAY))
+        repeat(11) { index ->
+            dao.upsert(scanSnapshotEntity("success-$index", index.toLong()))
+        }
+        dao.upsert(
+            scanSnapshotEntity("failed", 100L).copy(scanStatus = PersistedScanStatus.FAILED.name),
+        )
 
-        assertEquals(1, repository.prune(ScanHistoryRetentionPolicy.THIRTY_DAYS, now))
-        assertEquals(listOf("recent"), dao.observeRecent(10).first().map { it.scanId })
-        assertEquals(0, repository.prune(ScanHistoryRetentionPolicy.UNLIMITED, now))
+        assertEquals(1, repository.prune(ScanHistoryRetentionPolicy.TEN_SCANS))
+        assertEquals(10, dao.observeRecent(20).first().size)
+        assertNotNull(dao.findById("failed"))
+        assertEquals(0, repository.prune(ScanHistoryRetentionPolicy.UNLIMITED))
     }
 
     @Test
@@ -278,6 +313,23 @@ class CleanGuardDatabaseTest {
             PersistedScanStatus.COMPLETED.name,
             database.scanHistoryDao().findById("scan-transaction")?.scanStatus,
         )
+    }
+
+    @Test
+    fun successfulScanTransaction_automaticallyKeepsLatestThirtyCompletedScans() = runBlocking {
+        val repository = RoomScanPersistenceTransactionRepository(database)
+        repeat(31) { index ->
+            repository.persistBatchAndComplete(
+                scanId = "scan-$index",
+                items = emptyList(),
+                completedSnapshot = scanSnapshot("scan-$index", index.toLong()),
+            )
+        }
+
+        val history = database.scanHistoryDao().observeRecent(100).first()
+        assertEquals(30, history.size)
+        assertEquals("scan-30", history.first().scanId)
+        assertNull(database.scanHistoryDao().findById("scan-0"))
     }
 
     @Test
@@ -462,7 +514,4 @@ class CleanGuardDatabaseTest {
         updatedAt = 300L,
     )
 
-    private companion object {
-        const val MILLIS_PER_DAY = 86_400_000L
-    }
 }

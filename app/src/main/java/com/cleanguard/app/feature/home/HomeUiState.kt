@@ -11,4 +11,18 @@ data class HomeUiState(
     val hasDownloadAccess: Boolean = false,
     val downloadDirectoryName: String? = null,
     val downloadAccessError: String? = null,
+    val historyDelta: HomeHistoryDelta? = null,
+    val recommendationSummary: HomeRecommendationSummary? = null,
+)
+
+data class HomeHistoryDelta(
+    val latestCompletedAt: Long,
+    val usedBytes: Long?,
+    val videoBytes: Long?,
+    val appBytes: Long?,
+)
+
+data class HomeRecommendationSummary(
+    val itemCount: Int,
+    val candidateBytes: Long,
 )

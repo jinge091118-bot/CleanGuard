@@ -151,15 +151,25 @@ data class CleanupHistoryEntry(
 )
 
 enum class ScanHistoryRetentionPolicy(
-    val retentionDays: Int?,
+    val maxSuccessfulScans: Int?,
 ) {
-    TEN_DAYS(10),
-    THIRTY_DAYS(30),
-    NINETY_DAYS(90),
+    TEN_SCANS(10),
+    THIRTY_SCANS(30),
+    NINETY_SCANS(90),
     UNLIMITED(null),
     ;
 
     companion object {
-        val DEFAULT = THIRTY_DAYS
+        val DEFAULT = THIRTY_SCANS
     }
 }
+
+data class AppStorageTotalSnapshot(
+    val timestamp: Long,
+    val totalBytes: Long,
+)
+
+data class ScanHistoryTimeline(
+    val successfulScans: List<ScanSnapshot>,
+    val appStorageTotals: List<AppStorageTotalSnapshot>,
+)

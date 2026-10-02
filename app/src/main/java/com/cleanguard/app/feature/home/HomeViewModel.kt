@@ -4,7 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cleanguard.app.domain.repository.PermissionRepository
 import com.cleanguard.app.domain.repository.DownloadAccessRepository
+import com.cleanguard.app.domain.repository.ScanSessionRepository
+import com.cleanguard.app.domain.recommendation.RecommendationEngine
+import com.cleanguard.app.domain.recommendation.RecommendationPriority
 import com.cleanguard.app.domain.usecase.LoadStorageOverviewUseCase
+import com.cleanguard.app.domain.usecase.ObserveScanHistoryUseCase
+import com.cleanguard.app.domain.model.persistence.ScanHistoryTimeline
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,6 +22,9 @@ class HomeViewModel(
     private val loadStorageOverview: LoadStorageOverviewUseCase,
     private val permissionRepository: PermissionRepository,
     private val downloadAccessRepository: DownloadAccessRepository,
+    private val observeScanHistory: ObserveScanHistoryUseCase,
+    private val scanSessionRepository: ScanSessionRepository,
+    private val recommendationEngine: RecommendationEngine,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(
         HomeUiState(permissionStatus = permissionRepository.getMediaPermissionStatus()),
@@ -27,6 +35,8 @@ class HomeViewModel(
 
     init {
         observeDownloadAccess()
+        observeHistory()
+        observeRecommendations()
         refresh()
     }
 
@@ -92,4 +102,58 @@ class HomeViewModel(
             }
         }
     }
+
+    private fun observeHistory() {
+        viewModelScope.launch {
+            observeScanHistory().collect { timeline ->
+                _uiState.update { state ->
+                    state.copy(historyDelta = timeline.toHomeHistoryDelta())
+                }
+            }
+        }
+    }
+
+    private fun observeRecommendations() {
+        viewModelScope.launch {
+            scanSessionRepository.scanItems.collect { items ->
+                val recommendations = recommendationEngine.recommend(items)
+                    .filter { recommendation ->
+                        recommendation.priority == RecommendationPriority.HIGH ||
+                            recommendation.priority == RecommendationPriority.MEDIUM
+                    }
+                val recommendedIds = recommendations.mapTo(hashSetOf()) { it.itemId }
+                _uiState.update { state ->
+                    state.copy(
+                        recommendationSummary = if (recommendedIds.isEmpty()) {
+                            null
+                        } else {
+                            HomeRecommendationSummary(
+                                itemCount = recommendedIds.size,
+                                candidateBytes = items
+                                    .filter { it.id in recommendedIds }
+                                    .sumOf { it.sizeBytes },
+                            )
+                        },
+                    )
+                }
+            }
+        }
+    }
+}
+
+internal fun ScanHistoryTimeline.toHomeHistoryDelta(): HomeHistoryDelta? {
+    val latest = successfulScans.getOrNull(0) ?: return null
+    val previous = successfulScans.getOrNull(1)
+    val latestApp = appStorageTotals.getOrNull(0)
+    val previousApp = appStorageTotals.getOrNull(1)
+    return HomeHistoryDelta(
+        latestCompletedAt = latest.completedAt ?: latest.startedAt,
+        usedBytes = previous?.let { latest.usedBytes - it.usedBytes },
+        videoBytes = previous?.let { latest.videoBytes - it.videoBytes },
+        appBytes = if (latestApp != null && previousApp != null) {
+            latestApp.totalBytes - previousApp.totalBytes
+        } else {
+            null
+        },
+    )
 }

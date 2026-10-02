@@ -39,6 +39,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -50,6 +51,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.cleanguard.app.domain.model.MediaPermissionStatus
 import com.cleanguard.app.domain.model.StorageCategory
 import com.cleanguard.app.domain.model.StorageOverview
+import com.cleanguard.app.R
 import com.cleanguard.app.ui.components.InfoCard
 import com.cleanguard.app.ui.components.MetricTile
 import com.cleanguard.app.ui.util.formatBytes
@@ -60,6 +62,8 @@ fun HomeRoute(
     viewModel: HomeViewModel,
     onStartScan: () -> Unit,
     onOpenStorageInsights: () -> Unit,
+    onOpenScanHistory: () -> Unit,
+    onOpenRecommendations: () -> Unit,
     createDownloadTreeIntent: () -> Intent,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -96,6 +100,8 @@ fun HomeRoute(
             when (event) {
                 HomeUiEvent.StartScan -> onStartScan()
                 HomeUiEvent.OpenStorageInsights -> onOpenStorageInsights()
+                HomeUiEvent.OpenScanHistory -> onOpenScanHistory()
+                HomeUiEvent.OpenRecommendations -> onOpenRecommendations()
                 HomeUiEvent.RequestMediaPermission -> {
                     val permissions = viewModel.permissionsForRequest()
                     if (permissions.isEmpty()) {
@@ -154,6 +160,18 @@ fun HomeScreen(
                 }
 
                 StorageOverviewCard(storage)
+                ScanHistorySummaryCard(
+                    delta = uiState.historyDelta,
+                    onOpenHistory = { onEvent(HomeUiEvent.OpenScanHistory) },
+                )
+                uiState.recommendationSummary?.let { summary ->
+                    WorthReviewingCard(
+                        summary = summary,
+                        onOpenRecommendations = {
+                            onEvent(HomeUiEvent.OpenRecommendations)
+                        },
+                    )
+                }
                 StorageCategoriesCard(storage.categories, storage.usedBytes)
                 PermissionStatusCard(
                     status = uiState.permissionStatus,
@@ -185,6 +203,75 @@ fun HomeScreen(
                 )
                 Spacer(Modifier.height(8.dp))
             }
+        }
+    }
+}
+
+@Composable
+private fun ScanHistorySummaryCard(
+    delta: HomeHistoryDelta?,
+    onOpenHistory: () -> Unit,
+) {
+    InfoCard(title = stringResource(R.string.home_history_title)) {
+        if (delta == null) {
+            Text(
+                stringResource(R.string.home_history_empty),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else if (delta.usedBytes == null) {
+            Text(
+                stringResource(R.string.home_history_baseline_saved),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            Text(
+                stringResource(R.string.home_history_since_last_scan),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            HistoryDeltaRow(stringResource(R.string.home_history_used), delta.usedBytes)
+            HistoryDeltaRow(stringResource(R.string.home_history_video), delta.videoBytes)
+            HistoryDeltaRow(stringResource(R.string.home_history_app), delta.appBytes)
+        }
+        OutlinedButton(onClick = onOpenHistory, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.home_open_scan_history))
+        }
+    }
+}
+
+@Composable
+private fun HistoryDeltaRow(label: String, deltaBytes: Long?) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label)
+        Text(
+            deltaBytes?.let { bytes ->
+                val sign = if (bytes > 0L) "+" else if (bytes < 0L) "−" else ""
+                "$sign${kotlin.math.abs(bytes).formatBytes()}"
+            } ?: stringResource(R.string.home_history_no_comparison),
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
+
+@Composable
+private fun WorthReviewingCard(
+    summary: HomeRecommendationSummary,
+    onOpenRecommendations: () -> Unit,
+) {
+    InfoCard(title = stringResource(R.string.recommendation_section_title)) {
+        Text(
+            stringResource(
+                R.string.home_recommendation_summary,
+                summary.itemCount,
+                summary.candidateBytes.formatBytes(),
+            ),
+        )
+        Text(
+            stringResource(R.string.home_recommendation_safety_note),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedButton(onClick = onOpenRecommendations, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.home_view_recommendations))
         }
     }
 }

@@ -9,6 +9,7 @@ import com.cleanguard.app.domain.usecase.CreateCleanupPlanUseCase
 import com.cleanguard.app.domain.usecase.ApplySafetyRulesUseCase
 import com.cleanguard.app.domain.usecase.ScanMediaUseCase
 import com.cleanguard.app.domain.usecase.UpdateLargeFileThresholdUseCase
+import com.cleanguard.app.domain.usecase.ObserveScanHistoryUseCase
 import com.cleanguard.app.feature.cleanupdetail.CleanupDetailViewModel
 import com.cleanguard.app.feature.cleanupresult.CleanupResultViewModel
 import com.cleanguard.app.feature.home.HomeViewModel
@@ -18,6 +19,7 @@ import com.cleanguard.app.feature.duplicates.DuplicateGroupsViewModel
 import com.cleanguard.app.feature.insights.StorageInsightsViewModel
 import com.cleanguard.app.feature.results.ScanResultsViewModel
 import com.cleanguard.app.feature.scanning.ScanningViewModel
+import com.cleanguard.app.feature.scanhistory.ScanHistoryViewModel
 
 class CleanGuardViewModelFactory(
     private val container: AppContainer,
@@ -29,6 +31,20 @@ class CleanGuardViewModelFactory(
                 loadStorageOverview = LoadStorageOverviewUseCase(container.storageRepository),
                 permissionRepository = container.permissionRepository,
                 downloadAccessRepository = container.downloadAccessRepository,
+                observeScanHistory = ObserveScanHistoryUseCase(
+                    container.scanHistoryRepository,
+                    container.appStorageHistoryRepository,
+                ),
+                scanSessionRepository = container.scanRepository,
+                recommendationEngine = container.recommendationEngine,
+            )
+
+        modelClass.isAssignableFrom(ScanHistoryViewModel::class.java) ->
+            ScanHistoryViewModel(
+                ObserveScanHistoryUseCase(
+                    container.scanHistoryRepository,
+                    container.appStorageHistoryRepository,
+                ),
             )
 
         modelClass.isAssignableFrom(ScanningViewModel::class.java) ->

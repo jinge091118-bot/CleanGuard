@@ -32,6 +32,8 @@ import com.cleanguard.app.feature.results.ScanResultsRoute
 import com.cleanguard.app.feature.results.ScanResultsViewModel
 import com.cleanguard.app.feature.scanning.ScanningRoute
 import com.cleanguard.app.feature.scanning.ScanningViewModel
+import com.cleanguard.app.feature.scanhistory.ScanHistoryRoute
+import com.cleanguard.app.feature.scanhistory.ScanHistoryViewModel
 
 @Composable
 fun CleanGuardNavHost(container: AppContainer) {
@@ -48,7 +50,15 @@ fun CleanGuardNavHost(container: AppContainer) {
                 viewModel = viewModel<HomeViewModel>(factory = factory),
                 onStartScan = { navController.navigate(CleanGuardDestination.Scanning.route) },
                 onOpenStorageInsights = { navController.navigate(CleanGuardDestination.StorageInsights.route) },
+                onOpenScanHistory = { navController.navigate(CleanGuardDestination.ScanHistory.route) },
+                onOpenRecommendations = { navController.navigate(CleanGuardDestination.ScanResults.route) },
                 createDownloadTreeIntent = container.downloadTreeIntentFactory::create,
+            )
+        }
+        composable(CleanGuardDestination.ScanHistory.route) {
+            ScanHistoryRoute(
+                viewModel = viewModel<ScanHistoryViewModel>(factory = factory),
+                onBack = { navController.navigateUp() },
             )
         }
         composable(CleanGuardDestination.Scanning.route) {

@@ -17,9 +17,12 @@ class CleanGuardDestinationTest {
             CleanGuardDestination.DuplicateDetail.route,
             CleanGuardDestination.ApkInsights.route,
             CleanGuardDestination.DownloadInsights.route,
+            CleanGuardDestination.ScanHistory.route,
+            CleanGuardDestination.CleanupHistory.route,
+            CleanGuardDestination.RecoveryCenter.route,
         )
 
-        assertEquals(10, routes.distinct().size)
+        assertEquals(13, routes.distinct().size)
     }
 }
 

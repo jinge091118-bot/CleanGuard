@@ -16,6 +16,10 @@ import com.cleanguard.app.feature.cleanupdetail.CleanupDetailRoute
 import com.cleanguard.app.feature.cleanupdetail.CleanupDetailViewModel
 import com.cleanguard.app.feature.cleanupresult.CleanupResultRoute
 import com.cleanguard.app.feature.cleanupresult.CleanupResultViewModel
+import com.cleanguard.app.feature.cleanuphistory.CleanupHistoryRoute
+import com.cleanguard.app.feature.cleanuphistory.CleanupHistoryViewModel
+import com.cleanguard.app.feature.recovery.RecoveryCenterRoute
+import com.cleanguard.app.feature.recovery.RecoveryCenterViewModel
 import com.cleanguard.app.feature.home.HomeRoute
 import com.cleanguard.app.feature.home.HomeViewModel
 import com.cleanguard.app.feature.apkinsights.ApkInsightsRoute
@@ -52,7 +56,24 @@ fun CleanGuardNavHost(container: AppContainer) {
                 onOpenStorageInsights = { navController.navigate(CleanGuardDestination.StorageInsights.route) },
                 onOpenScanHistory = { navController.navigate(CleanGuardDestination.ScanHistory.route) },
                 onOpenRecommendations = { navController.navigate(CleanGuardDestination.ScanResults.route) },
+                onOpenCleanupHistory = { navController.navigate(CleanGuardDestination.CleanupHistory.route) },
+                onOpenRecoveryCenter = { navController.navigate(CleanGuardDestination.RecoveryCenter.route) },
                 createDownloadTreeIntent = container.downloadTreeIntentFactory::create,
+            )
+        }
+        composable(CleanGuardDestination.CleanupHistory.route) {
+            CleanupHistoryRoute(
+                viewModel = viewModel<CleanupHistoryViewModel>(factory = factory),
+                onBack = { navController.navigateUp() },
+                onOpenRecoveryCenter = {
+                    navController.navigate(CleanGuardDestination.RecoveryCenter.route)
+                },
+            )
+        }
+        composable(CleanGuardDestination.RecoveryCenter.route) {
+            RecoveryCenterRoute(
+                viewModel = viewModel<RecoveryCenterViewModel>(factory = factory),
+                onBack = { navController.navigateUp() },
             )
         }
         composable(CleanGuardDestination.ScanHistory.route) {

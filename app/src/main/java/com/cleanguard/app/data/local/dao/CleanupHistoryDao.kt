@@ -39,6 +39,9 @@ interface CleanupHistoryDao {
     @Query("SELECT * FROM cleanup_history ORDER BY timestamp DESC LIMIT :limit")
     fun observeRecent(limit: Int): Flow<List<CleanupHistoryWithItems>>
 
+    @Query("UPDATE cleanup_history SET restoreStatus = :restoreStatus WHERE cleanupId = :cleanupId")
+    suspend fun updateRestoreStatus(cleanupId: String, restoreStatus: String): Int
+
     @Query("SELECT COUNT(*) FROM cleanup_history")
     suspend fun count(): Int
 }

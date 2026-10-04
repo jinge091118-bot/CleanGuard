@@ -1,6 +1,7 @@
 package com.cleanguard.app.domain.model
 
 data class CleanupResult(
+    val cleanupId: String? = null,
     val requestedCount: Int,
     val successCount: Int,
     val failureCount: Int,

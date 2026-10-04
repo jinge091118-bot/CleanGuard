@@ -12,6 +12,8 @@ import com.cleanguard.app.domain.usecase.UpdateLargeFileThresholdUseCase
 import com.cleanguard.app.domain.usecase.ObserveScanHistoryUseCase
 import com.cleanguard.app.feature.cleanupdetail.CleanupDetailViewModel
 import com.cleanguard.app.feature.cleanupresult.CleanupResultViewModel
+import com.cleanguard.app.feature.cleanuphistory.CleanupHistoryViewModel
+import com.cleanguard.app.feature.recovery.RecoveryCenterViewModel
 import com.cleanguard.app.feature.home.HomeViewModel
 import com.cleanguard.app.feature.apkinsights.ApkInsightsViewModel
 import com.cleanguard.app.feature.downloadinsights.DownloadInsightsViewModel
@@ -45,6 +47,15 @@ class CleanGuardViewModelFactory(
                     container.scanHistoryRepository,
                     container.appStorageHistoryRepository,
                 ),
+            )
+
+        modelClass.isAssignableFrom(CleanupHistoryViewModel::class.java) ->
+            CleanupHistoryViewModel(container.cleanupHistoryRepository)
+
+        modelClass.isAssignableFrom(RecoveryCenterViewModel::class.java) ->
+            RecoveryCenterViewModel(
+                historyRepository = container.cleanupHistoryRepository,
+                recoveryRepository = container.mediaRecoveryRepository,
             )
 
         modelClass.isAssignableFrom(ScanningViewModel::class.java) ->

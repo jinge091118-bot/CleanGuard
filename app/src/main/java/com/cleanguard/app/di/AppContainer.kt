@@ -13,6 +13,7 @@ import com.cleanguard.app.data.duplicate.CurrentDuplicateSessionRepository
 import com.cleanguard.app.data.duplicate.DuplicateVerificationEngineImpl
 import com.cleanguard.app.data.duplicate.StreamHashCalculator
 import com.cleanguard.app.data.cleanup.MediaStoreCleanupRepository
+import com.cleanguard.app.data.cleanup.MediaStoreRecoveryRepository
 import com.cleanguard.app.data.local.CleanGuardDatabase
 import com.cleanguard.app.data.local.dao.AppStorageHistoryDao
 import com.cleanguard.app.data.local.dao.CleanupHistoryDao
@@ -46,6 +47,8 @@ import com.cleanguard.app.domain.repository.AppStorageHistoryRepository
 import com.cleanguard.app.domain.repository.CleanupHistoryRepository
 import com.cleanguard.app.domain.repository.DownloadAccessRepository
 import com.cleanguard.app.domain.repository.MediaScanner
+import com.cleanguard.app.domain.repository.MediaRecoveryRepository
+import com.cleanguard.app.domain.repository.NoOpMediaRecoveryRepository
 import com.cleanguard.app.domain.repository.HashCacheRepository
 import com.cleanguard.app.domain.repository.IgnoreRuleRepository
 import com.cleanguard.app.domain.repository.IncrementalScanPersistenceRepository
@@ -97,6 +100,7 @@ interface AppContainer {
     val mediaScanner: MediaScanner
     val scanRepository: ScanSessionRepository
     val cleanupRepository: CleanupRepository
+    val mediaRecoveryRepository: MediaRecoveryRepository get() = NoOpMediaRecoveryRepository
     val storageRepository: StorageRepository
     val permissionRepository: PermissionRepository
     val safetyRuleRepository: SafetyRuleRepository
@@ -190,6 +194,13 @@ class DefaultAppContainer(
         MediaStoreCleanupRepository(
             contentResolver = context.contentResolver,
             storageRepository = storageRepository,
+            cleanupHistoryRepository = cleanupHistoryRepository,
+        )
+    }
+    override val mediaRecoveryRepository: MediaRecoveryRepository by lazy {
+        MediaStoreRecoveryRepository(
+            contentResolver = context.contentResolver,
+            historyRepository = cleanupHistoryRepository,
         )
     }
     override val storageRepository: StorageRepository by lazy {

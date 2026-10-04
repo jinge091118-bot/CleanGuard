@@ -4,6 +4,7 @@ import com.cleanguard.app.domain.model.persistence.AppStorageSnapshot
 import com.cleanguard.app.domain.model.persistence.AppStorageHistoryRecord
 import com.cleanguard.app.domain.model.persistence.AppStorageTotalSnapshot
 import com.cleanguard.app.domain.model.persistence.CleanupHistoryEntry
+import com.cleanguard.app.domain.model.persistence.CleanupRestoreStatus
 import com.cleanguard.app.domain.model.persistence.HashCacheEntry
 import com.cleanguard.app.domain.model.persistence.IgnoredItem
 import com.cleanguard.app.domain.model.persistence.IndexedItemRecord
@@ -12,6 +13,7 @@ import com.cleanguard.app.domain.model.persistence.MediaVolumeIndexUpdate
 import com.cleanguard.app.domain.model.persistence.ScanHistoryRetentionPolicy
 import com.cleanguard.app.domain.model.persistence.ScanSnapshot
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 
 interface IndexedItemPersistenceRepository {
     suspend fun upsert(item: IndexedItemRecord)
@@ -66,6 +68,17 @@ interface CleanupHistoryRepository {
     suspend fun save(entry: CleanupHistoryEntry)
     suspend fun findById(cleanupId: String): CleanupHistoryEntry?
     fun observeRecent(limit: Int): Flow<List<CleanupHistoryEntry>>
+    suspend fun updateRestoreStatus(cleanupId: String, status: CleanupRestoreStatus): Int
+}
+
+object NoOpCleanupHistoryRepository : CleanupHistoryRepository {
+    override suspend fun save(entry: CleanupHistoryEntry) = Unit
+    override suspend fun findById(cleanupId: String): CleanupHistoryEntry? = null
+    override fun observeRecent(limit: Int): Flow<List<CleanupHistoryEntry>> = flowOf(emptyList())
+    override suspend fun updateRestoreStatus(
+        cleanupId: String,
+        status: CleanupRestoreStatus,
+    ): Int = 0
 }
 
 interface ScanPersistenceTransactionRepository {

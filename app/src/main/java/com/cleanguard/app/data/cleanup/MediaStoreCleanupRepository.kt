@@ -14,7 +14,13 @@ import com.cleanguard.app.domain.model.ScanSource
 import com.cleanguard.app.domain.model.RiskLevel
 import com.cleanguard.app.domain.model.SystemConfirmationOutcome
 import com.cleanguard.app.domain.repository.CleanupRepository
+import com.cleanguard.app.domain.repository.CleanupHistoryRepository
+import com.cleanguard.app.domain.repository.NoOpCleanupHistoryRepository
 import com.cleanguard.app.domain.repository.StorageRepository
+import com.cleanguard.app.domain.model.persistence.CleanupHistoryEntry
+import com.cleanguard.app.domain.model.persistence.CleanupHistoryItem
+import com.cleanguard.app.domain.model.persistence.CleanupHistoryType
+import com.cleanguard.app.domain.model.persistence.CleanupRestoreStatus
 import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -27,7 +33,9 @@ import kotlinx.coroutines.withContext
 class MediaStoreCleanupRepository(
     private val contentResolver: ContentResolver,
     private val storageRepository: StorageRepository,
+    private val cleanupHistoryRepository: CleanupHistoryRepository = NoOpCleanupHistoryRepository,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val currentTimeMillis: () -> Long = System::currentTimeMillis,
 ) : CleanupRepository {
     private val result = MutableStateFlow<CleanupResult?>(null)
     private var pendingPlan: CleanupPlan? = null
@@ -58,6 +66,7 @@ class MediaStoreCleanupRepository(
         undoPlan = activePlan.takeIf { outcome == SystemConfirmationOutcome.CONFIRMED }
         pendingPlan = null
         result.value = completedResult
+        persistHistory(activePlan, completedResult, outcome)
         completedResult
     }
 
@@ -79,8 +88,34 @@ class MediaStoreCleanupRepository(
             )
             undoPlan = null
             result.value = updatedResult
+            runCatching {
+                cleanupHistoryRepository.updateRestoreStatus(
+                    currentResult.cleanupId ?: return@runCatching,
+                    CleanupRestoreStatus.RESTORED,
+                )
+            }
             Result.success(updatedResult)
         }
+
+    private suspend fun persistHistory(
+        plan: CleanupPlan,
+        cleanupResult: CleanupResult,
+        outcome: SystemConfirmationOutcome,
+    ) {
+        val entry = CleanupHistoryEntryFactory.fromTrashOutcome(
+            plan = plan,
+            result = cleanupResult,
+            outcome = outcome,
+            timestamp = currentTimeMillis(),
+        )
+        try {
+            cleanupHistoryRepository.save(entry)
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (_: Exception) {
+            // The system operation is already complete. A local history write must not change it.
+        }
+    }
 
     private fun createMediaStoreTrashRequest(
         plan: CleanupPlan,
@@ -135,6 +170,7 @@ internal object CleanupResultFactory {
     ): CleanupResult {
         val requestedCount = plan.items.size
         return CleanupResult(
+            cleanupId = plan.id,
             requestedCount = requestedCount,
             successCount = if (outcome == SystemConfirmationOutcome.CONFIRMED) requestedCount else 0,
             failureCount = if (outcome == SystemConfirmationOutcome.FAILED) requestedCount else 0,
@@ -166,6 +202,36 @@ internal object CleanupResultFactory {
     )
 }
 
+internal object CleanupHistoryEntryFactory {
+    fun fromTrashOutcome(
+        plan: CleanupPlan,
+        result: CleanupResult,
+        outcome: SystemConfirmationOutcome,
+        timestamp: Long,
+    ): CleanupHistoryEntry = CleanupHistoryEntry(
+        cleanupId = plan.id,
+        timestamp = timestamp,
+        requestedItemCount = result.requestedCount,
+        processedItemCount = result.successCount,
+        failedItemCount = result.failureCount,
+        requestedBytes = plan.estimatedReclaimBytes,
+        freedBytes = result.reclaimedBytes,
+        cleanupType = CleanupHistoryType.MEDIA_STORE_TRASH,
+        usedMediaStoreTrash = true,
+        restoreStatus = if (outcome == SystemConfirmationOutcome.CONFIRMED) {
+            CleanupRestoreStatus.AVAILABLE
+        } else {
+            CleanupRestoreStatus.NOT_AVAILABLE
+        },
+        items = plan.items.map { item ->
+            CleanupHistoryItem(
+                itemKey = item.itemId,
+                contentUri = mediaStoreContentUriString(item.itemId),
+            )
+        },
+    )
+}
+
 internal fun mediaStoreUri(itemId: String): Uri? {
     val reference = parseMediaStoreItemId(itemId) ?: return null
     val collectionUri = when (reference.collection) {
@@ -175,6 +241,17 @@ internal fun mediaStoreUri(itemId: String): Uri? {
         else -> return null
     }
     return ContentUris.withAppendedId(collectionUri, reference.mediaId)
+}
+
+internal fun mediaStoreContentUriString(itemId: String): String? {
+    val reference = parseMediaStoreItemId(itemId) ?: return null
+    val path = when (reference.collection) {
+        "image" -> "images"
+        "video" -> "video"
+        "audio" -> "audio"
+        else -> return null
+    }
+    return "content://media/external/$path/media/${reference.mediaId}"
 }
 
 internal data class MediaStoreItemReference(

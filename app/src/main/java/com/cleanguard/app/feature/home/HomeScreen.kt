@@ -64,6 +64,8 @@ fun HomeRoute(
     onOpenStorageInsights: () -> Unit,
     onOpenScanHistory: () -> Unit,
     onOpenRecommendations: () -> Unit,
+    onOpenCleanupHistory: () -> Unit,
+    onOpenRecoveryCenter: () -> Unit,
     createDownloadTreeIntent: () -> Intent,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -102,6 +104,8 @@ fun HomeRoute(
                 HomeUiEvent.OpenStorageInsights -> onOpenStorageInsights()
                 HomeUiEvent.OpenScanHistory -> onOpenScanHistory()
                 HomeUiEvent.OpenRecommendations -> onOpenRecommendations()
+                HomeUiEvent.OpenCleanupHistory -> onOpenCleanupHistory()
+                HomeUiEvent.OpenRecoveryCenter -> onOpenRecoveryCenter()
                 HomeUiEvent.RequestMediaPermission -> {
                     val permissions = viewModel.permissionsForRequest()
                     if (permissions.isEmpty()) {
@@ -183,6 +187,10 @@ fun HomeScreen(
                     errorMessage = uiState.downloadAccessError,
                     onRequestAccess = { onEvent(HomeUiEvent.RequestDownloadAccess) },
                 )
+                CleanupRecordsCard(
+                    onOpenHistory = { onEvent(HomeUiEvent.OpenCleanupHistory) },
+                    onOpenRecovery = { onEvent(HomeUiEvent.OpenRecoveryCenter) },
+                )
 
                 Button(
                     onClick = { onEvent(HomeUiEvent.StartScan) },
@@ -203,6 +211,25 @@ fun HomeScreen(
                 )
                 Spacer(Modifier.height(8.dp))
             }
+        }
+    }
+}
+
+@Composable
+private fun CleanupRecordsCard(
+    onOpenHistory: () -> Unit,
+    onOpenRecovery: () -> Unit,
+) {
+    InfoCard(title = stringResource(R.string.home_cleanup_records_title)) {
+        Text(
+            stringResource(R.string.home_cleanup_records_explanation),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedButton(onClick = onOpenHistory, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.home_open_cleanup_history))
+        }
+        OutlinedButton(onClick = onOpenRecovery, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.home_open_recovery_center))
         }
     }
 }

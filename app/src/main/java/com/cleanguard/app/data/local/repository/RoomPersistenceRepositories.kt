@@ -16,6 +16,7 @@ import com.cleanguard.app.domain.model.persistence.AppStorageSnapshot
 import com.cleanguard.app.domain.model.persistence.AppStorageHistoryRecord
 import com.cleanguard.app.domain.model.persistence.AppStorageTotalSnapshot
 import com.cleanguard.app.domain.model.persistence.CleanupHistoryEntry
+import com.cleanguard.app.domain.model.persistence.CleanupRestoreStatus
 import com.cleanguard.app.domain.model.persistence.HashCacheEntry
 import com.cleanguard.app.domain.model.persistence.IgnoredItem
 import com.cleanguard.app.domain.model.persistence.IndexedItemRecord
@@ -173,6 +174,11 @@ class RoomCleanupHistoryRepository(
 
     override fun observeRecent(limit: Int): Flow<List<CleanupHistoryEntry>> =
         dao.observeRecent(limit).map { relations -> relations.map { it.toDomain() } }
+
+    override suspend fun updateRestoreStatus(
+        cleanupId: String,
+        status: CleanupRestoreStatus,
+    ): Int = dao.updateRestoreStatus(cleanupId, status.name)
 }
 
 class RoomScanPersistenceTransactionRepository(

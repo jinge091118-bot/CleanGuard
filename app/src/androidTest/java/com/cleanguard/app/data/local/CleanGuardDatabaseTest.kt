@@ -267,6 +267,10 @@ class CleanGuardDatabaseTest {
         assertNotNull(persisted)
         assertEquals(2, persisted?.items?.size)
         assertEquals(1_000L, persisted?.history?.freedBytes)
+
+        assertEquals(1, dao.updateRestoreStatus("cleanup-1", "RESTORED"))
+        assertEquals("RESTORED", dao.findById("cleanup-1")?.history?.restoreStatus)
+        assertEquals(0, dao.updateRestoreStatus("missing", "FAILED"))
     }
 
     @Test

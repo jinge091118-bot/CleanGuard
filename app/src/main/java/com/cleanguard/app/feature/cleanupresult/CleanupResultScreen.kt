@@ -27,6 +27,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.res.stringResource
+import com.cleanguard.app.R
 import com.cleanguard.app.domain.model.CleanupResult
 import com.cleanguard.app.domain.model.CleanupOutcome
 import com.cleanguard.app.ui.components.CleanGuardTopBar
@@ -122,7 +124,7 @@ private fun CleanupResultContent(
             )
             Text(
                 when (result.outcome) {
-                    CleanupOutcome.COMPLETED -> "所选媒体已移入 Android 系统回收站，可在系统保留期内恢复。"
+                    CleanupOutcome.COMPLETED -> stringResource(R.string.cleanup_result_system_retention)
                     CleanupOutcome.CANCELLED -> "你取消了 Android 系统确认，没有移动任何媒体文件。"
                     CleanupOutcome.FAILED -> "系统请求未能完成，没有将媒体移入回收站。"
                     CleanupOutcome.UNDONE -> "所选媒体已通过 Android 系统确认恢复。"

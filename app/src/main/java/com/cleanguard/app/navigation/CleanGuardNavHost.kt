@@ -38,6 +38,10 @@ import com.cleanguard.app.feature.scanning.ScanningRoute
 import com.cleanguard.app.feature.scanning.ScanningViewModel
 import com.cleanguard.app.feature.scanhistory.ScanHistoryRoute
 import com.cleanguard.app.feature.scanhistory.ScanHistoryViewModel
+import com.cleanguard.app.feature.settings.SettingsRoute
+import com.cleanguard.app.feature.settings.SettingsViewModel
+import com.cleanguard.app.feature.permissions.PermissionCenterRoute
+import com.cleanguard.app.feature.permissions.PermissionCenterViewModel
 
 @Composable
 fun CleanGuardNavHost(container: AppContainer) {
@@ -58,7 +62,27 @@ fun CleanGuardNavHost(container: AppContainer) {
                 onOpenRecommendations = { navController.navigate(CleanGuardDestination.ScanResults.route) },
                 onOpenCleanupHistory = { navController.navigate(CleanGuardDestination.CleanupHistory.route) },
                 onOpenRecoveryCenter = { navController.navigate(CleanGuardDestination.RecoveryCenter.route) },
+                onOpenSettings = { navController.navigate(CleanGuardDestination.Settings.route) },
                 createDownloadTreeIntent = container.downloadTreeIntentFactory::create,
+            )
+        }
+        composable(CleanGuardDestination.Settings.route) {
+            SettingsRoute(
+                viewModel = viewModel<SettingsViewModel>(factory = factory),
+                onBack = { navController.navigateUp() },
+                onOpenPermissionCenter = {
+                    navController.navigate(CleanGuardDestination.PermissionCenter.route)
+                },
+            )
+        }
+        composable(CleanGuardDestination.PermissionCenter.route) {
+            PermissionCenterRoute(
+                viewModel = viewModel<PermissionCenterViewModel>(factory = factory),
+                onBack = { navController.navigateUp() },
+                createDownloadTreeIntent = container.downloadTreeIntentFactory::create,
+                onOpenUsageAccessSettings = {
+                    context.startActivity(container.appSettingsIntentFactory.createUsageAccessSettings())
+                },
             )
         }
         composable(CleanGuardDestination.CleanupHistory.route) {

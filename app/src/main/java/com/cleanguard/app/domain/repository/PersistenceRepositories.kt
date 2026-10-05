@@ -62,6 +62,16 @@ interface IgnoreRuleRepository {
     suspend fun upsert(item: IgnoredItem)
     fun observeActive(nowEpochMillis: Long): Flow<List<IgnoredItem>>
     suspend fun deleteByItemKey(itemKey: String)
+    suspend fun deleteExpired(nowEpochMillis: Long): Int
+    suspend fun deleteAll(): Int
+}
+
+object NoOpIgnoreRuleRepository : IgnoreRuleRepository {
+    override suspend fun upsert(item: IgnoredItem) = Unit
+    override fun observeActive(nowEpochMillis: Long): Flow<List<IgnoredItem>> = flowOf(emptyList())
+    override suspend fun deleteByItemKey(itemKey: String) = Unit
+    override suspend fun deleteExpired(nowEpochMillis: Long): Int = 0
+    override suspend fun deleteAll(): Int = 0
 }
 
 interface CleanupHistoryRepository {

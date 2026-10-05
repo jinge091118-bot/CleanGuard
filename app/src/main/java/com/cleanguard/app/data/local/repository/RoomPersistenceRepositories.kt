@@ -161,6 +161,11 @@ class RoomIgnoreRuleRepository(
     override suspend fun deleteByItemKey(itemKey: String) {
         dao.deleteByItemKey(itemKey)
     }
+
+    override suspend fun deleteExpired(nowEpochMillis: Long): Int =
+        dao.deleteExpired(nowEpochMillis)
+
+    override suspend fun deleteAll(): Int = dao.deleteAll()
 }
 
 class RoomCleanupHistoryRepository(
@@ -183,6 +188,9 @@ class RoomCleanupHistoryRepository(
 
 class RoomScanPersistenceTransactionRepository(
     private val database: CleanGuardDatabase,
+    private val retentionPolicy: suspend () -> ScanHistoryRetentionPolicy = {
+        ScanHistoryRetentionPolicy.DEFAULT
+    },
 ) : ScanPersistenceTransactionRepository {
     override suspend fun persistBatchAndComplete(
         scanId: String,
@@ -201,15 +209,18 @@ class RoomScanPersistenceTransactionRepository(
                 items = items.map(IndexedItemRecord::toEntity),
             )
             database.scanHistoryDao().upsert(completedSnapshot.toEntity())
-            database.scanHistoryDao().pruneCompleted(
-                ScanHistoryRetentionPolicy.DEFAULT.maxSuccessfulScans!!,
-            )
+            retentionPolicy().maxSuccessfulScans?.let { maxScans ->
+                database.scanHistoryDao().pruneCompleted(maxScans)
+            }
         }
     }
 }
 
 class RoomIncrementalScanPersistenceRepository(
     private val database: CleanGuardDatabase,
+    private val retentionPolicy: suspend () -> ScanHistoryRetentionPolicy = {
+        ScanHistoryRetentionPolicy.DEFAULT
+    },
 ) : IncrementalScanPersistenceRepository {
     override suspend fun findSyncState(volumeName: String): MediaSyncState? =
         database.mediaSyncStateDao().findByVolume(volumeName)?.toDomain()
@@ -256,9 +267,9 @@ class RoomIncrementalScanPersistenceRepository(
                 database.mediaSyncStateDao().upsert(update.syncState.toEntity())
             }
             database.scanHistoryDao().upsert(completedSnapshot.toEntity())
-            database.scanHistoryDao().pruneCompleted(
-                ScanHistoryRetentionPolicy.DEFAULT.maxSuccessfulScans!!,
-            )
+            retentionPolicy().maxSuccessfulScans?.let { maxScans ->
+                database.scanHistoryDao().pruneCompleted(maxScans)
+            }
         }
     }
 

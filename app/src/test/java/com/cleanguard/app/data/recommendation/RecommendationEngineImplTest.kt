@@ -161,6 +161,25 @@ class RecommendationEngineImplTest {
         assertEquals(RiskLevel.UNKNOWN, none.safetyDecision.riskLevel)
     }
 
+    @Test
+    fun `ignored item is removed from recommendation priority without changing risk`() {
+        val item = item(
+            id = "ignored",
+            sizeBytes = GIB_1,
+            modifiedAt = daysAgo(200),
+            riskLevel = RiskLevel.DANGER,
+        )
+
+        val recommendation = engine.recommend(
+            items = listOf(item),
+            ignoredItemIds = setOf(item.id),
+        ).single()
+
+        assertEquals(RecommendationPriority.NONE, recommendation.priority)
+        assertEquals(listOf(RecommendationReason.USER_IGNORED), recommendation.reasons)
+        assertEquals(RiskLevel.DANGER, item.safetyDecision.riskLevel)
+    }
+
     private fun item(
         category: FileCategory = FileCategory.OTHER,
         id: String = "item",

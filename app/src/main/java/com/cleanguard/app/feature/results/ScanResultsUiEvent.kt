@@ -9,4 +9,6 @@ sealed interface ScanResultsUiEvent {
     data object OpenApkInsights : ScanResultsUiEvent
     data object OpenDownloadInsights : ScanResultsUiEvent
     data class SelectLargeFileThreshold(val threshold: LargeFileThreshold) : ScanResultsUiEvent
+    data class IgnoreForThirtyDays(val itemId: String) : ScanResultsUiEvent
+    data class IgnorePermanently(val itemId: String) : ScanResultsUiEvent
 }

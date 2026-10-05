@@ -16,6 +16,7 @@ import com.cleanguard.app.domain.repository.DownloadAccessRepository
 import com.cleanguard.app.domain.repository.PermissionRepository
 import com.cleanguard.app.domain.repository.SafScanner
 import com.cleanguard.app.domain.repository.ScanSessionRepository
+import com.cleanguard.app.domain.repository.SettingsRepository
 import com.cleanguard.app.domain.usecase.ScanMediaUseCase
 import com.cleanguard.app.domain.usecase.ApplySafetyRulesUseCase
 import kotlinx.coroutines.CancellationException
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 
@@ -36,6 +38,7 @@ class ScanningViewModel(
     private val scanSessionRepository: ScanSessionRepository,
     private val downloadAccessRepository: DownloadAccessRepository,
     private val safScanner: SafScanner,
+    private val settingsRepository: SettingsRepository? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ScanningUiState())
     val uiState: StateFlow<ScanningUiState> = _uiState.asStateFlow()
@@ -149,7 +152,8 @@ class ScanningViewModel(
                         errorCount = errorCount,
                     )
                 }
-                val threshold = LargeFileThreshold.DEFAULT
+                val threshold = settingsRepository?.settings?.first()?.largeFileThreshold
+                    ?: LargeFileThreshold.DEFAULT
                 val classifiedResult = applySafetyRules(scannedFiles, threshold)
                 if (classifiedResult.isFailure) {
                     _uiState.update {

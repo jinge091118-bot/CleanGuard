@@ -22,6 +22,8 @@ import com.cleanguard.app.feature.insights.StorageInsightsViewModel
 import com.cleanguard.app.feature.results.ScanResultsViewModel
 import com.cleanguard.app.feature.scanning.ScanningViewModel
 import com.cleanguard.app.feature.scanhistory.ScanHistoryViewModel
+import com.cleanguard.app.feature.settings.SettingsViewModel
+import com.cleanguard.app.feature.permissions.PermissionCenterViewModel
 
 class CleanGuardViewModelFactory(
     private val container: AppContainer,
@@ -39,6 +41,7 @@ class CleanGuardViewModelFactory(
                 ),
                 scanSessionRepository = container.scanRepository,
                 recommendationEngine = container.recommendationEngine,
+                ignoreRuleRepository = container.ignoreRuleRepository,
             )
 
         modelClass.isAssignableFrom(ScanHistoryViewModel::class.java) ->
@@ -66,6 +69,7 @@ class CleanGuardViewModelFactory(
                 scanSessionRepository = container.scanRepository,
                 downloadAccessRepository = container.downloadAccessRepository,
                 safScanner = container.safScanner,
+                settingsRepository = container.settingsRepository,
             )
 
         modelClass.isAssignableFrom(ScanResultsViewModel::class.java) ->
@@ -76,7 +80,9 @@ class CleanGuardViewModelFactory(
                 updateLargeFileThreshold = UpdateLargeFileThresholdUseCase(
                     repository = container.scanRepository,
                     applySafetyRules = ApplySafetyRulesUseCase(container.safetyRuleRepository),
+                    settingsRepository = container.settingsRepository,
                 ),
+                ignoreRuleRepository = container.ignoreRuleRepository,
             )
 
         modelClass.isAssignableFrom(CleanupDetailViewModel::class.java) ->
@@ -91,6 +97,7 @@ class CleanGuardViewModelFactory(
                     container.duplicateSessionRepository.groups.value
                         .flatMapTo(hashSetOf()) { group -> group.files.map { it.itemId } }
                 },
+                ignoreRuleRepository = container.ignoreRuleRepository,
             )
 
         modelClass.isAssignableFrom(DuplicateGroupsViewModel::class.java) ->
@@ -119,6 +126,7 @@ class CleanGuardViewModelFactory(
                 updateLargeFileThreshold = UpdateLargeFileThresholdUseCase(
                     repository = container.scanRepository,
                     applySafetyRules = ApplySafetyRulesUseCase(container.safetyRuleRepository),
+                    settingsRepository = container.settingsRepository,
                 ),
                 loadAppStorage = LoadAppStorageUseCase(
                     repository = container.appStorageRepository,
@@ -128,6 +136,20 @@ class CleanGuardViewModelFactory(
 
         modelClass.isAssignableFrom(CleanupResultViewModel::class.java) ->
             CleanupResultViewModel(container.cleanupRepository)
+
+        modelClass.isAssignableFrom(SettingsViewModel::class.java) ->
+            SettingsViewModel(
+                settingsRepository = container.settingsRepository,
+                scanHistoryRepository = container.scanHistoryRepository,
+                ignoreRuleRepository = container.ignoreRuleRepository,
+            )
+
+        modelClass.isAssignableFrom(PermissionCenterViewModel::class.java) ->
+            PermissionCenterViewModel(
+                permissionRepository = container.permissionRepository,
+                downloadAccessRepository = container.downloadAccessRepository,
+                appStorageRepository = container.appStorageRepository,
+            )
 
         else -> error("Unknown ViewModel class: ${modelClass.name}")
     } as T

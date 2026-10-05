@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.cleanguard.app.domain.repository.PermissionRepository
 import com.cleanguard.app.domain.repository.DownloadAccessRepository
 import com.cleanguard.app.domain.repository.ScanSessionRepository
+import com.cleanguard.app.domain.repository.IgnoreRuleRepository
+import com.cleanguard.app.domain.repository.NoOpIgnoreRuleRepository
 import com.cleanguard.app.domain.recommendation.RecommendationEngine
 import com.cleanguard.app.domain.recommendation.RecommendationPriority
 import com.cleanguard.app.domain.usecase.LoadStorageOverviewUseCase
@@ -15,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -25,6 +28,8 @@ class HomeViewModel(
     private val observeScanHistory: ObserveScanHistoryUseCase,
     private val scanSessionRepository: ScanSessionRepository,
     private val recommendationEngine: RecommendationEngine,
+    private val ignoreRuleRepository: IgnoreRuleRepository = NoOpIgnoreRuleRepository,
+    private val currentTimeMillis: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(
         HomeUiState(permissionStatus = permissionRepository.getMediaPermissionStatus()),
@@ -115,8 +120,15 @@ class HomeViewModel(
 
     private fun observeRecommendations() {
         viewModelScope.launch {
-            scanSessionRepository.scanItems.collect { items ->
-                val recommendations = recommendationEngine.recommend(items)
+            combine(
+                scanSessionRepository.scanItems,
+                ignoreRuleRepository.observeActive(currentTimeMillis()),
+            ) { items, ignored -> items to ignored.mapTo(hashSetOf()) { it.itemKey } }
+                .collect { (items, ignoredIds) ->
+                val recommendations = recommendationEngine.recommend(
+                    items = items,
+                    ignoredItemIds = ignoredIds,
+                )
                     .filter { recommendation ->
                         recommendation.priority == RecommendationPriority.HIGH ||
                             recommendation.priority == RecommendationPriority.MEDIUM

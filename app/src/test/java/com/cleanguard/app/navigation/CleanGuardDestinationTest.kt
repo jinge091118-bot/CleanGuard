@@ -20,9 +20,11 @@ class CleanGuardDestinationTest {
             CleanGuardDestination.ScanHistory.route,
             CleanGuardDestination.CleanupHistory.route,
             CleanGuardDestination.RecoveryCenter.route,
+            CleanGuardDestination.Settings.route,
+            CleanGuardDestination.PermissionCenter.route,
         )
 
-        assertEquals(13, routes.distinct().size)
+        assertEquals(15, routes.distinct().size)
     }
 }
 

@@ -8,6 +8,7 @@ import com.cleanguard.app.domain.recommendation.RecommendationExplanationProvide
 import com.cleanguard.app.domain.recommendation.RecommendationPriority
 import com.cleanguard.app.domain.recommendation.RecommendationReason
 import com.cleanguard.app.domain.recommendation.classifyMediaCategory
+import com.cleanguard.app.domain.recommendation.ignoredRecommendation
 
 class RecommendationEngineImpl(
     private val explanationProvider: RecommendationExplanationProvider,
@@ -61,10 +62,14 @@ class RecommendationEngineImpl(
     override fun recommend(
         items: List<ScanItem>,
         confirmedDuplicateIds: Set<String>,
+        ignoredItemIds: Set<String>,
     ): List<Recommendation> {
         val evaluatedAt = currentTimeMillis()
         return items
-            .map { evaluate(it, evaluatedAt, it.id in confirmedDuplicateIds) }
+            .map { item ->
+                if (item.id in ignoredItemIds) ignoredRecommendation(item.id)
+                else evaluate(item, evaluatedAt, item.id in confirmedDuplicateIds)
+            }
             .sortedWith(
                 compareByDescending<Recommendation> { it.priority.rank }
                     .thenBy(Recommendation::itemId),

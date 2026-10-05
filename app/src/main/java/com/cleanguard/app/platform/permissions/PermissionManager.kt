@@ -5,6 +5,8 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
 import com.cleanguard.app.domain.model.MediaPermissionStatus
+import com.cleanguard.app.domain.model.MediaPermissionOverview
+import com.cleanguard.app.domain.model.PermissionGrantState
 import com.cleanguard.app.domain.repository.PermissionRepository
 
 class PermissionManager(
@@ -19,6 +21,11 @@ class PermissionManager(
 
     override fun permissionsForRequest(): List<String> =
         MediaPermissionPolicy.permissionsForRequest(Build.VERSION.SDK_INT)
+
+    override fun getMediaPermissionOverview(): MediaPermissionOverview =
+        MediaPermissionPolicy.overview(Build.VERSION.SDK_INT) { permission ->
+            ContextCompat.checkSelfPermission(appContext, permission) == PackageManager.PERMISSION_GRANTED
+        }
 }
 
 internal object MediaPermissionPolicy {
@@ -74,5 +81,35 @@ internal object MediaPermissionPolicy {
         } else {
             MediaPermissionStatus.NONE
         }
+    }
+
+    fun overview(
+        sdkInt: Int,
+        isGranted: (String) -> Boolean,
+    ): MediaPermissionOverview {
+        if (sdkInt < Build.VERSION_CODES.TIRAMISU) {
+            val state = if (isGranted(READ_EXTERNAL_STORAGE)) {
+                PermissionGrantState.AUTHORIZED
+            } else {
+                PermissionGrantState.NOT_AUTHORIZED
+            }
+            return MediaPermissionOverview(state, state, state)
+        }
+        val selected = sdkInt >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
+            isGranted(READ_MEDIA_VISUAL_USER_SELECTED)
+        fun visualState(permission: String): PermissionGrantState = when {
+            isGranted(permission) -> PermissionGrantState.AUTHORIZED
+            selected -> PermissionGrantState.PARTIAL
+            else -> PermissionGrantState.NOT_AUTHORIZED
+        }
+        return MediaPermissionOverview(
+            photos = visualState(READ_MEDIA_IMAGES),
+            videos = visualState(READ_MEDIA_VIDEO),
+            audio = if (isGranted(READ_MEDIA_AUDIO)) {
+                PermissionGrantState.AUTHORIZED
+            } else {
+                PermissionGrantState.NOT_AUTHORIZED
+            },
+        )
     }
 }

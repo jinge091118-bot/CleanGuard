@@ -2,6 +2,7 @@ package com.cleanguard.app.platform.permissions
 
 import android.Manifest
 import com.cleanguard.app.domain.model.MediaPermissionStatus
+import com.cleanguard.app.domain.model.PermissionGrantState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -65,6 +66,17 @@ class PermissionManagerTest {
         assertTrue(permissions.contains(Manifest.permission.READ_MEDIA_VIDEO))
         assertTrue(permissions.contains(Manifest.permission.READ_MEDIA_AUDIO))
         assertTrue(permissions.contains(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED))
+    }
+
+    @Test
+    fun `android 14 selected visuals are partial while audio stays unauthorized`() {
+        val overview = MediaPermissionPolicy.overview(sdkInt = 34) { permission ->
+            permission == Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
+        }
+
+        assertEquals(PermissionGrantState.PARTIAL, overview.photos)
+        assertEquals(PermissionGrantState.PARTIAL, overview.videos)
+        assertEquals(PermissionGrantState.NOT_AUTHORIZED, overview.audio)
     }
 
     private fun resolve(

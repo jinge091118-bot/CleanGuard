@@ -23,4 +23,10 @@ interface IgnoreRuleDao {
 
     @Query("SELECT COUNT(*) FROM ignored_items")
     suspend fun count(): Int
+
+    @Query("DELETE FROM ignored_items WHERE expiresAt IS NOT NULL AND expiresAt <= :nowEpochMillis")
+    suspend fun deleteExpired(nowEpochMillis: Long): Int
+
+    @Query("DELETE FROM ignored_items")
+    suspend fun deleteAll(): Int
 }

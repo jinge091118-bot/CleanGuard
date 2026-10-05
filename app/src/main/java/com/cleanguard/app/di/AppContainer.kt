@@ -40,6 +40,7 @@ import com.cleanguard.app.data.recommendation.AndroidRecommendationExplanationPr
 import com.cleanguard.app.data.recommendation.RecommendationEngineImpl
 import com.cleanguard.app.data.saf.SafDownloadAccessRepository
 import com.cleanguard.app.data.saf.SafScannerImpl
+import com.cleanguard.app.data.preferences.DataStoreSettingsRepository
 import com.cleanguard.app.data.storage.AndroidStorageRepository
 import com.cleanguard.app.domain.repository.CleanupRepository
 import com.cleanguard.app.domain.repository.AppStorageRepository
@@ -51,6 +52,7 @@ import com.cleanguard.app.domain.repository.MediaRecoveryRepository
 import com.cleanguard.app.domain.repository.NoOpMediaRecoveryRepository
 import com.cleanguard.app.domain.repository.HashCacheRepository
 import com.cleanguard.app.domain.repository.IgnoreRuleRepository
+import com.cleanguard.app.domain.repository.NoOpIgnoreRuleRepository
 import com.cleanguard.app.domain.repository.IncrementalScanPersistenceRepository
 import com.cleanguard.app.domain.repository.IndexedItemPersistenceRepository
 import com.cleanguard.app.domain.repository.MediaSyncStateRepository
@@ -61,6 +63,8 @@ import com.cleanguard.app.domain.repository.ScanPersistenceTransactionRepository
 import com.cleanguard.app.domain.repository.SafetyRuleRepository
 import com.cleanguard.app.domain.repository.SafScanner
 import com.cleanguard.app.domain.repository.StorageRepository
+import com.cleanguard.app.domain.repository.SettingsRepository
+import com.cleanguard.app.domain.repository.NoOpSettingsRepository
 import com.cleanguard.app.domain.apk.ApkAnalyzer
 import com.cleanguard.app.domain.apk.NoOpApkAnalyzer
 import com.cleanguard.app.domain.download.DownloadInsightsEngine
@@ -74,6 +78,7 @@ import com.cleanguard.app.platform.permissions.PermissionManager
 import com.cleanguard.app.platform.intents.DownloadTreeIntentFactory
 import com.cleanguard.app.platform.intents.AppSettingsIntentFactory
 import com.cleanguard.app.platform.intents.FileActionIntentFactory
+import kotlinx.coroutines.flow.first
 
 interface AppContainer {
     val cleanGuardDatabase: CleanGuardDatabase get() = persistenceNotConfigured()
@@ -90,7 +95,7 @@ interface AppContainer {
     val scanHistoryRepository: ScanHistoryRepository get() = persistenceNotConfigured()
     val appStorageHistoryRepository: AppStorageHistoryRepository get() = persistenceNotConfigured()
     val hashCacheRepository: HashCacheRepository get() = persistenceNotConfigured()
-    val ignoreRuleRepository: IgnoreRuleRepository get() = persistenceNotConfigured()
+    val ignoreRuleRepository: IgnoreRuleRepository get() = NoOpIgnoreRuleRepository
     val cleanupHistoryRepository: CleanupHistoryRepository get() = persistenceNotConfigured()
     val scanPersistenceTransactionRepository: ScanPersistenceTransactionRepository
         get() = persistenceNotConfigured()
@@ -116,6 +121,7 @@ interface AppContainer {
     val downloadTreeIntentFactory: DownloadTreeIntentFactory
     val appSettingsIntentFactory: AppSettingsIntentFactory
     val fileActionIntentFactory: FileActionIntentFactory get() = FileActionIntentFactory()
+    val settingsRepository: SettingsRepository get() = NoOpSettingsRepository
 }
 
 private fun persistenceNotConfigured(): Nothing =
@@ -124,6 +130,9 @@ private fun persistenceNotConfigured(): Nothing =
 class DefaultAppContainer(
     context: Context,
 ) : AppContainer {
+    override val settingsRepository: SettingsRepository by lazy {
+        DataStoreSettingsRepository(context)
+    }
     override val cleanGuardDatabase: CleanGuardDatabase by lazy {
         CleanGuardDatabase.getInstance(context.applicationContext)
     }
@@ -170,10 +179,14 @@ class DefaultAppContainer(
         RoomCleanupHistoryRepository(cleanupHistoryDao)
     }
     override val scanPersistenceTransactionRepository: ScanPersistenceTransactionRepository by lazy {
-        RoomScanPersistenceTransactionRepository(cleanGuardDatabase)
+        RoomScanPersistenceTransactionRepository(cleanGuardDatabase) {
+            settingsRepository.settings.first().historyRetentionPolicy
+        }
     }
     override val incrementalScanPersistenceRepository: IncrementalScanPersistenceRepository by lazy {
-        RoomIncrementalScanPersistenceRepository(cleanGuardDatabase)
+        RoomIncrementalScanPersistenceRepository(cleanGuardDatabase) {
+            settingsRepository.settings.first().historyRetentionPolicy
+        }
     }
     override val appStorageRepository: AppStorageRepository by lazy {
         AndroidAppStorageRepository(context)

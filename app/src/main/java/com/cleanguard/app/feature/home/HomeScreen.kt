@@ -66,6 +66,7 @@ fun HomeRoute(
     onOpenRecommendations: () -> Unit,
     onOpenCleanupHistory: () -> Unit,
     onOpenRecoveryCenter: () -> Unit,
+    onOpenSettings: () -> Unit,
     createDownloadTreeIntent: () -> Intent,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -106,6 +107,7 @@ fun HomeRoute(
                 HomeUiEvent.OpenRecommendations -> onOpenRecommendations()
                 HomeUiEvent.OpenCleanupHistory -> onOpenCleanupHistory()
                 HomeUiEvent.OpenRecoveryCenter -> onOpenRecoveryCenter()
+                HomeUiEvent.OpenSettings -> onOpenSettings()
                 HomeUiEvent.RequestMediaPermission -> {
                     val permissions = viewModel.permissionsForRequest()
                     if (permissions.isEmpty()) {
@@ -203,6 +205,12 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text("查看空间洞察")
+                }
+                OutlinedButton(
+                    onClick = { onEvent(HomeUiEvent.OpenSettings) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.settings_title))
                 }
                 Text(
                     "设备容量与扫描结果均在本机生成；当前只读取索引和你明确授权的目录，不会修改任何文件。",
@@ -472,7 +480,7 @@ private fun PermissionStatusCard(
             "授权前不会读取照片、视频或音频。你可以在系统弹窗中决定允许的范围。"
 
         MediaPermissionStatus.PARTIAL -> "已授权部分媒体" to
-            "当前仅扫描你允许访问的照片和视频。"
+            stringResource(R.string.permission_partial_message)
 
         MediaPermissionStatus.FULL -> "媒体访问已授权" to
             "后续扫描只会读取系统允许访问的照片、视频和音频。"

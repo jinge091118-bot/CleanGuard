@@ -241,6 +241,19 @@ class CleanGuardDatabaseTest {
     }
 
     @Test
+    fun ignoreRule_prunesExpiredAndCanClearAll() = runBlocking {
+        val dao = database.ignoreRuleDao()
+        dao.upsert(IgnoredItemEntity("expired", "expired-key", 1L, 99L, "ITEM"))
+        dao.upsert(IgnoredItemEntity("active", "active-key", 2L, 101L, "ITEM"))
+        dao.upsert(IgnoredItemEntity("permanent", "permanent-key", 3L, null, "ITEM"))
+
+        assertEquals(1, dao.deleteExpired(100L))
+        assertEquals(setOf("active-key", "permanent-key"), dao.observeActive(100L).first().map { it.itemKey }.toSet())
+        assertEquals(2, dao.deleteAll())
+        assertEquals(0, dao.count())
+    }
+
+    @Test
     fun cleanupHistory_persistsNormalizedItems() = runBlocking {
         val dao = database.cleanupHistoryDao()
         val history = CleanupHistoryEntity(

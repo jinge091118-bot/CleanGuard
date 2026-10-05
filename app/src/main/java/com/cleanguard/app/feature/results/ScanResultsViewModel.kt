@@ -11,6 +11,9 @@ import com.cleanguard.app.domain.recommendation.NoOpRecommendationEngine
 import com.cleanguard.app.domain.recommendation.RecommendationEngine
 import com.cleanguard.app.domain.recommendation.RecommendationPriority
 import com.cleanguard.app.domain.usecase.UpdateLargeFileThresholdUseCase
+import com.cleanguard.app.domain.usecase.IgnoreRecommendationUseCase
+import com.cleanguard.app.domain.repository.IgnoreRuleRepository
+import com.cleanguard.app.domain.repository.NoOpIgnoreRuleRepository
 import com.cleanguard.app.domain.duplicate.DuplicateSessionRepository
 import com.cleanguard.app.domain.duplicate.NoOpDuplicateSessionRepository
 import kotlinx.coroutines.Job
@@ -27,6 +30,9 @@ class ScanResultsViewModel(
     private val updateLargeFileThreshold: UpdateLargeFileThresholdUseCase,
     private val recommendationEngine: RecommendationEngine = NoOpRecommendationEngine,
     private val duplicateSessionRepository: DuplicateSessionRepository = NoOpDuplicateSessionRepository,
+    ignoreRuleRepository: IgnoreRuleRepository = NoOpIgnoreRuleRepository,
+    private val ignoreRecommendation: IgnoreRecommendationUseCase = IgnoreRecommendationUseCase(ignoreRuleRepository),
+    currentTimeMillis: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
     private val updateState = MutableStateFlow(ThresholdUpdateState())
     private var updateJob: Job? = null
@@ -45,11 +51,16 @@ class ScanResultsViewModel(
         scanData,
         updateState,
         duplicateSessionRepository.groups,
-    ) { data, update, duplicateGroups ->
+        ignoreRuleRepository.observeActive(currentTimeMillis()),
+    ) { data, update, duplicateGroups, ignoredItems ->
         val confirmedDuplicateIds = duplicateGroups.flatMapTo(hashSetOf()) { group ->
             group.files.map { it.itemId }
         }
-        val recommendations = recommendationEngine.recommend(data.items, confirmedDuplicateIds)
+        val recommendations = recommendationEngine.recommend(
+            data.items,
+            confirmedDuplicateIds,
+            ignoredItems.mapTo(hashSetOf()) { it.itemKey },
+        )
             .filterNot { it.priority == RecommendationPriority.NONE }
         val recommendedIds = recommendations.mapTo(hashSetOf()) { it.itemId }
         ScanResultsUiState(
@@ -61,6 +72,16 @@ class ScanResultsViewModel(
             updateErrorMessage = update.errorMessage,
             scanRunInfo = data.scanRunInfo,
             recommendations = recommendations,
+            recommendationCandidates = recommendations.mapNotNull { recommendation ->
+                data.items.firstOrNull { it.id == recommendation.itemId }?.let { item ->
+                    RecommendationCandidate(
+                        itemId = item.id,
+                        displayName = item.displayName,
+                        sizeBytes = item.sizeBytes,
+                        recommendation = recommendation,
+                    )
+                }
+            },
             recommendedBytes = data.items.asSequence()
                 .filter { it.id in recommendedIds }
                 .fold(0L) { total, item -> saturatingAdd(total, item.sizeBytes) },
@@ -69,7 +90,18 @@ class ScanResultsViewModel(
         .stateIn(viewModelScope, SharingStarted.Eagerly, ScanResultsUiState())
 
     fun onEvent(event: ScanResultsUiEvent) {
-        if (event !is ScanResultsUiEvent.SelectLargeFileThreshold) return
+        when (event) {
+            is ScanResultsUiEvent.IgnoreForThirtyDays -> {
+                viewModelScope.launch { ignoreRecommendation.forThirtyDays(event.itemId) }
+                return
+            }
+            is ScanResultsUiEvent.IgnorePermanently -> {
+                viewModelScope.launch { ignoreRecommendation.permanently(event.itemId) }
+                return
+            }
+            is ScanResultsUiEvent.SelectLargeFileThreshold -> Unit
+            else -> return
+        }
         if (event.threshold == uiState.value.selectedLargeFileThreshold) return
         updateJob?.cancel()
         updateJob = viewModelScope.launch {

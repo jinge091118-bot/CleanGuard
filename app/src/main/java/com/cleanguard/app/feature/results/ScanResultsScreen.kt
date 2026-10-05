@@ -61,7 +61,9 @@ fun ScanResultsRoute(
                 ScanResultsUiEvent.OpenDuplicateGroups -> onOpenDuplicateGroups()
                 ScanResultsUiEvent.OpenApkInsights -> onOpenApkInsights()
                 ScanResultsUiEvent.OpenDownloadInsights -> onOpenDownloadInsights()
-                is ScanResultsUiEvent.SelectLargeFileThreshold -> viewModel.onEvent(event)
+                is ScanResultsUiEvent.SelectLargeFileThreshold,
+                is ScanResultsUiEvent.IgnoreForThirtyDays,
+                is ScanResultsUiEvent.IgnorePermanently -> viewModel.onEvent(event)
             }
         },
     )
@@ -218,6 +220,30 @@ private fun ResultsContent(
                     stringResource(R.string.recommendation_empty),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            } else {
+                uiState.recommendationCandidates.take(5).forEach { candidate ->
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(candidate.displayName, style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "${candidate.sizeBytes.formatBytes()} · ${candidate.recommendation.explanation}",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(
+                                onClick = {
+                                    onEvent(ScanResultsUiEvent.IgnoreForThirtyDays(candidate.itemId))
+                                },
+                                modifier = Modifier.weight(1f),
+                            ) { Text(stringResource(R.string.ignore_30_days)) }
+                            OutlinedButton(
+                                onClick = {
+                                    onEvent(ScanResultsUiEvent.IgnorePermanently(candidate.itemId))
+                                },
+                                modifier = Modifier.weight(1f),
+                            ) { Text(stringResource(R.string.ignore_forever)) }
+                        }
+                    }
+                }
             }
         }
 

@@ -1,0 +1,71 @@
+package com.cleanguard.app
+
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performScrollTo
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.cleanguard.app.domain.model.MediaPermissionOverview
+import com.cleanguard.app.domain.model.PermissionGrantState
+import com.cleanguard.app.feature.permissions.PermissionCenterScreen
+import com.cleanguard.app.feature.permissions.PermissionCenterUiState
+import com.cleanguard.app.feature.settings.SettingsScreen
+import com.cleanguard.app.feature.settings.SettingsUiState
+import com.cleanguard.app.ui.theme.CleanGuardTheme
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+
+@RunWith(AndroidJUnit4::class)
+class Phase9UiTest {
+    @get:Rule
+    val composeRule = createComposeRule()
+
+    @Test
+    fun settingsShowsPrivacyAndNoAutomaticDuplicateCleanup() {
+        composeRule.setContent {
+            CleanGuardTheme {
+                SettingsScreen(SettingsUiState(), {}, {}, {})
+            }
+        }
+
+        composeRule.onNodeWithText("不提供自动清理重复文件，仍需你逐项确认。")
+            .performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("所有扫描均在本机完成。")
+            .performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("CleanGuard V0.2 不上传文件。")
+            .performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("CleanGuard V0.2 不读取聊天内容。")
+            .performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("CleanGuard V0.2 不访问其他 App 私有目录。")
+            .performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun permissionCenterExplainsPartialMediaScopeWithoutBlocking() {
+        composeRule.setContent {
+            CleanGuardTheme {
+                PermissionCenterScreen(
+                    state = PermissionCenterUiState(
+                        media = MediaPermissionOverview(
+                            photos = PermissionGrantState.PARTIAL,
+                            videos = PermissionGrantState.PARTIAL,
+                            audio = PermissionGrantState.NOT_AUTHORIZED,
+                        ),
+                    ),
+                    onBack = {},
+                    onRequestMedia = {},
+                    onRequestDownloads = {},
+                    onRequestUsage = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("当前仅分析你允许 CleanGuard 访问的照片和视频。")
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("媒体容量统计基于当前授权范围。")
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("权限不会阻止进入 CleanGuard。你可以只授予需要分析的范围。")
+            .assertIsDisplayed()
+    }
+}

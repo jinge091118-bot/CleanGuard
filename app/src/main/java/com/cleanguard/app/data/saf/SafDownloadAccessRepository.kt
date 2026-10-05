@@ -7,8 +7,8 @@ import android.provider.DocumentsContract
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import androidx.core.net.toUri
+import com.cleanguard.app.data.preferences.cleanGuardPreferences
 import com.cleanguard.app.domain.model.DownloadAccessState
 import com.cleanguard.app.domain.repository.DownloadAccessRepository
 import java.io.IOException
@@ -17,8 +17,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
-
-private val Context.cleanGuardPreferences by preferencesDataStore(name = "cleanguard_preferences")
 
 class SafDownloadAccessRepository(
     context: Context,

@@ -8,6 +8,7 @@ interface RecommendationEngine {
     fun recommend(
         items: List<ScanItem>,
         confirmedDuplicateIds: Set<String> = emptySet(),
+        ignoredItemIds: Set<String> = emptySet(),
     ): List<Recommendation>
 }
 
@@ -22,8 +23,19 @@ object NoOpRecommendationEngine : RecommendationEngine {
     override fun recommend(
         items: List<ScanItem>,
         confirmedDuplicateIds: Set<String>,
-    ): List<Recommendation> = items.map { evaluate(it, it.id in confirmedDuplicateIds) }
+        ignoredItemIds: Set<String>,
+    ): List<Recommendation> = items.map { item ->
+        if (item.id in ignoredItemIds) ignoredRecommendation(item.id)
+        else evaluate(item, item.id in confirmedDuplicateIds)
+    }
 }
+
+internal fun ignoredRecommendation(itemId: String) = Recommendation(
+    itemId = itemId,
+    priority = RecommendationPriority.NONE,
+    reasons = listOf(RecommendationReason.USER_IGNORED),
+    explanation = "",
+)
 
 fun interface RecommendationExplanationProvider {
     fun explain(reasons: List<RecommendationReason>): String

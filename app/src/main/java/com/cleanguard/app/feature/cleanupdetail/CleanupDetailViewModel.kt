@@ -12,6 +12,8 @@ import com.cleanguard.app.domain.model.ScanSource
 import com.cleanguard.app.domain.model.SystemConfirmationOutcome
 import com.cleanguard.app.domain.repository.CleanupRepository
 import com.cleanguard.app.domain.repository.ScanRepository
+import com.cleanguard.app.domain.repository.IgnoreRuleRepository
+import com.cleanguard.app.domain.repository.NoOpIgnoreRuleRepository
 import com.cleanguard.app.domain.recommendation.NoOpRecommendationEngine
 import com.cleanguard.app.domain.recommendation.RecommendationEngine
 import com.cleanguard.app.domain.recommendation.RecommendationPriority
@@ -32,6 +34,8 @@ class CleanupDetailViewModel(
     private val createCleanupPlan: CreateCleanupPlanUseCase,
     initialSelectedIds: Set<String>? = null,
     private val confirmedDuplicateIds: () -> Set<String> = { emptySet() },
+    ignoreRuleRepository: IgnoreRuleRepository = NoOpIgnoreRuleRepository,
+    currentTimeMillis: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
     private val selectedIds = MutableStateFlow(initialSelectedIds)
     private val cleanupState = MutableStateFlow(CleanupRequestState())
@@ -42,8 +46,13 @@ class CleanupDetailViewModel(
         scanRepository.scanItems,
         selectedIds,
         cleanupState,
-    ) { items, selected, requestState ->
-        val recommendations = recommendationEngine.recommend(items, confirmedDuplicateIds())
+        ignoreRuleRepository.observeActive(currentTimeMillis()),
+    ) { items, selected, requestState, ignoredItems ->
+        val recommendations = recommendationEngine.recommend(
+            items,
+            confirmedDuplicateIds(),
+            ignoredItems.mapTo(hashSetOf()) { it.itemKey },
+        )
             .associateBy { it.itemId }
         val sortedItems = items.sortedWith(
             compareByDescending<ScanItem> {

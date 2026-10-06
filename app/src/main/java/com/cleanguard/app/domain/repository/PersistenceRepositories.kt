@@ -56,6 +56,7 @@ interface HashCacheRepository {
         sizeBytes: Long,
         modifiedAt: Long,
     ): Int
+    suspend fun pruneOrphansUpdatedBefore(cutoffEpochMillis: Long): Int = 0
 }
 
 interface IgnoreRuleRepository {

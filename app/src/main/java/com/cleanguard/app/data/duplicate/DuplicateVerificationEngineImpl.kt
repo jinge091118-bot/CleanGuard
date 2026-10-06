@@ -9,44 +9,45 @@ import com.cleanguard.app.domain.duplicate.DuplicateVerificationResult
 import com.cleanguard.app.domain.duplicate.DuplicateVerificationStatus
 import com.cleanguard.app.domain.model.RiskLevel
 import java.io.IOException
+import java.util.Collections
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.yield
 
 class DuplicateVerificationEngineImpl(
     private val fileHasher: DuplicateFileHasher,
     fullHashParallelism: Int = MAX_FULL_HASH_PARALLELISM,
 ) : DuplicateVerificationEngine {
-    private val fullHashSemaphore = Semaphore(fullHashParallelism.coerceIn(1, MAX_FULL_HASH_PARALLELISM))
+    private val fullHashParallelism = fullHashParallelism.coerceIn(1, MAX_FULL_HASH_PARALLELISM)
 
     override suspend fun verify(files: List<DuplicateFile>): DuplicateVerificationResult {
         val issues = mutableListOf<DuplicateVerificationIssue>()
-        val quickGroups = files.asSequence()
+        val sizeGroups = files.asSequence()
             .filter { it.sizeBytes > 0L && it.riskLevel == RiskLevel.REVIEW }
             .groupBy(DuplicateFile::sizeBytes)
             .values
             .filter { it.size >= 2 }
-            .flatMap { sameSizeFiles ->
-                sameSizeFiles.mapNotNull { file ->
-                    runHash(file, issues) { fileHasher.quickHash(file) }?.let { it to file }
-                }.groupBy(keySelector = { it.first }, valueTransform = { it.second })
+        val quickGroups = buildList {
+            sizeGroups.forEach { sameSizeFiles ->
+                val quickHashes = ArrayList<Pair<String, DuplicateFile>>(sameSizeFiles.size)
+                sameSizeFiles.forEachIndexed { index, file ->
+                    if (index % CANCELLATION_CHECK_INTERVAL == 0) yield()
+                    runHash(file, issues) { fileHasher.quickHash(file) }
+                        ?.let { quickHashes += it to file }
+                }
+                quickHashes.groupBy(keySelector = { it.first }, valueTransform = { it.second })
                     .filterValues { it.size >= 2 }
-                    .map { (quickHash, groupedFiles) -> quickHash to groupedFiles }
+                    .forEach { (quickHash, groupedFiles) -> add(quickHash to groupedFiles) }
             }
+        }
 
         val confirmedGroups = quickGroups.flatMap { (quickHash, groupedFiles) ->
-            val fullHashes = coroutineScope {
-                groupedFiles.map { file ->
-                    async {
-                        fullHashSemaphore.withPermit {
-                            runHash(file, issues) { fileHasher.fullHash(file) }?.let { it to file }
-                        }
-                    }
-                }.awaitAll().filterNotNull()
-            }
+            val fullHashes = hashFullWithBoundedWorkers(groupedFiles, issues)
             fullHashes.groupBy(keySelector = { it.first }, valueTransform = { it.second })
                 .filterValues { it.size >= 2 }
                 .map { (fullHash, filesWithSameContent) ->
@@ -76,6 +77,30 @@ class DuplicateVerificationEngineImpl(
         )
     }
 
+    private suspend fun hashFullWithBoundedWorkers(
+        files: List<DuplicateFile>,
+        issues: MutableList<DuplicateVerificationIssue>,
+    ): List<Pair<String, DuplicateFile>> = coroutineScope {
+        val nextIndex = AtomicInteger(0)
+        val results = Collections.synchronizedList(
+            ArrayList<Pair<String, DuplicateFile>>(files.size),
+        )
+        List(minOf(fullHashParallelism, files.size)) {
+            async {
+                while (true) {
+                    currentCoroutineContext().ensureActive()
+                    val index = nextIndex.getAndIncrement()
+                    if (index >= files.size) break
+                    if (index % CANCELLATION_CHECK_INTERVAL == 0) yield()
+                    val file = files[index]
+                    runHash(file, issues) { fileHasher.fullHash(file) }
+                        ?.let { hash -> results += hash to file }
+                }
+            }
+        }.awaitAll()
+        results.toList()
+    }
+
     private suspend fun runHash(
         file: DuplicateFile,
         issues: MutableList<DuplicateVerificationIssue>,
@@ -100,6 +125,8 @@ class DuplicateVerificationEngineImpl(
         const val MAX_FULL_HASH_PARALLELISM = 2
     }
 }
+
+private const val CANCELLATION_CHECK_INTERVAL = 64
 
 private fun saturatingMultiply(value: Long, multiplier: Int): Long {
     if (value <= 0L || multiplier <= 0) return 0L

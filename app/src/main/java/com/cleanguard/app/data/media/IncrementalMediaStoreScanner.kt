@@ -24,6 +24,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
@@ -78,6 +80,7 @@ internal class IncrementalMediaStoreScanner(
                 var sawFullResync = false
                 var processedMetadataCount = 0L
                 var processedMetadataBytes = 0L
+                val indexedById = LinkedHashMap<String, IndexedItemRecord>()
 
                 volumes.sorted().forEachIndexed { index, volumeName ->
                     val state = persistence.findSyncState(volumeName)
@@ -99,19 +102,41 @@ internal class IncrementalMediaStoreScanner(
 
                     val existing = persistence.findIndexedItems(volumeName)
                     val existingById = existing.associateBy(IndexedItemRecord::id)
-                    val metadata = gateway.readMetadata(
+                    existing.forEachIndexed { itemIndex, item ->
+                        if (itemIndex % CANCELLATION_CHECK_INTERVAL == 0) {
+                            currentCoroutineContext().ensureActive()
+                        }
+                        indexedById[item.id] = item.copy(lastSeenScanId = scanId)
+                    }
+                    val metadataRecords = gateway.readMetadata(
                         volumeName = volumeName,
                         modifiedAfterGeneration = state?.lastGeneration
                             .takeIf { volumeMode == MediaScanExecutionType.INCREMENTAL },
-                    ).map { record ->
-                        record.mergePersistedMetadata(
+                    )
+                    val metadata = ArrayList<IndexedItemRecord>(metadataRecords.size)
+                    metadataRecords.forEachIndexed { itemIndex, record ->
+                        if (itemIndex % CANCELLATION_CHECK_INTERVAL == 0) {
+                            currentCoroutineContext().ensureActive()
+                        }
+                        val merged = record.mergePersistedMetadata(
                             existing = existingById[record.id],
                             scanId = scanId,
                             indexedAt = currentTimeMillis(),
                         )
+                        metadata += merged
+                        indexedById[merged.id] = merged
                     }
                     val currentIds = gateway.readCurrentItemIds(volumeName)
-                    val staleIds = existingById.keys.minus(currentIds).toList()
+                    val staleIds = ArrayList<String>()
+                    existingById.keys.forEachIndexed { itemIndex, itemId ->
+                        if (itemIndex % CANCELLATION_CHECK_INTERVAL == 0) {
+                            currentCoroutineContext().ensureActive()
+                        }
+                        if (itemId !in currentIds) {
+                            staleIds += itemId
+                            indexedById.remove(itemId)
+                        }
+                    }
                     processedMetadataCount += metadata.size
                     processedMetadataBytes = metadata.fold(processedMetadataBytes) { total, item ->
                         saturatingAdd(total, item.sizeBytes)
@@ -145,14 +170,6 @@ internal class IncrementalMediaStoreScanner(
 
                 val removedVolumes = knownStates.map(MediaSyncState::volumeName).toSet() - volumes
                 removedItemCount += removedVolumes.sumOf { persistence.findIndexedItems(it).size }
-                val indexedById = persistence.findAllIndexedItems()
-                    .filterNot { it.volumeName in removedVolumes }
-                    .associateBy(IndexedItemRecord::id)
-                    .toMutableMap()
-                updates.forEach { update ->
-                    update.staleItemIds.forEach(indexedById::remove)
-                    update.upsertItems.forEach { indexedById[it.id] = it }
-                }
                 val completedAt = currentTimeMillis()
                 val finalRecords = indexedById.values.toList()
                 val completedSnapshot = completedSnapshot(
@@ -168,7 +185,7 @@ internal class IncrementalMediaStoreScanner(
                     removedVolumes = removedVolumes,
                     completedSnapshot = completedSnapshot,
                 )
-                val resultItems = persistence.findAllIndexedItems().map(IndexedItemRecord::toMediaStoreItem)
+                val resultItems = finalRecords.map(IndexedItemRecord::toMediaStoreItem)
                 emit(
                     MediaScanEvent.Progress(
                         MediaScanProgress(
@@ -420,3 +437,5 @@ private fun List<MediaStoreItem>.sumBytes(): Long =
 
 private fun saturatingAdd(left: Long, right: Long): Long =
     if (right > 0L && left > Long.MAX_VALUE - right) Long.MAX_VALUE else left + right
+
+private const val CANCELLATION_CHECK_INTERVAL = 256

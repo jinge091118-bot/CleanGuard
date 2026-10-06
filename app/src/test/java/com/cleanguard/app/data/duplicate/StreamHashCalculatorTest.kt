@@ -4,10 +4,12 @@ import com.cleanguard.app.domain.duplicate.DuplicateFile
 import com.cleanguard.app.domain.model.RiskLevel
 import com.cleanguard.app.domain.model.ScanSource
 import java.io.ByteArrayInputStream
+import java.io.InputStream
 import java.nio.ByteBuffer
 import java.security.MessageDigest
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class StreamHashCalculatorTest {
@@ -38,6 +40,18 @@ class StreamHashCalculatorTest {
         )
     }
 
+    @Test
+    fun fullHash_streamsLargeInputWithAtMost64KiBReads() = runTest {
+        val stream = GeneratedInputStream(16 * 1024 * 1024)
+        val calculator = StreamHashCalculator(HashInputSource { stream })
+
+        val hash = calculator.fullHash(file(sizeBytes = stream.totalBytes.toLong()))
+
+        assertEquals(64, hash.length)
+        assertTrue(stream.readCalls > 1)
+        assertTrue(stream.maximumRequestedBytes <= 64 * 1024)
+    }
+
     private fun file(sizeBytes: Long) = DuplicateFile(
         itemId = "item",
         contentUri = "content://test/item",
@@ -49,6 +63,32 @@ class StreamHashCalculatorTest {
         source = ScanSource.MEDIA_STORE,
         riskLevel = RiskLevel.REVIEW,
     )
+}
+
+private class GeneratedInputStream(
+    val totalBytes: Int,
+) : InputStream() {
+    private var position = 0
+    var maximumRequestedBytes: Int = 0
+        private set
+    var readCalls: Int = 0
+        private set
+
+    override fun read(): Int = if (position >= totalBytes) {
+        -1
+    } else {
+        (position++ % 251)
+    }
+
+    override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
+        maximumRequestedBytes = maxOf(maximumRequestedBytes, length)
+        if (position >= totalBytes) return -1
+        val count = minOf(length, totalBytes - position)
+        repeat(count) { index -> buffer[offset + index] = ((position + index) % 251).toByte() }
+        position += count
+        readCalls += 1
+        return count
+    }
 }
 
 private fun ByteArray.toHex(): String = joinToString("") { "%02x".format(it) }

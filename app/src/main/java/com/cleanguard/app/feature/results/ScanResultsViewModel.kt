@@ -17,11 +17,14 @@ import com.cleanguard.app.domain.repository.NoOpIgnoreRuleRepository
 import com.cleanguard.app.domain.duplicate.DuplicateSessionRepository
 import com.cleanguard.app.domain.duplicate.NoOpDuplicateSessionRepository
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -33,6 +36,7 @@ class ScanResultsViewModel(
     ignoreRuleRepository: IgnoreRuleRepository = NoOpIgnoreRuleRepository,
     private val ignoreRecommendation: IgnoreRecommendationUseCase = IgnoreRecommendationUseCase(ignoreRuleRepository),
     currentTimeMillis: () -> Long = System::currentTimeMillis,
+    computationDispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : ViewModel() {
     private val updateState = MutableStateFlow(ThresholdUpdateState())
     private var updateJob: Job? = null
@@ -63,6 +67,7 @@ class ScanResultsViewModel(
         )
             .filterNot { it.priority == RecommendationPriority.NONE }
         val recommendedIds = recommendations.mapTo(hashSetOf()) { it.itemId }
+        val itemsById = data.items.associateBy(ScanItem::id)
         ScanResultsUiState(
             summary = data.summary,
             isLoading = false,
@@ -72,8 +77,9 @@ class ScanResultsViewModel(
             updateErrorMessage = update.errorMessage,
             scanRunInfo = data.scanRunInfo,
             recommendations = recommendations,
-            recommendationCandidates = recommendations.mapNotNull { recommendation ->
-                data.items.firstOrNull { it.id == recommendation.itemId }?.let { item ->
+            recommendationCandidates = recommendations.take(MAX_VISIBLE_RECOMMENDATIONS)
+                .mapNotNull { recommendation ->
+                itemsById[recommendation.itemId]?.let { item ->
                     RecommendationCandidate(
                         itemId = item.id,
                         displayName = item.displayName,
@@ -86,7 +92,7 @@ class ScanResultsViewModel(
                 .filter { it.id in recommendedIds }
                 .fold(0L) { total, item -> saturatingAdd(total, item.sizeBytes) },
         )
-    }
+    }.flowOn(computationDispatcher)
         .stateIn(viewModelScope, SharingStarted.Eagerly, ScanResultsUiState())
 
     fun onEvent(event: ScanResultsUiEvent) {
@@ -131,3 +137,5 @@ private data class ScanResultData(
 
 private fun saturatingAdd(total: Long, value: Long): Long =
     if (value > 0L && total > Long.MAX_VALUE - value) Long.MAX_VALUE else total + value
+
+private const val MAX_VISIBLE_RECOMMENDATIONS = 5

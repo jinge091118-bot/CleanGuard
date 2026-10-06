@@ -8,6 +8,7 @@ import com.cleanguard.app.domain.model.ScanSource
 import java.io.IOException
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.yield
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -126,6 +127,33 @@ class DuplicateVerificationEngineImplTest {
 
         assertEquals(1, result.groups.size)
         assertEquals(2, maximum.get())
+    }
+
+    @Test
+    fun tenThousandCandidates_useTwoFixedFullHashWorkers() = runTest {
+        val active = AtomicInteger(0)
+        val maximum = AtomicInteger(0)
+        val fullHashCount = AtomicInteger(0)
+        val hasher = object : DuplicateFileHasher {
+            override suspend fun quickHash(file: DuplicateFile) = "same"
+
+            override suspend fun fullHash(file: DuplicateFile): String {
+                val current = active.incrementAndGet()
+                maximum.updateAndGet { maxOf(it, current) }
+                yield()
+                fullHashCount.incrementAndGet()
+                active.decrementAndGet()
+                return "full"
+            }
+        }
+
+        val result = DuplicateVerificationEngineImpl(hasher).verify(
+            List(10_000) { index -> file("scale-$index") },
+        )
+
+        assertEquals(10_000, fullHashCount.get())
+        assertEquals(2, maximum.get())
+        assertEquals(10_000, result.groups.single().files.size)
     }
 
     private fun file(

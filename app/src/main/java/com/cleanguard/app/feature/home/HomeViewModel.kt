@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class HomeViewModel(
     private val loadStorageOverview: LoadStorageOverviewUseCase,
@@ -125,33 +127,36 @@ class HomeViewModel(
                 ignoreRuleRepository.observeActive(currentTimeMillis()),
             ) { items, ignored -> items to ignored.mapTo(hashSetOf()) { it.itemKey } }
                 .collect { (items, ignoredIds) ->
-                val recommendations = recommendationEngine.recommend(
-                    items = items,
-                    ignoredItemIds = ignoredIds,
-                )
-                    .filter { recommendation ->
+                val summary = withContext(Dispatchers.Default) {
+                    val recommendations = recommendationEngine.recommend(
+                        items = items,
+                        ignoredItemIds = ignoredIds,
+                    ).filter { recommendation ->
                         recommendation.priority == RecommendationPriority.HIGH ||
                             recommendation.priority == RecommendationPriority.MEDIUM
                     }
-                val recommendedIds = recommendations.mapTo(hashSetOf()) { it.itemId }
+                    val recommendedIds = recommendations.mapTo(hashSetOf()) { it.itemId }
+                    if (recommendedIds.isEmpty()) {
+                        null
+                    } else {
+                        HomeRecommendationSummary(
+                            itemCount = recommendedIds.size,
+                            candidateBytes = items.asSequence()
+                                .filter { it.id in recommendedIds }
+                                .fold(0L) { total, item -> saturatingAdd(total, item.sizeBytes) },
+                        )
+                    }
+                }
                 _uiState.update { state ->
-                    state.copy(
-                        recommendationSummary = if (recommendedIds.isEmpty()) {
-                            null
-                        } else {
-                            HomeRecommendationSummary(
-                                itemCount = recommendedIds.size,
-                                candidateBytes = items
-                                    .filter { it.id in recommendedIds }
-                                    .sumOf { it.sizeBytes },
-                            )
-                        },
-                    )
+                    state.copy(recommendationSummary = summary)
                 }
             }
         }
     }
 }
+
+private fun saturatingAdd(left: Long, right: Long): Long =
+    if (right > 0L && left > Long.MAX_VALUE - right) Long.MAX_VALUE else left + right
 
 internal fun ScanHistoryTimeline.toHomeHistoryDelta(): HomeHistoryDelta? {
     val latest = successfulScans.getOrNull(0) ?: return null

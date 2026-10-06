@@ -55,6 +55,7 @@ class ScanResultsViewModelTest {
             val viewModel = ScanResultsViewModel(
                 scanRepository = repository,
                 updateLargeFileThreshold = UpdateLargeFileThresholdUseCase(repository, applyRules),
+                computationDispatcher = dispatcher,
             )
             advanceUntilIdle()
             assertEquals(0L, viewModel.uiState.value.summary?.largeFileBytes)
@@ -102,6 +103,7 @@ class ScanResultsViewModelTest {
                     explanationProvider = RecommendationExplanationProvider { "test" },
                     currentTimeMillis = { 2_000_000_000_000L },
                 ),
+                computationDispatcher = dispatcher,
             )
 
             advanceUntilIdle()

@@ -17,6 +17,8 @@ import com.cleanguard.app.domain.repository.MediaScanner
 import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -31,6 +33,58 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class IncrementalMediaStoreScannerTest {
+    @Test
+    fun `100k first scan and unchanged incremental scan avoid global index reload`() = runTest {
+        val records = (1L..100_000L).map(::record)
+        val gateway = FakeMediaStoreGateway().apply {
+            volumes = setOf(PRIMARY)
+            versions[PRIMARY] = "v1"
+            generations[PRIMARY] = 10L
+            fullMetadata[PRIMARY] = records
+            currentIds[PRIMARY] = records.mapTo(HashSet(records.size)) { it.id }
+        }
+        val persistence = FakeIncrementalScanPersistence()
+        val scanner = scanner(gateway, persistence)
+
+        val first = scanner.completedResult()
+        gateway.generations[PRIMARY] = 11L
+        gateway.changedMetadata[PRIMARY] = emptyList()
+        val second = scanner.completedResult()
+
+        assertEquals(100_000, first.items.size)
+        assertEquals(100_000, second.items.size)
+        assertEquals(MediaScanExecutionType.FULL, first.metadata.executionType)
+        assertEquals(MediaScanExecutionType.INCREMENTAL, second.metadata.executionType)
+        assertEquals(100_000, first.metadata.changedItemCount)
+        assertEquals(0, second.metadata.changedItemCount)
+        assertEquals(listOf(null, 10L), gateway.metadataReads.map { it.second })
+        assertEquals(0, persistence.findAllIndexedItemsCount)
+    }
+
+    @Test
+    fun `large reconciliation observes cancellation and preserves successful baseline`() = runTest {
+        val records = (1L..10_000L).map(::record)
+        val persistence = FakeIncrementalScanPersistence().apply {
+            records.forEach { indexed[it.id] = it }
+            syncStates[PRIMARY] = MediaSyncState(PRIMARY, "v1", 10L, 100L)
+            cancelAfterIndexedItemsRead = true
+        }
+        val gateway = incrementalGateway(
+            generation = 11L,
+            changed = emptyList(),
+            ids = records.mapTo(HashSet(records.size)) { it.id },
+        )
+
+        val failure = runCatching {
+            scanner(gateway, persistence).scan().toList()
+        }.exceptionOrNull()
+
+        assertTrue(failure is CancellationException)
+        assertEquals(10L, persistence.syncStates.getValue(PRIMARY).lastGeneration)
+        assertEquals(0, persistence.commitCount)
+        assertEquals(PersistedScanStatus.CANCELLED, persistence.snapshots.last().scanStatus)
+    }
+
     @Test
     fun `first scan is full and second unchanged scan is incremental`() = runTest {
         val gateway = FakeMediaStoreGateway().apply {
@@ -344,15 +398,24 @@ private class FakeIncrementalScanPersistence : IncrementalScanPersistenceReposit
     val syncStates = linkedMapOf<String, MediaSyncState>()
     val snapshots = mutableListOf<ScanSnapshot>()
     var commitCount: Int = 0
+    var findAllIndexedItemsCount: Int = 0
+    var cancelAfterIndexedItemsRead: Boolean = false
 
     override suspend fun findSyncState(volumeName: String): MediaSyncState? = syncStates[volumeName]
 
     override suspend fun findAllSyncStates(): List<MediaSyncState> = syncStates.values.toList()
 
     override suspend fun findIndexedItems(volumeName: String): List<IndexedItemRecord> =
-        indexed.values.filter { it.volumeName == volumeName }
+        indexed.values.filter { it.volumeName == volumeName }.also {
+            if (cancelAfterIndexedItemsRead) {
+                currentCoroutineContext().cancel(CancellationException("phase 10 cancellation"))
+            }
+        }
 
-    override suspend fun findAllIndexedItems(): List<IndexedItemRecord> = indexed.values.toList()
+    override suspend fun findAllIndexedItems(): List<IndexedItemRecord> {
+        findAllIndexedItemsCount += 1
+        return indexed.values.toList()
+    }
 
     override suspend fun recordScanState(snapshot: ScanSnapshot) {
         snapshots += snapshot

@@ -231,6 +231,21 @@ class CleanGuardDatabaseTest {
     }
 
     @Test
+    fun hashCache_prunesOnlyOldOrphans() = runBlocking {
+        val dao = database.hashCacheDao()
+        val indexedUri = "content://media/indexed"
+        database.indexedItemDao().upsert(indexedItem("indexed", indexedUri))
+        dao.upsert(hashEntity("indexed-hash", indexedUri, 1_024L, 100L).copy(updatedAt = 10L))
+        dao.upsert(hashEntity("old-orphan", "content://media/old", 10L, 1L).copy(updatedAt = 10L))
+        dao.upsert(hashEntity("recent-orphan", "content://media/recent", 10L, 1L).copy(updatedAt = 1_000L))
+
+        assertEquals(1, dao.pruneOrphansUpdatedBefore(100L))
+        assertNotNull(dao.findCurrent(indexedUri, 1_024L, 100L))
+        assertNotNull(dao.findCurrent("content://media/recent", 10L, 1L))
+        assertNull(dao.findCurrent("content://media/old", 10L, 1L))
+    }
+
+    @Test
     fun ignoreRule_insertObserveAndDelete() = runBlocking {
         val dao = database.ignoreRuleDao()
         dao.upsert(IgnoredItemEntity("ignore-1", "uri:key", 100L, null, "ITEM"))
@@ -393,6 +408,46 @@ class CleanGuardDatabaseTest {
             PersistedScanStatus.COMPLETED.name,
             database.scanHistoryDao().findById("scan-incremental")?.scanStatus,
         )
+    }
+
+    @Test
+    fun incrementalScanTransaction_persistsOneHundredThousandItemsInBatches() = runBlocking {
+        val repository = RoomIncrementalScanPersistenceRepository(database)
+        val records = List(100_000) { index ->
+            indexedItemRecord("scale-$index").copy(
+                mediaStoreGeneration = index.toLong(),
+                lastIndexedAt = 1_000L + index,
+            )
+        }
+        val startedAtNanos = System.nanoTime()
+
+        repository.commitCompletedScan(
+            scanId = "scale-100k",
+            volumeUpdates = listOf(
+                MediaVolumeIndexUpdate(
+                    volumeName = "external_primary",
+                    upsertItems = records,
+                    staleItemIds = emptyList(),
+                    syncState = MediaSyncState("external_primary", "v1", 100_000L, 2_000L),
+                ),
+            ),
+            removedVolumes = emptySet(),
+            completedSnapshot = scanSnapshot("scale-100k", 1_000L).copy(
+                scannedItemCount = records.size,
+            ),
+        )
+
+        val durationMs = (System.nanoTime() - startedAtNanos) / 1_000_000L
+        val runtime = Runtime.getRuntime()
+        val usedHeap = runtime.totalMemory() - runtime.freeMemory()
+        println(
+            "PHASE10_ROOM_100K durationMs=$durationMs usedHeapBytes=$usedHeap " +
+                "maxHeapBytes=${runtime.maxMemory()}",
+        )
+        assertEquals(100_000, database.indexedItemDao().count())
+        assertEquals(100_000, database.scanHistoryDao().findById("scale-100k")?.scannedItemCount)
+        assertTrue(durationMs < 120_000L)
+        assertTrue(usedHeap < runtime.maxMemory())
     }
 
     private fun indexedItem(

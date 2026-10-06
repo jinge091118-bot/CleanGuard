@@ -148,6 +148,9 @@ class RoomHashCacheRepository(
         sizeBytes: Long,
         modifiedAt: Long,
     ): Int = dao.invalidateStale(contentUri, sizeBytes, modifiedAt)
+
+    override suspend fun pruneOrphansUpdatedBefore(cutoffEpochMillis: Long): Int =
+        dao.pruneOrphansUpdatedBefore(cutoffEpochMillis)
 }
 
 class RoomIgnoreRuleRepository(
@@ -204,11 +207,17 @@ class RoomScanPersistenceTransactionRepository(
             "Completed scan transaction requires a COMPLETED snapshot"
         }
         database.withTransaction {
-            database.indexedItemDao().upsertScanBatch(
-                scanId = scanId,
-                items = items.map(IndexedItemRecord::toEntity),
-            )
+            items.chunked(INDEX_UPSERT_BATCH_SIZE).forEach { records ->
+                database.indexedItemDao().upsertAll(
+                    records.map { record ->
+                        record.toEntity().copy(lastSeenScanId = scanId)
+                    },
+                )
+            }
             database.scanHistoryDao().upsert(completedSnapshot.toEntity())
+            database.hashCacheDao().pruneOrphansUpdatedBefore(
+                hashCacheCutoff(completedSnapshot.completedAt ?: completedSnapshot.startedAt),
+            )
             retentionPolicy().maxSuccessfulScans?.let { maxScans ->
                 database.scanHistoryDao().pruneCompleted(maxScans)
             }
@@ -261,20 +270,29 @@ class RoomIncrementalScanPersistenceRepository(
                     database.indexedItemDao().deleteByIds(itemIds)
                 }
                 update.upsertItems
-                    .map(IndexedItemRecord::toEntity)
                     .chunked(INDEX_UPSERT_BATCH_SIZE)
-                    .forEach { entities -> database.indexedItemDao().upsertAll(entities) }
+                    .forEach { records ->
+                        database.indexedItemDao().upsertAll(
+                            records.map(IndexedItemRecord::toEntity),
+                        )
+                    }
                 database.mediaSyncStateDao().upsert(update.syncState.toEntity())
             }
             database.scanHistoryDao().upsert(completedSnapshot.toEntity())
+            database.hashCacheDao().pruneOrphansUpdatedBefore(
+                hashCacheCutoff(completedSnapshot.completedAt ?: completedSnapshot.startedAt),
+            )
             retentionPolicy().maxSuccessfulScans?.let { maxScans ->
                 database.scanHistoryDao().pruneCompleted(maxScans)
             }
         }
     }
 
-    private companion object {
-        const val INDEX_UPSERT_BATCH_SIZE = 250
-        const val SQLITE_BATCH_SIZE = 500
-    }
 }
+
+private fun hashCacheCutoff(completedAt: Long): Long =
+    (completedAt - HASH_CACHE_ORPHAN_RETENTION_MILLIS).coerceAtLeast(0L)
+
+private const val HASH_CACHE_ORPHAN_RETENTION_MILLIS = 30L * 24L * 60L * 60L * 1_000L
+private const val INDEX_UPSERT_BATCH_SIZE = 250
+private const val SQLITE_BATCH_SIZE = 500

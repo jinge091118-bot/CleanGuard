@@ -32,14 +32,21 @@ data class ScanSummary(
 }
 
 fun List<ScanItem>.toScanSummary(): ScanSummary {
-    val riskBytes = RiskLevel.entries.associateWith { risk ->
-        filter { it.safetyDecision.riskLevel == risk }.sumOf(ScanItem::sizeBytes)
+    val riskBytes = RiskLevel.entries.associateWithTo(mutableMapOf()) { 0L }
+    val categoryBytes = mutableMapOf<FileCategory, Long>()
+    var totalBytes = 0L
+    forEach { item ->
+        totalBytes = saturatingAdd(totalBytes, item.sizeBytes)
+        val risk = item.safetyDecision.riskLevel
+        riskBytes[risk] = saturatingAdd(riskBytes.getValue(risk), item.sizeBytes)
+        categoryBytes[item.category] = saturatingAdd(
+            categoryBytes[item.category] ?: 0L,
+            item.sizeBytes,
+        )
     }
-    val categoryBytes = groupBy(ScanItem::category)
-        .mapValues { (_, items) -> items.sumOf(ScanItem::sizeBytes) }
     return ScanSummary(
         totalFiles = size,
-        totalBytes = sumOf(ScanItem::sizeBytes),
+        totalBytes = totalBytes,
         largeFileBytes = categoryBytes[FileCategory.LARGE_FILE] ?: 0L,
         safeBytes = riskBytes.getValue(RiskLevel.SAFE),
         reviewBytes = riskBytes.getValue(RiskLevel.REVIEW),
@@ -47,4 +54,10 @@ fun List<ScanItem>.toScanSummary(): ScanSummary {
         unknownBytes = riskBytes.getValue(RiskLevel.UNKNOWN),
         categoryBytes = categoryBytes,
     )
+}
+
+private fun saturatingAdd(left: Long, right: Long): Long = when {
+    right <= 0L -> left
+    left > Long.MAX_VALUE - right -> Long.MAX_VALUE
+    else -> left + right
 }

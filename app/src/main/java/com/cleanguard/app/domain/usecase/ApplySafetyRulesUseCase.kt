@@ -14,6 +14,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 
 class ApplySafetyRulesUseCase(
     private val repository: SafetyRuleRepository,
@@ -32,7 +34,13 @@ class ApplySafetyRulesUseCase(
 
         return try {
             withContext(evaluationDispatcher) {
-                Result.success(items.map { item -> item.toScanItem(engine, largeFileThreshold) })
+                val context = currentCoroutineContext()
+                Result.success(
+                    items.mapIndexed { index, item ->
+                        if (index % CANCELLATION_CHECK_INTERVAL == 0) context.ensureActive()
+                        item.toScanItem(engine, largeFileThreshold)
+                    },
+                )
             }
         } catch (cancelled: CancellationException) {
             throw cancelled
@@ -48,6 +56,8 @@ class ApplySafetyRulesUseCase(
             .onSuccess { cachedEngine = it }
     }
 }
+
+private const val CANCELLATION_CHECK_INTERVAL = 256
 
 private fun ScannedFile.toScanItem(
     engine: SafetyRuleEngine,

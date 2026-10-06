@@ -26,6 +26,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.flowOn
 
 class CleanupDetailViewModel(
     scanRepository: ScanRepository,
@@ -76,7 +78,8 @@ class CleanupDetailViewModel(
             isLoading = false,
             recommendations = recommendations,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CleanupDetailUiState())
+    }.flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CleanupDetailUiState())
 
     fun onEvent(event: CleanupDetailUiEvent) {
         when (event) {

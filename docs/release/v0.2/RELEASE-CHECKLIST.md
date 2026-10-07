@@ -14,7 +14,7 @@ This checklist is the release-control source for CleanGuard V0.2. Feature work i
 ## Gate status
 
 - [x] R0 - Code Freeze & Release Baseline
-- [ ] R1 - Production signing system
+- [x] R1 - Production signing system
 - [ ] R2 - OEM / Android device matrix
 - [ ] R3 - Physical-device performance validation
 - [ ] R4 - Privacy Policy, Data Safety, and media-permission declarations
@@ -32,7 +32,7 @@ This checklist is the release-control source for CleanGuard V0.2. Feature work i
 - [x] No `INTERNET`, `MANAGE_EXTERNAL_STORAGE`, `QUERY_ALL_PACKAGES`, `WRITE_EXTERNAL_STORAGE`, or `MANAGE_MEDIA` permission exists.
 - [x] No Root, Shizuku, accessibility service, analytics, advertising SDK, upload path, or automatic permanent deletion was introduced.
 - [x] V0.1 cleanup safety regression tests remain green.
-- [ ] Release APK and AAB are signed with the protected upload key. Required in R1.
+- [x] Release APK and AAB are signed with the protected upload key.
 - [ ] OEM and Android 10-16 validation is complete. Required in R2.
 - [ ] Physical-device performance gates are complete. Required in R3.
 - [ ] Play compliance materials are approved. Required in R4.

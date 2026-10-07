@@ -1,6 +1,6 @@
 # CleanGuard V0.2 Upload Signing Setup
 
-Status: **R1 wiring implemented; protected Upload Key required from the project owner**
+Status: **R1 complete; protected Upload Key configured locally outside the repository**
 
 ## Security boundary
 

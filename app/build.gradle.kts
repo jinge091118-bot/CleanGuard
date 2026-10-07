@@ -2,6 +2,8 @@ import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.process.CommandLineArgumentProvider
+import org.gradle.api.GradleException
+import java.io.IOException
 import java.util.Properties
 
 class RoomSchemaArgProvider(
@@ -56,7 +58,15 @@ check(uploadSigningValues.all { it == null } || isUploadSigningConfigured) {
 }
 
 val uploadStoreFile = uploadStoreFilePath?.let { configuredPath ->
-    val configuredFile = file(configuredPath).canonicalFile
+    val configuredFile = try {
+        file(configuredPath).canonicalFile
+    } catch (exception: IOException) {
+        throw GradleException(
+            "Invalid upload keystore path. In key.properties, use forward slashes " +
+                "(for example C:/SecureKeys/CleanGuard/cleanguard-upload.jks).",
+            exception,
+        )
+    }
     val repositoryRoot = rootProject.rootDir.canonicalFile.toPath()
     check(!configuredFile.toPath().startsWith(repositoryRoot)) {
         "The upload keystore must be stored outside the Git repository."

@@ -18,4 +18,5 @@ signing.properties
 captures/
 .externalNativeBuild/
 .cxx/
+/app/release/
 

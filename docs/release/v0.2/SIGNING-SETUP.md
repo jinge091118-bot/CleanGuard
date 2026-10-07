@@ -47,6 +47,8 @@ Set these only in a protected local or CI secret store:
 
 Copy `key.properties.example` to `key.properties`, replace every placeholder locally, and never stage the resulting file. The keystore path must point outside the repository.
 
+On Windows, write `storeFile` with forward slashes, for example `C:/Users/your-name/SecureKeys/CleanGuard/cleanguard-upload.jks`. A single backslash is interpreted as an escape by Java properties and must not be used.
+
 ## Verification commands
 
 ```powershell

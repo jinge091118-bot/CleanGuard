@@ -2,6 +2,50 @@
 
 本项目遵循语义化版本的发布命名方式。Release Candidate 用 `-rcN` 后缀标识。
 
+## 0.2.0 - 2026-10-07
+
+CleanGuard V0.2 持久化、增量分析、可解释建议与历史恢复版本。
+
+### 新功能
+
+- 引入 Room 本地索引、扫描历史、应用占用历史、Hash 缓存、Ignore 规则与清理历史。
+- Android 11+ 使用 MediaStore Generation 与 ID reconciliation 完成真实增量扫描；Android 10 保持完整扫描回退。
+- 增加 Recommendation Engine，且与 SafetyRuleEngine 风险判断严格隔离。
+- 支持文件大小、Quick Hash 与流式 Full SHA-256 的精确重复文件确认。
+- 支持 APK archive 与已安装版本比较、Downloads 时间分组、截图与录屏识别。
+- 增加扫描趋势、App Storage History、Cleanup History、Recovery Center、Settings 与 Permission Center。
+- 支持 30 天/永久 Ignore、历史保留策略和 Android 14+ Partial Media 状态。
+
+### 性能与稳定性
+
+- 100k 索引规模完成 JVM 与 API 36 Room 事务验证。
+- Room 索引按 250 条分批写入，删除按 500 条分批，仍保持原子事务。
+- Full Hash 采用 64 KiB 流式读取，最大并发为 2。
+- 修复推荐结果 O(n²) 查找、重复 Hash 海量协程及增量扫描重复全库读取热点。
+- 扫描取消不会推进成功 Generation 基线，Hash cache 旧孤儿会自动裁剪。
+
+### 安全与隐私
+
+- DANGER / UNKNOWN 继续无法进入清理计划，REVIEW 继续默认不选中。
+- Recommendation Engine 不修改 RiskLevel 或允许动作。
+- 不新增网络、所有文件访问、全量应用查询、外部存储写入或媒体管理权限。
+- 不引入后台自动扫描、自动永久删除、Analytics SDK 或广告 SDK。
+- 文件、路径、Hash 和应用列表不上传。
+
+### 验证
+
+- Debug 与 Release JVM 测试各 109 项通过。
+- Android 16 / API 36 instrumented tests 38 项通过。
+- Lint 无 issue，Debug / Release APK 与 AndroidTest APK 构建成功。
+- API 36 上 100k Room 写入、冷启动、内存与 ANR 检查通过。
+
+### 已知限制
+
+- Release APK/AAB 未配置正式签名，不能直接用于商店发布。
+- Android 10–15 与主要 OEM 真机矩阵仍需在正式发布前完成。
+- 精确重复检测不等同于相似图片识别。
+- 软件渲染模拟器的图形性能不代表真机结果。
+
 ## 0.1.0-rc1 - 2026-09-21
 
 CleanGuard 首个 V0.1 发布候选版本。

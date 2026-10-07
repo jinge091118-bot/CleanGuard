@@ -1,0 +1,6 @@
+# Copy this file to key.properties and keep the copy local and untracked.
+# The keystore path must resolve outside this Git repository.
+storeFile=C:/Users/your-name/SecureKeys/CleanGuard/cleanguard-upload.jks
+storePassword=SET_LOCALLY_AND_NEVER_COMMIT
+keyAlias=cleanguard-upload
+keyPassword=SET_LOCALLY_AND_NEVER_COMMIT

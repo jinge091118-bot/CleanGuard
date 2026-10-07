@@ -7,6 +7,13 @@
 .android-sdk/
 .qa/
 local.properties
+*.jks
+*.keystore
+*.p12
+*.pfx
+key.properties
+keystore.properties
+signing.properties
 **/build/
 captures/
 .externalNativeBuild/

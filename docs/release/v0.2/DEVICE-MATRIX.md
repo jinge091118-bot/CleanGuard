@@ -2,8 +2,9 @@
 
 Status: **R2 in progress — not accepted**
 
-The API 36 official emulator baseline is green. Android 10-15 and all required
-physical OEM families remain untested, so this matrix does not satisfy the R2
+The API 36 official emulator and one Redmi / HyperOS physical-device baseline
+are green. Android 10-14, the remaining required OEM families, and the manual
+Redmi scenario set remain incomplete, so this matrix does not satisfy the R2
 release gate.
 
 ## Required Android coverage
@@ -15,21 +16,23 @@ release gate.
 | Android 12 | 31/32 | Pending | Pending | Not run | SDK image unavailable locally; repository download failed |
 | Android 13 | 33 | Pending | Pending | Not run | SDK image unavailable locally; repository download failed |
 | Android 14 | 34 | Pending | Pending | Not run | SDK image unavailable locally; repository download failed |
-| Android 15 | 35 | Pending | Pending | Not run | SDK image unavailable locally; repository download failed |
-| Android 16 | 36 | CleanGuard_API_36 AVD | Google APIs / stock-like | Pass (limited) | 39/39 on 2026-10-07; ADB lifecycle and permission smoke passed |
+| Android 15 | 35 | Redmi 23049RAD8C (`marble`) | HyperOS 3.0 | Pass (automated baseline) | 39/39 on 2026-10-08; signed Release smoke passed |
+| Android 16 | 36 | CleanGuard_API_36 AVD | Google APIs / stock-like | Pass (limited) | Current code 39/39 on 2026-10-08; ADB lifecycle and permission smoke passed |
 
 ## Required OEM coverage
 
 | Priority | OEM family | Target ROM | Device | Result | Blocking issue |
 |---|---|---|---|---|---|
-| P0 | Xiaomi / Redmi | HyperOS | Pending | Not run | No physical device connected |
+| P0 | Xiaomi / Redmi | HyperOS | Redmi 23049RAD8C | Partial pass | Automated suite and system smoke passed; permission-dialog, dataset, trash, undo, and long-running manual scenarios remain |
 | P0 | OPPO / OnePlus | ColorOS | Pending | Not run | No physical device connected |
 | P0 | vivo / iQOO | OriginOS | Pending | Not run | No physical device connected |
 | P0 | Honor | MagicOS | Pending | Not run | No physical device connected |
 | P1 | Samsung | One UI | Pending | Not run | No physical device connected |
 | P1 | Google Pixel | Stock Android | Pending | Not run | No physical device connected; API 36 AVD is not a substitute for physical-device behavior |
 
-## Executed device record
+## Executed device records
+
+### API 36 official AVD
 
 | Field | Value |
 |---|---|
@@ -39,10 +42,29 @@ release gate.
 | Display | 1080 x 2400 |
 | RAM | 2,531,836 kB reported by guest |
 | Data partition | 10,167,132 kB total; 8,542,536 kB available at capture |
-| Test time | 2026-10-07, Asia/Shanghai |
+| Test time | 2026-10-08, Asia/Shanghai |
 | App identity | `com.cleanguard.app`, version code 2, version name 0.2.0 |
-| Automated result | 39 passed, 0 failed, 0 errors, 0 skipped; 42.735 seconds |
+| Automated result | Current code: 39 passed, 0 failed, 0 errors, 0 skipped; 48.514 seconds |
 | Media fixture count | 3 synthetic app-owned rows: image, video, and audio |
+
+### Redmi / HyperOS physical device
+
+| Field | Value |
+|---|---|
+| Serial | `be250aeb` |
+| Manufacturer / model | Xiaomi Redmi / `23049RAD8C` (`marble`) |
+| System | Android 15 / API 35; HyperOS 3.0; build `OS3.0.5.0.VMRCNXM` |
+| Security patch | 2026-05-01 |
+| Display | 1080 x 2400 |
+| RAM | 11,427,864 kB reported by guest |
+| Shared storage | 485,010,412 kB total; 324,316,820 kB available at capture |
+| Battery at inventory | 76%; charging; 36.4 C |
+| Test time | 2026-10-08, Asia/Shanghai |
+| App identity | `com.cleanguard.app`, version code 2, version name 0.2.0 |
+| Automated result | 39 passed, 0 failed, 0 errors, 0 skipped; 16.148 seconds |
+| Media fixture count | 3 synthetic app-owned rows; private media inventory intentionally not collected |
+| Release state after test | Test packages removed; signed Release APK restored; media permissions denied |
+| OEM prerequisite | HyperOS per-app “后台弹出界面” was required only for the instrumentation host Activity |
 
 ## Per-device evidence template
 

@@ -1,13 +1,17 @@
 # CleanGuard V0.2 OEM Device Validation Report
 
-Generated: 2026-10-07 (Asia/Shanghai)
+Generated: 2026-10-08 (Asia/Shanghai)
 
 ## 1. Outcome
 
-R2 has started but is not complete. The available Android 16 / API 36 official
-emulator passed the complete 39-test instrumented suite, a signed-release
-compatibility smoke, and targeted platform checks. The required Android 10-15
-coverage and every required physical OEM family remain unavailable.
+R2 has started but is not complete. The Android 16 / API 36 official emulator
+and a Redmi 23049RAD8C physical device running Android 15 / API 35 and HyperOS
+3.0 both passed the current complete 39-test instrumented suite. The Redmi also
+passed signed-release installation, permission-denied launch, lifecycle smoke,
+and targeted Android system-routing checks.
+
+Android 10-14, the remaining P0/P1 OEM families, and the manual dataset,
+permission-dialog, trash, undo, and long-running Redmi scenarios remain.
 
 This is a partial evidence report. It does not approve R2 and it does not permit
 entry into R3.
@@ -21,16 +25,18 @@ entry into R3.
 - RC tag: `v0.2.0-rc1`
 - RC target: `2694f256eeb490fb9f26ad696fb5546c30109611`
 - Current R1 documentation baseline before R2 changes: `2cb8b70`
-- R2-built signed Release APK: 25,277,457 bytes; SHA-256 `B69C1B6962B3E4BDB8C964AEA976759C93CBCA13FA8ABD9BC83227945A4B4815`
-- R2-built signed Release AAB: 8,729,186 bytes; SHA-256 `CA463F16BF680FA807D2583E8888EB26AE8DD75D33C7CC9B26466A5B9D77C5D5`
+- Latest R2-built signed Release APK: 25,277,457 bytes; SHA-256 `6BABD2EDDF0E15955C165AC607EEC260B1694FFBB82D98297A3641A342D90A01`
+- Latest R2-built signed Release AAB: 8,729,186 bytes; SHA-256 `901441E73750C775E1595DDC06E8C4ADFC8F2AC3F89CAAD77BB12BFFB1557FF9`
 
-The RC tag remains immutable. The R2 test addition is test-only and does not
+The RC tag remains immutable. The R2 test changes are test-only and do not
 alter production behavior. These are the hashes of the artifacts regenerated
 during R2; the R1 report retains its own historical build hashes.
 
 ## 3. Available device inventory
 
-One device was available:
+Two validation targets were available.
+
+### API 36 official emulator
 
 | Field | Value |
 |---|---|
@@ -42,11 +48,29 @@ One device was available:
 | RAM | 2,531,836 kB reported by guest |
 | Data partition | 10,167,132 kB total; 8,542,536 kB available at capture |
 | Device class | Official emulator; not physical Pixel or OEM evidence |
-| Test time | 2026-10-07, Asia/Shanghai |
+| Test time | 2026-10-08, Asia/Shanghai |
 
-No physical Android device was connected. The only valid local system image was
-API 36. Therefore no result in this report may be generalized to OEM-specific
-behavior.
+### Redmi / HyperOS physical device
+
+| Field | Value |
+|---|---|
+| Serial | `be250aeb` |
+| Manufacturer / brand | Xiaomi / Redmi |
+| Model / device | `23049RAD8C` / `marble` |
+| System | Android 15, API 35, HyperOS 3.0 |
+| Incremental build | `OS3.0.5.0.VMRCNXM` |
+| Security patch | 2026-05-01 |
+| ABI | arm64-v8a |
+| Display | 1080 x 2400 |
+| RAM | 11,427,864 kB reported by guest |
+| Shared storage | 485,010,412 kB total; 324,316,820 kB available at inventory |
+| Battery | 76%, charging, 36.4 C at inventory |
+| Test time | 2026-10-08, Asia/Shanghai |
+| Media inventory | Private media count not collected; tests used three synthetic app-owned rows |
+
+The API 36 image remains the only valid local emulator image. Redmi evidence is
+valid for this exact model and HyperOS build and must not be generalized to all
+Xiaomi devices or the remaining OEM families.
 
 ## 4. Automated validation
 
@@ -65,12 +89,13 @@ gradlew test lint assembleDebug assembleRelease bundleRelease assembleDebugAndro
 - Signed Release APK: generated
 - Signed Release AAB: generated
 - Debug Android test APK: generated
-- Build result: successful; 148 tasks, 10 executed and 138 up-to-date
+- Build result: successful; 148 tasks, 12 executed and 136 up-to-date
 
 ### API 36 instrumented suite
 
 ```text
-gradlew connectedDebugAndroidTest --offline --stacktrace
+adb -s emulator-5554 shell am instrument -w -r \
+  com.cleanguard.app.test/androidx.test.runner.AndroidJUnitRunner
 ```
 
 - Tests: 39
@@ -78,16 +103,51 @@ gradlew connectedDebugAndroidTest --offline --stacktrace
 - Failed: 0
 - Errors: 0
 - Skipped: 0
-- Suite time: 42.735 seconds
-- Gradle result: `BUILD SUCCESSFUL` in 57 seconds
+- Current-code suite time: 48.514 seconds
+- Result: 39/39 passed after the cold-started emulator finished system initialization
 
-The suite includes one new R2 platform test. It inserts three synthetic,
-app-owned rows into the real Android MediaStore (image, video, and audio), runs
-the existing `MediaStoreScanner`, verifies category, URI, size, and relative
-path, and removes every fixture in a `finally` block. It does not rewrite the
-scanner, access private user content, or add deletion capability.
+The first immediate post-boot attempt was discarded because the emulator was
+still starting Google system processes and terminated the test process while
+also reporting ANRs in unrelated system applications. After the emulator
+reported boot and process readiness, the targeted UI test and complete suite
+both passed.
 
-## 5. Signed-release and system smoke on API 36
+### Redmi / HyperOS instrumented suite
+
+```text
+adb -s be250aeb shell am instrument -w -r \
+  com.cleanguard.app.test/androidx.test.runner.AndroidJUnitRunner
+```
+
+- Tests: 39
+- Passed: 39
+- Failed: 0
+- Errors: 0
+- Skipped: 0
+- Suite time: 16.148 seconds
+- Real MediaStore platform test: passed
+- Room, migration, DataStore, UI, and safety suites: passed
+
+HyperOS initially blocked the Compose instrumentation host Activity with
+`MIUILOG- Permission Denied Activity`. Enabling the per-app “后台弹出界面”
+permission allowed the Android test host to run. This permission is an OEM test
+harness prerequisite only: CleanGuard does not request it in its Manifest, and
+the signed Release application launched normally without it.
+
+The Redmi run exposed a test portability issue: a LazyColumn assertion assumed
+the target item was already composed at the emulator density. The test now
+selects the LazyColumn by its stable scroll-to-index semantics before locating
+the same required text. Product UI behavior and wording were not relaxed.
+
+The suite's R2 platform test inserts three synthetic, app-owned rows into the
+real Android MediaStore (image, video, and audio), runs the unchanged
+`MediaStoreScanner`, verifies category, URI, size, and relative path, and
+removes every fixture in a `finally` block. The test no longer grants any media
+read permission, so it does not enumerate or read private user media.
+
+## 5. Signed-release and system smoke
+
+### API 36 official emulator
 
 | Area | Executed evidence | Result |
 |---|---|---|
@@ -107,17 +167,36 @@ This smoke does not replace hands-on user-confirmation testing for partial photo
 access, actual SAF authorization/revocation, MediaStore trash confirmation, or
 undo cancellation.
 
+### Redmi / HyperOS physical device
+
+| Area | Executed evidence | Result |
+|---|---|---|
+| Install | Signed Release APK installed, replaced by test build, then restored after testing | Pass |
+| First launch with permissions denied | Cold start completed in 369 ms on first run and 423 ms after final reinstall | Pass |
+| Permission state | Image, video, and audio permissions confirmed denied after final reinstall | Pass |
+| Usage Access | HyperOS resolved `Settings$UsageAccessSettingsActivity` | Pass (routing only) |
+| Downloads SAF | System resolved Google DocumentsUI `PickActivity` | Pass (routing only) |
+| Background / resume | Home then Release relaunch; 84 ms hot launch | Pass |
+| Rotation | Portrait/landscape setting changed and restored to original values | Pass |
+| Lock / unlock | Sleep, wake, dismiss keyguard, and re-entry completed | Pass |
+| Process-reclaim command | Background kill command followed by relaunch remained hot | Inconclusive; OEM reclaim not proven |
+| Runtime health | No CleanGuard fatal exception, OOM, ANR, or database exception after Release smoke | Pass |
+
+The phone was left with the signed Release APK installed, version code 2,
+version name 0.2.0, and all media permissions denied. Test APKs were removed and
+system animation scales were restored to their original values.
+
 ## 6. Required scenario status
 
-| Scenario group | API 36 status | Remaining work |
+| Scenario group | Current API 35/36 status | Remaining work |
 |---|---|---|
-| Install / first launch | Partial pass | Reinstall data-state behavior and signed upgrade path require explicit physical-device runs |
-| Permissions | Partial pass | Partial photos, actual SAF grant/revoke, OEM permission dialogs, and cross-version behavior remain |
-| Scanning | Partial pass | Real MediaStore scanner verified with three synthetic rows; no-change incremental, add/delete/modify, large file, APK, screenshot, screen recording, and Downloads datasets remain |
+| Install / first launch | Partial pass on API 35 physical device and API 36 AVD | Signed upgrade path and retained-data reinstall behavior remain |
+| Permissions | Partial pass | Redmi deny-all and system routing passed; partial photos, actual SAF grant/revoke, OEM dialogs, and cross-version behavior remain |
+| Scanning | Partial pass | Real MediaStore scanner verified without media permission using three app-owned rows; no-change incremental, add/delete/modify, large file, APK, screenshot, screen recording, and Downloads datasets remain |
 | Duplicate detection | Automated regression only | Quick hash, full SHA-256, exact/nonduplicate, cancellation, and large-video flows require device datasets |
 | Cleanup safety | Automated regression only | REVIEW default-off and DANGER/UNKNOWN protection remain green in tests; real trash confirmation, cancellation, success, undo, and undo-cancel require physical-device execution |
-| Lifecycle | Partial pass | Background, lock/unlock, rotation, and process recreation passed; OEM system reclaim and cancellation during live scans remain |
-| OEM behavior | Not run | All P0 and P1 OEM families remain |
+| Lifecycle | Partial pass | Redmi background, lock/unlock, and rotation passed; actual OEM system reclaim and cancellation during live scans remain |
+| OEM behavior | Redmi automated baseline passed | Redmi manual scenario set plus OPPO/OnePlus, vivo/iQOO, Honor, Samsung, and physical Pixel remain |
 
 ## 7. Android-version and OEM matrix
 
@@ -128,9 +207,9 @@ undo cancellation.
 | Android 12 / API 31 or 32 | Not run |
 | Android 13 / API 33 | Not run |
 | Android 14 / API 34 | Not run |
-| Android 15 / API 35 | Not run |
-| Android 16 / API 36 | Limited pass on official emulator |
-| Xiaomi / Redmi HyperOS | Not run |
+| Android 15 / API 35 | Automated baseline passed on Redmi 23049RAD8C / HyperOS 3.0 |
+| Android 16 / API 36 | Current 39-test suite passed on official emulator |
+| Xiaomi / Redmi HyperOS | Partial pass; full manual scenario matrix remains |
 | OPPO / OnePlus ColorOS | Not run |
 | vivo / iQOO OriginOS | Not run |
 | Honor MagicOS | Not run |
@@ -147,18 +226,21 @@ repository. A partial API 35 installer directory is not a valid system image and
 is not counted as coverage.
 
 These failures are host SDK/network blockers, not CleanGuard application bugs.
-They must be resolved before the Android 10-15 emulator portion can run.
+They must be resolved before the remaining Android 10-14 coverage can run.
 
-Physical OEM coverage additionally requires each listed family to be connected
-with USB debugging enabled. Synthetic media should be used; no private user
-media is required.
+Physical OEM coverage additionally requires the remaining listed families to
+be connected with USB debugging enabled. The available Huawei device may add
+useful compatibility evidence but does not replace the required Honor / MagicOS
+row unless it is actually an Honor device running MagicOS. Synthetic media
+should be used; no private user media is required.
 
 ## 9. Defect gate
 
-- P0 found in tested API 36 environment: 0
-- P1 found in tested API 36 environment: 0
-- P2 found in tested API 36 environment: 0
-- P3 found in tested API 36 environment: 0
+- P0 found in tested API 35 Redmi and API 36 AVD environments: 0
+- P1 found in tested API 35 Redmi and API 36 AVD environments: 0
+- P2 application defects found: 0
+- P3 application defects found: 0
+- Resolved test-only portability defects: 1 LazyColumn selector assumption
 - Global P0/P1 clearance: not determinable because required coverage is incomplete
 - Application behavior changed by R2 work: no
 - Production Manifest or permissions changed: no
@@ -168,8 +250,9 @@ media is required.
 
 Before R2 may be accepted:
 
-1. Restore SDK repository access and execute Android 10-15 coverage.
-2. Connect and execute the full scenario set on all four P0 OEM families.
+1. Restore SDK repository access and execute Android 10-14 coverage.
+2. Complete the manual Redmi scenarios and execute the full scenario set on the
+   other three P0 OEM families.
 3. Execute the P1 Samsung and physical Pixel coverage, or record an approved,
    explicit release-risk decision where the execution plan permits it.
 4. Attach per-device metadata, media counts, scenario evidence, and OEM-specific

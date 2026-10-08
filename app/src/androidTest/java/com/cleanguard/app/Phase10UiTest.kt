@@ -4,12 +4,15 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasScrollToIndexAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.cleanguard.app.data.fake.FakeCleanupRepository
 import com.cleanguard.app.data.media.CurrentScanRepository
@@ -324,9 +327,9 @@ class Phase10UiTest {
         }
 
         composeRule.onNodeWithText("CleanGuard 不会主动永久删除 SAF 文件。").assertIsDisplayed()
-        composeRule.onNodeWithText("建议优先查看 · HIGH；风险等级仍为 REVIEW")
-            .performScrollTo()
-            .assertIsDisplayed()
+        val priorityText = "建议优先查看 · HIGH；风险等级仍为 REVIEW"
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(priorityText))
+        composeRule.onNodeWithText(priorityText).assertIsDisplayed()
     }
 
     @Test

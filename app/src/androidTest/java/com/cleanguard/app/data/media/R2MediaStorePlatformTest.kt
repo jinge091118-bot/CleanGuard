@@ -1,11 +1,8 @@
 package com.cleanguard.app.data.media
 
-import android.Manifest
 import android.content.ContentValues
 import android.content.Context
-import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
 import android.provider.MediaStore
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -27,7 +24,6 @@ class R2MediaStorePlatformTest {
     fun realMediaStoreScanner_readsAppOwnedImageVideoAndAudioRows() = runBlocking {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
-        grantMediaReadPermissions(context)
 
         val createdUris = mutableListOf<Uri>()
         try {
@@ -76,24 +72,6 @@ class R2MediaStorePlatformTest {
         } finally {
             createdUris.forEach { uri ->
                 context.contentResolver.delete(uri, null, null)
-            }
-        }
-    }
-
-    private fun grantMediaReadPermissions(context: Context) {
-        val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            listOf(
-                Manifest.permission.READ_MEDIA_IMAGES,
-                Manifest.permission.READ_MEDIA_VIDEO,
-                Manifest.permission.READ_MEDIA_AUDIO,
-            )
-        } else {
-            listOf(Manifest.permission.READ_EXTERNAL_STORAGE)
-        }
-        permissions.forEach { permission ->
-            if (context.checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) {
-                InstrumentationRegistry.getInstrumentation().uiAutomation
-                    .grantRuntimePermission(context.packageName, permission)
             }
         }
     }

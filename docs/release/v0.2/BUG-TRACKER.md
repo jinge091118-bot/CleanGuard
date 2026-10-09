@@ -13,13 +13,14 @@ Status: **No P0/P1 issue observed on the tested API 35 Redmi or API 36 AVD; R2 c
 
 | ID | Severity | Environment | Reproduction | Expected / actual | Owner | Status | Regression evidence |
 |---|---|---|---|---|---|---|---|
-| - | - | API 35 Redmi / HyperOS 3.0 and API 36 official AVD | - | 39/39 instrumented tests passed on each target; no application defect recorded | - | No active application bug | Limited to the two tested environments |
+| - | - | API 35 Redmi / HyperOS 3.0 and API 36 official AVD | - | Redmi expanded suite 41/41 passed; API 36 pre-expansion suite 39/39 passed; no application defect recorded | - | No active application bug | Limited to the two tested environments; API 36 still needs the two added R2 tests rerun |
 
 ## Resolved R2 test issue
 
 | ID | Type | Environment | Cause | Resolution | Regression evidence |
 |---|---|---|---|---|---|
 | R2-TEST-01 | Test portability | Redmi 23049RAD8C / HyperOS 3.0 | LazyColumn test expected an off-screen item to already exist in the semantics tree | Select the LazyColumn by its scroll-to-index action, scroll to the same required text, then assert it is displayed | Targeted test passed; complete 39/39 passed on Redmi and API 36 AVD |
+| R2-TEST-02 | Test portability | Redmi 23049RAD8C / HyperOS 3.0 | MediaStore insertion returned the generic `external` URI while volume-aware incremental queries returned `external_primary`; string equality did not represent item identity | Match the same synthetic row by its stable MediaStore numeric ID while retaining URI checks in the direct scanner test | Targeted 3/3 platform tests and complete 41/41 Redmi suite passed |
 
 This issue changed test navigation only. No production UI, scanner, cleanup,
 permission, or safety behavior changed.
@@ -32,7 +33,7 @@ These are validation-environment blockers, not confirmed CleanGuard defects.
 |---|---|---|---|---|
 | R2-ENV-01 | Android 10-14 | Required SDK system images are unavailable locally; both SDK managers failed to retrieve valid packages | Cannot execute the remaining Android-version matrix | Open |
 | R2-ENV-02 | Remaining OEM matrix | No OPPO/OnePlus, vivo/iQOO, Honor, Samsung, or physical Pixel has been validated | Cannot determine compatibility for the remaining required OEM families | Open |
-| R2-COV-01 | Redmi manual scenarios | Automated baseline passed, but partial-photo selection, actual SAF grant/revoke, dataset mutations, trash confirmation, undo, large-file/hash, cancellation, and OEM reclaim scenarios remain | Redmi P0 row cannot be declared complete | Open |
+| R2-COV-01 | Redmi manual scenarios | Expanded automated baseline passed, but partial-photo selection, actual SAF grant/revoke, large/special datasets, trash confirmation, undo, cancellation, and OEM reclaim scenarios remain | Redmi P0 row cannot be declared complete | Open |
 
 P0 and P1 release gates cannot be declared globally clear until the required OEM
 and Android-version matrix is executed.

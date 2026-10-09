@@ -16,14 +16,14 @@ release gate.
 | Android 12 | 31/32 | Pending | Pending | Not run | SDK image unavailable locally; repository download failed |
 | Android 13 | 33 | Pending | Pending | Not run | SDK image unavailable locally; repository download failed |
 | Android 14 | 34 | Pending | Pending | Not run | SDK image unavailable locally; repository download failed |
-| Android 15 | 35 | Redmi 23049RAD8C (`marble`) | HyperOS 3.0 | Pass (automated baseline) | 39/39 on 2026-10-08; signed Release smoke passed |
-| Android 16 | 36 | CleanGuard_API_36 AVD | Google APIs / stock-like | Pass (limited) | Current code 39/39 on 2026-10-08; ADB lifecycle and permission smoke passed |
+| Android 15 | 35 | Redmi 23049RAD8C (`marble`) | HyperOS 3.0 | Pass (expanded automated baseline) | 41/41 on 2026-10-10; real incremental mutation and duplicate-hash flows passed; signed Release smoke passed |
+| Android 16 | 36 | CleanGuard_API_36 AVD | Google APIs / stock-like | Pass (limited) | Pre-expansion 39/39 suite passed on 2026-10-08; ADB lifecycle and permission smoke passed; two new R2 platform tests still require an API 36 rerun |
 
 ## Required OEM coverage
 
 | Priority | OEM family | Target ROM | Device | Result | Blocking issue |
 |---|---|---|---|---|---|
-| P0 | Xiaomi / Redmi | HyperOS | Redmi 23049RAD8C | Partial pass | Automated suite and system smoke passed; permission-dialog, dataset, trash, undo, and long-running manual scenarios remain |
+| P0 | Xiaomi / Redmi | HyperOS | Redmi 23049RAD8C | Partial pass | Expanded automated suite and system smoke passed; permission-dialog, large/special datasets, trash, undo, and long-running manual scenarios remain |
 | P0 | OPPO / OnePlus | ColorOS | Pending | Not run | No physical device connected |
 | P0 | vivo / iQOO | OriginOS | Pending | Not run | No physical device connected |
 | P0 | Honor | MagicOS | Pending | Not run | No physical device connected |
@@ -59,11 +59,12 @@ release gate.
 | RAM | 11,427,864 kB reported by guest |
 | Shared storage | 485,010,412 kB total; 324,316,820 kB available at capture |
 | Battery at inventory | 76%; charging; 36.4 C |
-| Test time | 2026-10-08, Asia/Shanghai |
+| Test time | 2026-10-08, Asia/Shanghai; expanded rerun 2026-10-10 |
 | App identity | `com.cleanguard.app`, version code 2, version name 0.2.0 |
-| Automated result | 39 passed, 0 failed, 0 errors, 0 skipped; 16.148 seconds |
-| Media fixture count | 3 synthetic app-owned rows; private media inventory intentionally not collected |
-| Release state after test | Test packages removed; signed Release APK restored; media permissions denied |
+| Automated result | 41 passed, 0 failed, 0 errors, 0 skipped; 27.997 seconds |
+| Media fixture count | 6 synthetic app-owned rows created across isolated tests (maximum 3 concurrent); private media inventory intentionally not collected |
+| Added platform evidence | Full -> unchanged incremental -> modify -> delete reconciliation; exact duplicate quick/full hash; cache reuse and stale-version invalidation |
+| Release state after test | Test packages and empty fixture directories removed; signed Release APK restored; final cold start 549 ms; media permissions denied |
 | OEM prerequisite | HyperOS per-app “后台弹出界面” was required only for the instrumentation host Activity |
 
 ## Per-device evidence template

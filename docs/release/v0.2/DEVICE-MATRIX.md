@@ -2,10 +2,10 @@
 
 Status: **R2 in progress — not accepted**
 
-The API 36 official emulator and one Redmi / HyperOS physical-device baseline
-are green. Android 10-14, the remaining required OEM families, and the manual
-Redmi scenario set remain incomplete, so this matrix does not satisfy the R2
-release gate.
+The API 36 official emulator plus Redmi / HyperOS and OPPO / ColorOS physical-
+device baselines are green. Android 10-12 and 14, the remaining required OEM
+families, and the manual Redmi and OPPO scenario sets remain incomplete, so
+this matrix does not satisfy the R2 release gate.
 
 ## Required Android coverage
 
@@ -14,7 +14,7 @@ release gate.
 | Android 10 | 29 | Pending | Pending | Not run | SDK image unavailable locally; repository download failed |
 | Android 11 | 30 | Pending | Pending | Not run | SDK image unavailable locally; repository download failed |
 | Android 12 | 31/32 | Pending | Pending | Not run | SDK image unavailable locally; repository download failed |
-| Android 13 | 33 | Pending | Pending | Not run | SDK image unavailable locally; repository download failed |
+| Android 13 | 33 | OPPO A58 5G (`PHJ110`) | ColorOS 13 | Pass (expanded automated baseline) | 41/41 on 2026-10-10; targeted MediaStore 3/3; signed Release smoke passed |
 | Android 14 | 34 | Pending | Pending | Not run | SDK image unavailable locally; repository download failed |
 | Android 15 | 35 | Redmi 23049RAD8C (`marble`) | HyperOS 3.0 | Pass (expanded automated baseline) | 41/41 on 2026-10-10; real incremental mutation and duplicate-hash flows passed; signed Release smoke passed |
 | Android 16 | 36 | CleanGuard_API_36 AVD | Google APIs / stock-like | Pass (limited) | Pre-expansion 39/39 suite passed on 2026-10-08; ADB lifecycle and permission smoke passed; two new R2 platform tests still require an API 36 rerun |
@@ -24,7 +24,7 @@ release gate.
 | Priority | OEM family | Target ROM | Device | Result | Blocking issue |
 |---|---|---|---|---|---|
 | P0 | Xiaomi / Redmi | HyperOS | Redmi 23049RAD8C | Partial pass | Expanded automated suite and system smoke passed; permission-dialog, large/special datasets, trash, undo, and long-running manual scenarios remain |
-| P0 | OPPO / OnePlus | ColorOS | Pending | Not run | No physical device connected |
+| P0 | OPPO / OnePlus | ColorOS | OPPO A58 5G (`PHJ110`) | Partial pass | Expanded automated suite and system smoke passed; manual permission, dataset, trash, undo, rotation, and long-running scenarios remain |
 | P0 | vivo / iQOO | OriginOS | Pending | Not run | No physical device connected |
 | P0 | Honor | MagicOS | Pending | Not run | No physical device connected |
 | P1 | Samsung | One UI | Pending | Not run | No physical device connected |
@@ -66,6 +66,26 @@ release gate.
 | Added platform evidence | Full -> unchanged incremental -> modify -> delete reconciliation; exact duplicate quick/full hash; cache reuse and stale-version invalidation |
 | Release state after test | Test packages and empty fixture directories removed; signed Release APK restored; final cold start 549 ms; media permissions denied |
 | OEM prerequisite | HyperOS per-app “后台弹出界面” was required only for the instrumentation host Activity |
+
+### OPPO / ColorOS physical device
+
+| Field | Value |
+|---|---|
+| Serial | `RO8HFIPZUO7HOVCU` |
+| Manufacturer / model | OPPO / OPPO A58 5G (`PHJ110`, `OP526D`) |
+| System | Android 13 / API 33; ColorOS 13; build `PHJ110_11_C.20` |
+| Security patch | 2026-01-01 |
+| Display | 720 x 1612 |
+| RAM | 5,753,468 kB reported by guest |
+| Shared storage | 111,892,448 kB total; 80,390,040 kB available at inventory |
+| Battery at inventory | 41%; USB charging; approximately 32.0 C |
+| Test time | 2026-10-10, Asia/Shanghai |
+| App identity | `com.cleanguard.app`, version code 2, version name 0.2.0 |
+| Automated result | 41 passed, 0 failed, 0 errors, 0 skipped; 53.463 seconds; targeted MediaStore 3/3 in 3.540 seconds |
+| Media fixture count | 6 synthetic app-owned rows created across isolated runs (maximum 3 concurrent); private media inventory intentionally not collected |
+| Added platform evidence | Full -> unchanged incremental -> modify -> delete reconciliation; exact duplicate quick/full hash; cache reuse and stale-version invalidation |
+| Release state after test | Test package, synthetic rows, fixture directories, and diagnostic files removed; signed Release restored; final cold start 535 ms; media permissions denied |
+| OEM deviation | First main-APK installs required ColorOS “安装增强防护” deep scan; ADB rotation was blocked by shell `WRITE_SETTINGS` policy and remains a manual scenario |
 
 ## Per-device evidence template
 

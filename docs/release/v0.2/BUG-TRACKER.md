@@ -1,6 +1,6 @@
 # CleanGuard V0.2 Release Bug Tracker
 
-Status: **No P0/P1 issue observed on the tested API 35 Redmi or API 36 AVD; R2 coverage incomplete**
+Status: **No P0/P1 issue observed on the tested API 33 OPPO, API 35 Redmi, or API 36 AVD; R2 coverage incomplete**
 
 ## Severity policy
 
@@ -13,7 +13,7 @@ Status: **No P0/P1 issue observed on the tested API 35 Redmi or API 36 AVD; R2 c
 
 | ID | Severity | Environment | Reproduction | Expected / actual | Owner | Status | Regression evidence |
 |---|---|---|---|---|---|---|---|
-| - | - | API 35 Redmi / HyperOS 3.0 and API 36 official AVD | - | Redmi expanded suite 41/41 passed; API 36 pre-expansion suite 39/39 passed; no application defect recorded | - | No active application bug | Limited to the two tested environments; API 36 still needs the two added R2 tests rerun |
+| - | - | API 33 OPPO / ColorOS 13, API 35 Redmi / HyperOS 3.0, and API 36 official AVD | - | OPPO and Redmi expanded suites passed 41/41; API 36 pre-expansion suite passed 39/39; no application defect recorded | - | No active application bug | Limited to the three tested environments; API 36 still needs the two added R2 tests rerun |
 
 ## Resolved R2 test issue
 
@@ -31,9 +31,9 @@ These are validation-environment blockers, not confirmed CleanGuard defects.
 
 | ID | Scope | Blocker | Impact | Status |
 |---|---|---|---|---|
-| R2-ENV-01 | Android 10-14 | Required SDK system images are unavailable locally; both SDK managers failed to retrieve valid packages | Cannot execute the remaining Android-version matrix | Open |
-| R2-ENV-02 | Remaining OEM matrix | No OPPO/OnePlus, vivo/iQOO, Honor, Samsung, or physical Pixel has been validated | Cannot determine compatibility for the remaining required OEM families | Open |
-| R2-COV-01 | Redmi manual scenarios | Expanded automated baseline passed, but partial-photo selection, actual SAF grant/revoke, large/special datasets, trash confirmation, undo, cancellation, and OEM reclaim scenarios remain | Redmi P0 row cannot be declared complete | Open |
+| R2-ENV-01 | Android 10-12 and 14 | Required SDK system images are unavailable locally; both SDK managers failed to retrieve valid packages | Cannot execute the remaining Android-version matrix | Open |
+| R2-ENV-02 | Remaining OEM matrix | No vivo/iQOO, Honor, Samsung, or physical Pixel has been validated | Cannot determine compatibility for the remaining required OEM families | Open |
+| R2-COV-01 | Redmi and OPPO manual scenarios | Expanded automated baselines passed, but partial-photo selection, actual SAF grant/revoke, large/special datasets, trash confirmation, undo, cancellation, OEM reclaim, and OPPO manual rotation remain | Redmi and OPPO P0 rows cannot be declared complete | Open |
 
 P0 and P1 release gates cannot be declared globally clear until the required OEM
 and Android-version matrix is executed.

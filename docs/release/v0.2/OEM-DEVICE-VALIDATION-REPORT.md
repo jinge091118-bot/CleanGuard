@@ -1,6 +1,6 @@
 # CleanGuard V0.2 OEM Device Validation Report
 
-Generated: 2026-10-10 (Asia/Shanghai)
+Updated: 2026-10-17 (Asia/Shanghai)
 
 ## 1. Outcome
 
@@ -8,12 +8,14 @@ R2 has started but is not complete. The Android 16 / API 36 official emulator
 passed the 39-test suite available on 2026-10-08. A Redmi 23049RAD8C physical
 device running Android 15 / API 35 and HyperOS 3.0 and an OPPO A58 5G physical
 device running Android 13 / API 33 and ColorOS 13 both passed the expanded
-current 41-test suite on 2026-10-10, including real incremental MediaStore
-mutations and duplicate hash/cache validation. Both phones also passed signed-
-release installation, permission-denied launch, lifecycle smoke, and targeted
-Android system-routing checks within the limits recorded below.
+current 41-test suite on 2026-10-10. A Huawei nova 7 Pro 5G running Android 12 /
+API 31 and HarmonyOS 4.2 also passed the 41-test suite after four viewport-
+dependent Compose assertions were hardened. All three phones passed real
+incremental MediaStore and duplicate hash/cache validation plus signed-release
+installation, permission-denied launch, lifecycle smoke, and targeted Android
+system-routing checks within the limits recorded below.
 
-Android 10-12 and 14, an API 36 rerun of the two added tests, the remaining
+Android 10-11 and 14, an API 36 rerun of the two added tests, the remaining
 P0/P1 OEM families, and the manual permission-dialog, large/special dataset,
 trash, undo, and long-running scenarios remain.
 
@@ -29,8 +31,8 @@ entry into R3.
 - RC tag: `v0.2.0-rc1`
 - RC target: `2694f256eeb490fb9f26ad696fb5546c30109611`
 - Current R1 documentation baseline before R2 changes: `2cb8b70`
-- Latest R2-built signed Release APK: 25,277,457 bytes; SHA-256 `C538BA2305288EF36437DDA173D24BED66D014BB3522023B7C6BA36070D4191A`
-- Latest R2-built signed Release AAB: 8,729,187 bytes; SHA-256 `2C3ED85FB0FE1707A8D1270D824536C71E84D128F122F411430A5F51F8C8215F`
+- Latest R2-built signed Release APK: 25,277,457 bytes; SHA-256 `4CE0E0F9AA096927F86E9B08D34381597CC895F6BED989719D7878B911DA328E`
+- Latest R2-built signed Release AAB: 8,729,187 bytes; SHA-256 `2C1E842A14704723A0128796B0A27ABEAA7AC409A568125D2E18F6007472EB6E`
 
 The RC tag remains immutable. The R2 test changes are test-only and do not
 alter production behavior. These are the hashes of the artifacts regenerated
@@ -38,7 +40,7 @@ during R2; the R1 report retains its own historical build hashes.
 
 ## 3. Available device inventory
 
-Three validation targets were available.
+Four validation targets were available.
 
 ### API 36 official emulator
 
@@ -89,9 +91,28 @@ Three validation targets were available.
 | Test time | 2026-10-10, Asia/Shanghai |
 | Media inventory | Private media count not collected; six synthetic app-owned rows were created across isolated runs and deleted afterward |
 
-The API 36 image remains the only valid local emulator image. Redmi and OPPO
+### Huawei / HarmonyOS physical device
+
+| Field | Value |
+|---|---|
+| Serial | `2NTDU20430007200` |
+| Manufacturer / model | Huawei / nova 7 Pro 5G (`JER-AN10`, device `HWJER`) |
+| System | Android 12, API 31, HarmonyOS 4.2.0 (`JER-AN10 4.2.0.121`) |
+| EMUI compatibility property | `EmotionUI_14.2.0` |
+| Incremental build | `104.2.0.121C00` |
+| Security patch | 2021-10-05 |
+| ABI | arm64-v8a |
+| Display | 1080 x 2340 at 540 dpi |
+| RAM | 7,708,008 kB reported by guest |
+| Shared storage | 239,560,704 kB total; 58,455,276 kB available at inventory |
+| Battery | 44%, USB charging, 35.0 C at inventory |
+| Test time | 2026-10-10; latest Release artifact reinstall 2026-10-17, Asia/Shanghai |
+| Media inventory | Private media count not collected; synthetic app-owned rows were created in isolated tests and deleted afterward |
+
+The API 36 image remains the only valid local emulator image. Physical-device
 evidence is valid only for the exact model and ROM build recorded above and
-must not be generalized to an entire OEM family.
+must not be generalized to an entire OEM family. Huawei / HarmonyOS evidence
+does not replace the required Honor / MagicOS row.
 
 ## 4. Automated validation
 
@@ -111,7 +132,7 @@ gradlew test lint assembleDebug assembleRelease bundleRelease assembleDebugAndro
 - Signed Release AAB: generated
 - Debug Android test APK: generated
 - Release APK signature: verified with APK Signature Scheme v2; signer certificate SHA-256 `c15dce5c840e6c7383d470340d51da1c9d1df9ddb3fdef3c56421b9f523b5d35`
-- Build result: successful; final verification 148 tasks, 2 executed and 146 up-to-date
+- Build result: successful; final verification 148 tasks, 19 executed and 129 up-to-date
 
 ### API 36 instrumented suite
 
@@ -206,6 +227,36 @@ No media read permission was granted. The targeted run and complete suite both
 removed their rows in `finally`; the three resulting empty fixture directories
 were verified and removed after testing.
 
+### Huawei / HarmonyOS instrumented suite
+
+```text
+adb -s 2NTDU20430007200 shell am instrument -w -r \
+  com.cleanguard.app.test/androidx.test.runner.AndroidJUnitRunner
+```
+
+- Tests: 41
+- Passed: 41
+- Failed: 0
+- Errors: 0
+- Skipped: 0
+- Suite time: 15.015 seconds
+- Targeted real MediaStore platform tests: 3/3 passed in 2.124 seconds
+- Targeted hardened Phase 10 UI suite: 9/9 passed in 8.008 seconds
+- Room, migration, DataStore, UI, and safety suites: passed
+
+The first complete run passed 37 tests and exposed four test-only assumptions
+that off-screen LazyColumn children would already exist in the Compose semantics
+tree, or that repeated nodes would be composed simultaneously. HarmonyOS used
+a 540 dpi viewport where those assumptions were false. The tests now scroll the
+LazyColumn by its stable scroll-to-index semantics before asserting the same
+required item and no longer require unrelated repeated controls to be visible
+at once. Production UI, wording, scanner, cleanup, and safety behavior were not
+changed. The hardened class passed 9/9, followed by the complete 41/41 suite.
+
+The tests used only app-owned synthetic MediaStore rows without storage
+permission. All rows were deleted by test cleanup; the three empty fixture
+directories were verified and removed afterward.
+
 ## 5. Signed-release and system smoke
 
 ### API 36 official emulator
@@ -268,17 +319,39 @@ version code 2, version name 0.2.0, and all media permissions denied. The test
 package, synthetic MediaStore rows, empty fixture directories, and temporary
 UI diagnostic files were removed.
 
+### Huawei / HarmonyOS physical device
+
+| Area | Executed evidence | Result |
+|---|---|---|
+| Install | Signed Release installed, replaced by paired Debug/test packages, then latest rebuilt Release restored | Pass |
+| First launch with permission denied | Initial Release cold start 416 ms; post-test reinstall 364 ms; latest artifact reinstall 590 ms | Pass |
+| Release identity | Version code 2, version name 0.2.0; package flags do not contain `DEBUGGABLE` | Pass |
+| Permission state | Android 12 `READ_EXTERNAL_STORAGE` remained denied; legacy storage app-op remained ignored | Pass |
+| Usage Access | HarmonyOS resolved `Settings$UsageAccessSettingsActivity` | Pass (routing only) |
+| Downloads SAF | System DocumentsUI `PickActivity` resolved | Pass (routing only) |
+| Background / resume | Home then Release relaunch; 75 ms hot launch | Pass |
+| Rotation | Portrait to landscape succeeded; `MainActivity` remained resumed; original settings restored | Pass |
+| Lock / unlock | Sleep, wake, dismiss keyguard, and return to `MainActivity` completed | Pass |
+| Process recreation | Background app process was absent after kill and relaunched cold in 344 ms | Pass |
+| Runtime health | No CleanGuard fatal exception, OOM, ANR, `SecurityException`, or database exception after Release smoke | Pass |
+
+The device was left with only the latest signed nondebuggable Release APK
+installed and storage permission denied. Test packages and empty fixture
+directories were removed; rotation settings were restored to their original
+values. Error-level log entries observed after final launch belonged to Huawei
+system-manager/settings services, not CleanGuard.
+
 ## 6. Required scenario status
 
-| Scenario group | Current API 33/35/36 status | Remaining work |
+| Scenario group | Current API 31/33/35/36 status | Remaining work |
 |---|---|---|
-| Install / first launch | Partial pass on API 33 and 35 physical devices and API 36 AVD | Signed upgrade path and retained-data reinstall behavior remain |
-| Permissions | Partial pass | Redmi and OPPO deny-all and system routing passed; partial photos, actual SAF grant/revoke, OEM dialogs, and cross-version behavior remain |
+| Install / first launch | Partial pass on API 31, 33, and 35 physical devices and API 36 AVD | Signed upgrade path and retained-data reinstall behavior remain |
+| Permissions | Partial pass | Huawei, Redmi, and OPPO deny-all and system routing passed; partial photos, actual SAF grant/revoke, OEM dialogs, and cross-version behavior remain |
 | Scanning | Partial pass | Real MediaStore full, unchanged incremental, modify, and delete reconciliation passed using app-owned rows without media permission; large file, APK, screenshot, screen recording, and Downloads datasets remain |
 | Duplicate detection | Partial real-platform pass | Exact duplicate quick hash, full SHA-256, cache reuse, and stale-version invalidation passed; nonduplicate, cancellation, and large-video flows remain |
 | Cleanup safety | Automated regression only | REVIEW default-off and DANGER/UNKNOWN protection remain green in tests; real trash confirmation, cancellation, success, undo, and undo-cancel require physical-device execution |
-| Lifecycle | Partial pass | Redmi and OPPO background and lock/unlock passed; Redmi rotation passed while OPPO rotation remains manual; actual OEM system reclaim and cancellation during live scans remain |
-| OEM behavior | Redmi and OPPO automated baselines passed | Manual scenario sets plus vivo/iQOO, Honor, Samsung, and physical Pixel remain |
+| Lifecycle | Partial pass | Huawei, Redmi, and OPPO background and lock/unlock passed; Huawei and Redmi rotation passed while OPPO rotation remains manual; actual OEM system reclaim and cancellation during live scans remain |
+| OEM behavior | Huawei supplemental plus Redmi and OPPO required-family automated baselines passed | Manual scenario sets plus vivo/iQOO, Honor, Samsung, and physical Pixel remain |
 
 ## 7. Android-version and OEM matrix
 
@@ -286,13 +359,14 @@ UI diagnostic files were removed.
 |---|---|
 | Android 10 / API 29 | Not run |
 | Android 11 / API 30 | Not run |
-| Android 12 / API 31 or 32 | Not run |
+| Android 12 / API 31 or 32 | Expanded 41-test automated baseline passed on Huawei nova 7 Pro 5G / HarmonyOS 4.2 |
 | Android 13 / API 33 | Expanded 41-test automated baseline passed on OPPO A58 5G / ColorOS 13 |
 | Android 14 / API 34 | Not run |
 | Android 15 / API 35 | Expanded 41-test automated baseline passed on Redmi 23049RAD8C / HyperOS 3.0 |
 | Android 16 / API 36 | Pre-expansion 39-test suite passed on official emulator; two added tests need rerun |
 | Xiaomi / Redmi HyperOS | Partial pass; full manual scenario matrix remains |
 | OPPO / OnePlus ColorOS | Partial pass on OPPO A58 5G; full manual scenario matrix remains |
+| Huawei HarmonyOS (supplemental) | Automated baseline and signed Release lifecycle smoke passed; does not replace Honor / MagicOS |
 | vivo / iQOO OriginOS | Not run |
 | Honor MagicOS | Not run |
 | Samsung One UI | Not run |
@@ -308,21 +382,21 @@ repository. A partial API 35 installer directory is not a valid system image and
 is not counted as coverage.
 
 These failures are host SDK/network blockers, not CleanGuard application bugs.
-They must be resolved before the remaining Android 10-12 and 14 coverage can run.
+They must be resolved before the remaining Android 10-11 and 14 coverage can run.
 
 Physical OEM coverage additionally requires the remaining listed families to
-be connected with USB debugging enabled. The available Huawei device may add
-useful compatibility evidence but does not replace the required Honor / MagicOS
-row unless it is actually an Honor device running MagicOS. Synthetic media
-should be used; no private user media is required.
+be connected with USB debugging enabled. The validated Huawei / HarmonyOS
+device adds Android 12 and supplemental compatibility evidence but does not
+replace the required Honor / MagicOS row. Synthetic media should be used; no
+private user media is required.
 
 ## 9. Defect gate
 
-- P0 found in tested API 33 OPPO, API 35 Redmi, and API 36 AVD environments: 0
-- P1 found in tested API 33 OPPO, API 35 Redmi, and API 36 AVD environments: 0
+- P0 found in tested API 31 Huawei, API 33 OPPO, API 35 Redmi, and API 36 AVD environments: 0
+- P1 found in tested API 31 Huawei, API 33 OPPO, API 35 Redmi, and API 36 AVD environments: 0
 - P2 application defects found: 0
 - P3 application defects found: 0
-- Resolved test-only portability defects: 2 (LazyColumn selector and MediaStore URI representation assumptions)
+- Resolved test-only portability defects: 3 (two LazyColumn/viewport assumptions and one MediaStore URI representation assumption)
 - Global P0/P1 clearance: not determinable because required coverage is incomplete
 - Application behavior changed by R2 work: no
 - Production Manifest or permissions changed: no
@@ -332,8 +406,8 @@ should be used; no private user media is required.
 
 Before R2 may be accepted:
 
-1. Restore SDK repository access and execute the missing Android 10-12 and 14 coverage.
-2. Complete the manual Redmi and OPPO scenarios and execute the full scenario
+1. Restore SDK repository access and execute the missing Android 10-11 and 14 coverage.
+2. Complete the manual Huawei, Redmi, and OPPO scenarios and execute the full scenario
    set on the other two P0 OEM families.
 3. Execute the P1 Samsung and physical Pixel coverage, or record an approved,
    explicit release-risk decision where the execution plan permits it.

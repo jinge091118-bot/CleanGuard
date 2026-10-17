@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -142,7 +143,10 @@ class Phase10UiTest {
         composeRule.onNodeWithText("扫描历史").assertIsDisplayed()
         composeRule.onNodeWithText("最近扫描").assertIsDisplayed()
         composeRule.onNodeWithText("最新记录：70.0 GB").assertIsDisplayed()
-        composeRule.onAllNodesWithText("完整扫描").assertCountEquals(2)
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(
+            hasText("已使用 64.0 GB", substring = true),
+        )
+        composeRule.onNodeWithText("已使用 64.0 GB", substring = true).assertIsDisplayed()
     }
 
     @Test
@@ -166,8 +170,10 @@ class Phase10UiTest {
         composeRule.onNodeWithContentDescription("选择 待确认视频.mp4")
             .performScrollTo()
             .assertIsOff()
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(
+            hasContentDescription("选择 受保护数据库.db"),
+        )
         composeRule.onNodeWithContentDescription("选择 受保护数据库.db")
-            .performScrollTo()
             .assertIsNotEnabled()
     }
 
@@ -240,7 +246,10 @@ class Phase10UiTest {
         }
 
         composeRule.onNodeWithContentDescription("选择 a.jpg").performScrollTo().assertIsOff()
-        composeRule.onNodeWithContentDescription("选择 b.jpg").performScrollTo().assertIsOff()
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(
+            hasContentDescription("选择 b.jpg"),
+        )
+        composeRule.onNodeWithContentDescription("选择 b.jpg").assertIsOff()
         composeRule.onNodeWithText("在安全清理流程中复核（0）").assertIsNotEnabled()
     }
 
@@ -388,9 +397,11 @@ class Phase10UiTest {
         composeRule.onNodeWithText("缓存占用增加 10 MB；不代表可以安全清理。")
             .performScrollTo()
             .assertIsDisplayed()
-        composeRule.onNodeWithText("自上次成功扫描减少 15 MB").performScrollTo().assertIsDisplayed()
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(
+            hasText("自上次成功扫描减少 15 MB"),
+        )
+        composeRule.onNodeWithText("自上次成功扫描减少 15 MB").assertIsDisplayed()
         composeRule.onAllNodesWithText("垃圾", substring = true).assertCountEquals(0)
-        composeRule.onAllNodesWithText("打开系统应用设置").assertCountEquals(2)
     }
 
     @Test

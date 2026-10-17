@@ -2,10 +2,10 @@
 
 Status: **R2 in progress — not accepted**
 
-The API 36 official emulator plus Redmi / HyperOS and OPPO / ColorOS physical-
-device baselines are green. Android 10-12 and 14, the remaining required OEM
-families, and the manual Redmi and OPPO scenario sets remain incomplete, so
-this matrix does not satisfy the R2 release gate.
+The API 36 official emulator plus Huawei / HarmonyOS, Redmi / HyperOS, and OPPO /
+ColorOS physical-device baselines are green. Android 10-11 and 14, the remaining
+required OEM families, and the manual physical-device scenario sets remain
+incomplete, so this matrix does not satisfy the R2 release gate.
 
 ## Required Android coverage
 
@@ -13,7 +13,7 @@ this matrix does not satisfy the R2 release gate.
 |---|---:|---|---|---|---|
 | Android 10 | 29 | Pending | Pending | Not run | SDK image unavailable locally; repository download failed |
 | Android 11 | 30 | Pending | Pending | Not run | SDK image unavailable locally; repository download failed |
-| Android 12 | 31/32 | Pending | Pending | Not run | SDK image unavailable locally; repository download failed |
+| Android 12 | 31/32 | Huawei nova 7 Pro 5G (`JER-AN10`) | HarmonyOS 4.2 | Pass (expanded automated baseline) | 41/41; targeted MediaStore 3/3; signed Release and lifecycle smoke passed |
 | Android 13 | 33 | OPPO A58 5G (`PHJ110`) | ColorOS 13 | Pass (expanded automated baseline) | 41/41 on 2026-10-10; targeted MediaStore 3/3; signed Release smoke passed |
 | Android 14 | 34 | Pending | Pending | Not run | SDK image unavailable locally; repository download failed |
 | Android 15 | 35 | Redmi 23049RAD8C (`marble`) | HyperOS 3.0 | Pass (expanded automated baseline) | 41/41 on 2026-10-10; real incremental mutation and duplicate-hash flows passed; signed Release smoke passed |
@@ -86,6 +86,28 @@ this matrix does not satisfy the R2 release gate.
 | Added platform evidence | Full -> unchanged incremental -> modify -> delete reconciliation; exact duplicate quick/full hash; cache reuse and stale-version invalidation |
 | Release state after test | Test package, synthetic rows, fixture directories, and diagnostic files removed; signed Release restored; final cold start 535 ms; media permissions denied |
 | OEM deviation | First main-APK installs required ColorOS “安装增强防护” deep scan; ADB rotation was blocked by shell `WRITE_SETTINGS` policy and remains a manual scenario |
+
+### Huawei / HarmonyOS physical device
+
+| Field | Value |
+|---|---|
+| Serial | `2NTDU20430007200` |
+| Manufacturer / model | Huawei / nova 7 Pro 5G (`JER-AN10`, `HWJER`) |
+| System | Android 12 / API 31; HarmonyOS 4.2; build `JER-AN10 4.2.0.121` |
+| Security patch | 2021-10-05 |
+| Display | 1080 x 2340; 540 dpi |
+| RAM | 7,708,008 kB reported by guest |
+| Shared storage | 239,560,704 kB total; 58,455,276 kB available at inventory |
+| Battery at inventory | 44%; USB charging; 35.0 C |
+| Test time | Automated suite 2026-10-10; latest Release artifact reinstall 2026-10-17, Asia/Shanghai |
+| App identity | `com.cleanguard.app`, version code 2, version name 0.2.0 |
+| Automated result | 41 passed, 0 failed, 0 errors, 0 skipped; 15.015 seconds; targeted MediaStore 3/3 in 2.124 seconds |
+| Media fixture count | Synthetic app-owned rows created across isolated runs (maximum 3 concurrent); private media inventory intentionally not collected |
+| Added platform evidence | Full -> unchanged incremental -> modify -> delete reconciliation; exact duplicate quick/full hash; cache reuse and stale-version invalidation |
+| Release/lifecycle evidence | Install, denied-permission cold launch, hot resume, lock/unlock, rotation, process recreation, Usage Access routing, and SAF routing passed |
+| Release state after test | Test package, synthetic rows, and fixture directories removed; latest signed Release installed; final cold start 590 ms; storage permission denied |
+| Test portability finding | Four LazyColumn assertions assumed off-screen/repeated nodes were simultaneously composed at other viewport densities; tests now use stable list semantics; hardened UI class 9/9 and full suite 41/41 passed |
+| Scope note | Supplemental Huawei evidence and Android 12 coverage; does not replace required Honor / MagicOS validation |
 
 ## Per-device evidence template
 

@@ -1,11 +1,12 @@
 # CleanGuard V0.2 OEM Device Validation Report
 
-Updated: 2026-10-17 (Asia/Shanghai)
+Updated: 2026-10-19 (Asia/Shanghai)
 
 ## 1. Outcome
 
-R2 has started but is not complete. The Android 16 / API 36 official emulator
-passed the 39-test suite available on 2026-10-08. A Redmi 23049RAD8C physical
+R2 has started but is not complete. Official Google APIs emulators on Android
+10 / API 29, Android 11 / API 30, Android 14 / API 34, and Android 16 / API 36
+each passed the current 41-test suite on 2026-10-19. A Redmi 23049RAD8C physical
 device running Android 15 / API 35 and HyperOS 3.0 and an OPPO A58 5G physical
 device running Android 13 / API 33 and ColorOS 13 both passed the expanded
 current 41-test suite on 2026-10-10. A Huawei nova 7 Pro 5G running Android 12 /
@@ -15,12 +16,13 @@ incremental MediaStore and duplicate hash/cache validation plus signed-release
 installation, permission-denied launch, lifecycle smoke, and targeted Android
 system-routing checks within the limits recorded below.
 
-Android 10-11 and 14, an API 36 rerun of the two added tests, the remaining
-P0/P1 OEM families, and the manual permission-dialog, large/special dataset,
-trash, undo, and long-running scenarios remain.
+The remaining P0/P1 OEM families and the manual permission-dialog,
+large/special dataset, trash, undo, and long-running scenarios remain.
 
-This is a partial evidence report. It does not approve R2 and it does not permit
-entry into R3.
+This remains partial evidence and does not approve R2. Because additional OEM
+phones are unavailable, the project owner approved conditional continuation to
+R3 preparation on 2026-10-19 under `R2-RISK-ACCEPTANCE.md`. That decision does
+not treat untested OEMs as passed or authorize broad public release.
 
 ## 2. Baseline under test
 
@@ -31,8 +33,8 @@ entry into R3.
 - RC tag: `v0.2.0-rc1`
 - RC target: `2694f256eeb490fb9f26ad696fb5546c30109611`
 - Current R1 documentation baseline before R2 changes: `2cb8b70`
-- Latest R2-built signed Release APK: 25,277,457 bytes; SHA-256 `4CE0E0F9AA096927F86E9B08D34381597CC895F6BED989719D7878B911DA328E`
-- Latest R2-built signed Release AAB: 8,729,187 bytes; SHA-256 `2C1E842A14704723A0128796B0A27ABEAA7AC409A568125D2E18F6007472EB6E`
+- Latest R2-built signed Release APK: 25,277,457 bytes; SHA-256 `F3CEDA288FE2C7C363AD2464629D4B20201DE79B3979B1719DB8610E02F01FA3`
+- Latest R2-built signed Release AAB: 8,729,184 bytes; SHA-256 `064E1FA98AA18569FC32A218972072B235A9BE31D5C4D254CFE7325840B8D224`
 
 The RC tag remains immutable. The R2 test changes are test-only and do not
 alter production behavior. These are the hashes of the artifacts regenerated
@@ -40,7 +42,8 @@ during R2; the R1 report retains its own historical build hashes.
 
 ## 3. Available device inventory
 
-Four validation targets were available.
+Seven validation targets were available: three physical phones and four
+official Android emulators.
 
 ### API 36 official emulator
 
@@ -54,7 +57,21 @@ Four validation targets were available.
 | RAM | 2,531,836 kB reported by guest |
 | Data partition | 10,167,132 kB total; 8,542,536 kB available at capture |
 | Device class | Official emulator; not physical Pixel or OEM evidence |
-| Test time | 2026-10-08, Asia/Shanghai |
+| Test time | Initial 2026-10-08; expanded 41-test rerun 2026-10-19, Asia/Shanghai |
+
+### Additional Android-version emulators
+
+| AVD | Android / API | Image | Current suite | Release smoke |
+|---|---|---|---:|---|
+| `CleanGuard_API_29` | Android 10 / API 29 | Google APIs x86_64 | 41/41 passed | Signed APK installed and launched |
+| `CleanGuard_API_30` | Android 11 / API 30 | Google APIs x86_64 | 41/41 passed | Signed APK installed and launched |
+| `CleanGuard_API_34` | Android 14 / API 34 | Google APIs x86_64 | 41/41 passed | Signed APK installed and launched |
+
+API 29 exercised the defined `API_29_FULL` path. The API 30 image did not
+expose the MediaStore Generation extension, so the production gateway correctly
+selected the full-scan fallback. API 34 and API 36 exercised generation-aware
+behavior. Test expectations now read the gateway capability instead of assuming
+that every API 30+ image supports Generation.
 
 ### Redmi / HyperOS physical device
 
@@ -109,8 +126,8 @@ Four validation targets were available.
 | Test time | 2026-10-10; latest Release artifact reinstall 2026-10-17, Asia/Shanghai |
 | Media inventory | Private media count not collected; synthetic app-owned rows were created in isolated tests and deleted afterward |
 
-The API 36 image remains the only valid local emulator image. Physical-device
-evidence is valid only for the exact model and ROM build recorded above and
+Physical-device evidence is valid only for the exact model and ROM build
+recorded above and
 must not be generalized to an entire OEM family. Huawei / HarmonyOS evidence
 does not replace the required Honor / MagicOS row.
 
@@ -132,32 +149,29 @@ gradlew test lint assembleDebug assembleRelease bundleRelease assembleDebugAndro
 - Signed Release AAB: generated
 - Debug Android test APK: generated
 - Release APK signature: verified with APK Signature Scheme v2; signer certificate SHA-256 `c15dce5c840e6c7383d470340d51da1c9d1df9ddb3fdef3c56421b9f523b5d35`
-- Build result: successful; final verification 148 tasks, 19 executed and 129 up-to-date
+- Build result: successful; final verification 148 tasks, 13 executed and 135 up-to-date
 
-### API 36 instrumented suite
+### Android-version emulator suites
 
 ```text
 adb -s emulator-5554 shell am instrument -w -r \
   com.cleanguard.app.test/androidx.test.runner.AndroidJUnitRunner
 ```
 
-- Tests: 39
-- Passed: 39
+- Tests per API: 41
+- Passed per API: 41
 - Failed: 0
 - Errors: 0
 - Skipped: 0
-- Suite time: 48.514 seconds
-- Result: the 39/39 pre-expansion suite passed after the cold-started emulator finished system initialization
+- APIs completed: 29, 30, 34, and 36
+- Result: all four official AVDs passed the current expanded suite on 2026-10-19
 
-Two R2-only platform tests were added after this run. They pass on the Redmi,
-but API 36 must be rerun before the emulator row can claim the current 41-test
-suite.
-
-The first immediate post-boot attempt was discarded because the emulator was
-still starting Google system processes and terminated the test process while
-also reporting ANRs in unrelated system applications. After the emulator
-reported boot and process readiness, the targeted UI test and complete suite
-both passed.
+The API 29 image omitted a normal ART heap-growth property and initially gave
+the instrumentation process an abnormal 16 MB limit. The AVD-only property was
+initialized to 256 MB; no production Manifest or `largeHeap` setting changed.
+The 100k Room stress test and complete suite then passed. An API 36 attempt that
+reported zero tests was discarded because the signed Release package blocked
+Debug installation; after removing it, the actual 41-test run passed.
 
 ### Redmi / HyperOS instrumented suite
 
@@ -343,9 +357,9 @@ system-manager/settings services, not CleanGuard.
 
 ## 6. Required scenario status
 
-| Scenario group | Current API 31/33/35/36 status | Remaining work |
+| Scenario group | Current API 29/30/31/33/34/35/36 status | Remaining work |
 |---|---|---|
-| Install / first launch | Partial pass on API 31, 33, and 35 physical devices and API 36 AVD | Signed upgrade path and retained-data reinstall behavior remain |
+| Install / first launch | Pass on API 29/30/34/36 AVDs and partial pass on API 31/33/35 physical devices | Signed upgrade path and retained-data reinstall behavior remain |
 | Permissions | Partial pass | Huawei, Redmi, and OPPO deny-all and system routing passed; partial photos, actual SAF grant/revoke, OEM dialogs, and cross-version behavior remain |
 | Scanning | Partial pass | Real MediaStore full, unchanged incremental, modify, and delete reconciliation passed using app-owned rows without media permission; large file, APK, screenshot, screen recording, and Downloads datasets remain |
 | Duplicate detection | Partial real-platform pass | Exact duplicate quick hash, full SHA-256, cache reuse, and stale-version invalidation passed; nonduplicate, cancellation, and large-video flows remain |
@@ -357,13 +371,13 @@ system-manager/settings services, not CleanGuard.
 
 | Coverage | Result |
 |---|---|
-| Android 10 / API 29 | Not run |
-| Android 11 / API 30 | Not run |
+| Android 10 / API 29 | Current 41-test suite passed on official Google APIs emulator; API 29 full-scan fallback verified |
+| Android 11 / API 30 | Current 41-test suite passed on official Google APIs emulator; no-Generation full-scan fallback verified |
 | Android 12 / API 31 or 32 | Expanded 41-test automated baseline passed on Huawei nova 7 Pro 5G / HarmonyOS 4.2 |
 | Android 13 / API 33 | Expanded 41-test automated baseline passed on OPPO A58 5G / ColorOS 13 |
-| Android 14 / API 34 | Not run |
+| Android 14 / API 34 | Current 41-test suite passed on official Google APIs emulator |
 | Android 15 / API 35 | Expanded 41-test automated baseline passed on Redmi 23049RAD8C / HyperOS 3.0 |
-| Android 16 / API 36 | Pre-expansion 39-test suite passed on official emulator; two added tests need rerun |
+| Android 16 / API 36 | Current expanded 41-test suite passed on official Google APIs emulator |
 | Xiaomi / Redmi HyperOS | Partial pass; full manual scenario matrix remains |
 | OPPO / OnePlus ColorOS | Partial pass on OPPO A58 5G; full manual scenario matrix remains |
 | Huawei HarmonyOS (supplemental) | Automated baseline and signed Release lifecycle smoke passed; does not replace Honor / MagicOS |
@@ -374,15 +388,11 @@ system-manager/settings services, not CleanGuard.
 
 ## 8. Environment blockers
 
-Attempts were made to install official API 29, 30, 31, 33, 34, and 35 emulator
-images without changing the project toolchain. The existing SDK manager failed
-while retrieving repository metadata and produced invalid ZIP downloads. The
-new Android command-line manager also failed to connect to the remote
-repository. A partial API 35 installer directory is not a valid system image and
-is not counted as coverage.
-
-These failures are host SDK/network blockers, not CleanGuard application bugs.
-They must be resolved before the remaining Android 10-11 and 14 coverage can run.
+The SDK manager remained unreliable, so official API 29, 30, and 34 Google APIs
+archives were retrieved in validated byte ranges, checked as complete ZIPs, and
+installed without changing the project toolchain. The former Android-version
+coverage blocker is closed. A partial API 35 installer directory is not counted;
+Android 15 is covered by the Redmi physical device.
 
 Physical OEM coverage additionally requires the remaining listed families to
 be connected with USB debugging enabled. The validated Huawei / HarmonyOS
@@ -392,11 +402,11 @@ private user media is required.
 
 ## 9. Defect gate
 
-- P0 found in tested API 31 Huawei, API 33 OPPO, API 35 Redmi, and API 36 AVD environments: 0
-- P1 found in tested API 31 Huawei, API 33 OPPO, API 35 Redmi, and API 36 AVD environments: 0
+- P0 found in tested API 29/30/34/36 AVDs and API 31 Huawei, API 33 OPPO, API 35 Redmi: 0
+- P1 found in tested API 29/30/34/36 AVDs and API 31 Huawei, API 33 OPPO, API 35 Redmi: 0
 - P2 application defects found: 0
 - P3 application defects found: 0
-- Resolved test-only portability defects: 3 (two LazyColumn/viewport assumptions and one MediaStore URI representation assumption)
+- Resolved test-only portability/environment defects: 5 (Compose viewport assumptions, MediaStore URI representation, API capability assumption, and API 29 AVD heap configuration)
 - Global P0/P1 clearance: not determinable because required coverage is incomplete
 - Application behavior changed by R2 work: no
 - Production Manifest or permissions changed: no
@@ -406,17 +416,16 @@ private user media is required.
 
 Before R2 may be accepted:
 
-1. Restore SDK repository access and execute the missing Android 10-11 and 14 coverage.
-2. Complete the manual Huawei, Redmi, and OPPO scenarios and execute the full scenario
+1. Complete the manual Huawei, Redmi, and OPPO scenarios and execute the full scenario
    set on the other two P0 OEM families.
-3. Execute the P1 Samsung and physical Pixel coverage, or record an approved,
+2. Execute the P1 Samsung and physical Pixel coverage, or record an approved,
    explicit release-risk decision where the execution plan permits it.
-4. Attach per-device metadata, media counts, scenario evidence, and OEM-specific
+3. Attach per-device metadata, media counts, scenario evidence, and OEM-specific
    deviations to the device matrix.
-5. Record and resolve every P0/P1 application defect; explicitly decide every P2.
-6. Re-run the complete build, JVM tests, lint, and instrumented regression suite.
-7. Only then check R2 in `RELEASE-CHECKLIST.md`.
+4. Record and resolve every P0/P1 application defect; explicitly decide every P2.
+5. Re-run the complete build, JVM tests, lint, and instrumented regression suite.
+6. Only then check R2 in `RELEASE-CHECKLIST.md`.
 
 ## 11. Gate decision
 
-`NOT READY FOR R3`
+`CONDITIONAL CONTINUATION TO R3 APPROVED — R2 REMAINS OPEN`

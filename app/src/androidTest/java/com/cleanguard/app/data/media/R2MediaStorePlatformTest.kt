@@ -109,24 +109,39 @@ class R2MediaStorePlatformTest {
                 content = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte(), 0xD9.toByte()),
             )
             val fixtureMediaId = checkNotNull(fixtureUri.lastPathSegment?.toLongOrNull())
+            val gateway = AndroidMediaStoreGateway(
+                context = context.applicationContext,
+                contentResolver = context.contentResolver,
+            )
             val scanner = IncrementalMediaStoreScanner(
                 sdkInt = Build.VERSION.SDK_INT,
-                gateway = AndroidMediaStoreGateway(
-                    context = context.applicationContext,
-                    contentResolver = context.contentResolver,
-                ),
+                gateway = gateway,
                 persistence = RoomIncrementalScanPersistenceRepository(database),
                 legacyScanner = MediaStoreScanner(context.contentResolver, Dispatchers.IO),
                 ioDispatcher = Dispatchers.IO,
             )
 
             val initial = scanner.completedResult()
-            assertEquals(MediaScanExecutionType.FULL, initial.metadata.executionType)
+            val usesApi29Fallback = Build.VERSION.SDK_INT < Build.VERSION_CODES.R
+            val supportsIncremental = gateway.supportsGeneration
+            assertEquals(
+                if (usesApi29Fallback) MediaScanExecutionType.API_29_FULL else MediaScanExecutionType.FULL,
+                initial.metadata.executionType,
+            )
             assertTrue(initial.items.any { it.mediaStoreId == fixtureMediaId })
 
             val unchanged = scanner.completedResult()
-            assertEquals(MediaScanExecutionType.INCREMENTAL, unchanged.metadata.executionType)
-            assertEquals(0, unchanged.metadata.changedItemCount)
+            assertEquals(
+                when {
+                    usesApi29Fallback -> MediaScanExecutionType.API_29_FULL
+                    supportsIncremental -> MediaScanExecutionType.INCREMENTAL
+                    else -> MediaScanExecutionType.FULL
+                },
+                unchanged.metadata.executionType,
+            )
+            if (supportsIncremental) {
+                assertEquals(0, unchanged.metadata.changedItemCount)
+            }
             assertEquals(0, unchanged.metadata.removedItemCount)
             assertTrue(unchanged.items.any { it.mediaStoreId == fixtureMediaId })
 
@@ -137,7 +152,14 @@ class R2MediaStorePlatformTest {
                 content = ByteArray(128 * 1024) { index -> (index % 251).toByte() },
             )
             val modified = scanner.completedResult()
-            assertEquals(MediaScanExecutionType.INCREMENTAL, modified.metadata.executionType)
+            assertEquals(
+                when {
+                    usesApi29Fallback -> MediaScanExecutionType.API_29_FULL
+                    supportsIncremental -> MediaScanExecutionType.INCREMENTAL
+                    else -> MediaScanExecutionType.FULL
+                },
+                modified.metadata.executionType,
+            )
             assertTrue(modified.metadata.changedItemCount >= 1)
             val modifiedFixture = modified.items.single { it.mediaStoreId == fixtureMediaId }
             assertEquals("cleanguard-r2-incremental-after.jpg", modifiedFixture.displayName)
@@ -146,8 +168,17 @@ class R2MediaStorePlatformTest {
             assertEquals(1, context.contentResolver.delete(fixtureUri, null, null))
             fixtureUri = null
             val deleted = scanner.completedResult()
-            assertEquals(MediaScanExecutionType.INCREMENTAL, deleted.metadata.executionType)
-            assertTrue(deleted.metadata.removedItemCount >= 1)
+            assertEquals(
+                when {
+                    usesApi29Fallback -> MediaScanExecutionType.API_29_FULL
+                    supportsIncremental -> MediaScanExecutionType.INCREMENTAL
+                    else -> MediaScanExecutionType.FULL
+                },
+                deleted.metadata.executionType,
+            )
+            if (supportsIncremental) {
+                assertTrue(deleted.metadata.removedItemCount >= 1)
+            }
             assertTrue(deleted.items.none { it.mediaStoreId == fixtureMediaId })
         } finally {
             fixtureUri?.let { context.contentResolver.delete(it, null, null) }
@@ -289,7 +320,10 @@ class R2MediaStorePlatformTest {
             } ?: throw IOException("MediaStore returned no output stream for the R2 fixture.")
             context.contentResolver.update(
                 uri,
-                ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) },
+                ContentValues().apply {
+                    put(MediaStore.MediaColumns.SIZE, content.size.toLong())
+                    put(MediaStore.MediaColumns.IS_PENDING, 0)
+                },
                 null,
                 null,
             )
@@ -321,6 +355,7 @@ class R2MediaStorePlatformTest {
                 uri,
                 ContentValues().apply {
                     put(MediaStore.MediaColumns.DISPLAY_NAME, displayName)
+                    put(MediaStore.MediaColumns.SIZE, content.size.toLong())
                     put(MediaStore.MediaColumns.IS_PENDING, 0)
                 },
                 null,

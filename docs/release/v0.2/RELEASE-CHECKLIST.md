@@ -25,6 +25,11 @@ This checklist is the release-control source for CleanGuard V0.2. Feature work i
 - [ ] R9 - V0.2 production release
 - [ ] R10 - V0.3 decision gate
 
+R2 is intentionally left unchecked. On 2026-10-19 the project owner approved
+conditional continuation to R3 because additional OEM devices were unavailable.
+The scope, safeguards, and release limitation are recorded in
+`R2-RISK-ACCEPTANCE.md`; no untested OEM row is treated as passed.
+
 ## Permanent release safety checks
 
 - [x] No new scanning or deletion capability was added during R0.

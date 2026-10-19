@@ -1,23 +1,24 @@
 # CleanGuard V0.2 Device Matrix
 
-Status: **R2 in progress — not accepted**
+Status: **R2 coverage open — conditional continuation approved**
 
-The API 36 official emulator plus Huawei / HarmonyOS, Redmi / HyperOS, and OPPO /
-ColorOS physical-device baselines are green. Android 10-11 and 14, the remaining
-required OEM families, and the manual physical-device scenario sets remain
-incomplete, so this matrix does not satisfy the R2 release gate.
+Official AVDs now cover Android 10, 11, 14, and 16, while Huawei / HarmonyOS,
+Redmi / HyperOS, and OPPO / ColorOS physical-device baselines are green. The
+remaining OEM families and manual physical-device scenario sets are still
+incomplete. The project owner approved conditional continuation on 2026-10-19;
+this does not convert untested OEM rows into passes or approve public release.
 
 ## Required Android coverage
 
 | Android | API | Device / AVD | OEM / ROM | Result | Evidence |
 |---|---:|---|---|---|---|
-| Android 10 | 29 | Pending | Pending | Not run | SDK image unavailable locally; repository download failed |
-| Android 11 | 30 | Pending | Pending | Not run | SDK image unavailable locally; repository download failed |
+| Android 10 | 29 | `CleanGuard_API_29` AVD | Google APIs / stock-like | Pass (automated) | 41/41; API 29 full-scan fallback, Room stress, signed Release launch passed |
+| Android 11 | 30 | `CleanGuard_API_30` AVD | Google APIs / stock-like | Pass (automated) | 41/41; capability-aware full-scan fallback on image without MediaStore Generation extension; signed Release launch passed |
 | Android 12 | 31/32 | Huawei nova 7 Pro 5G (`JER-AN10`) | HarmonyOS 4.2 | Pass (expanded automated baseline) | 41/41; targeted MediaStore 3/3; signed Release and lifecycle smoke passed |
 | Android 13 | 33 | OPPO A58 5G (`PHJ110`) | ColorOS 13 | Pass (expanded automated baseline) | 41/41 on 2026-10-10; targeted MediaStore 3/3; signed Release smoke passed |
-| Android 14 | 34 | Pending | Pending | Not run | SDK image unavailable locally; repository download failed |
+| Android 14 | 34 | `CleanGuard_API_34` AVD | Google APIs / stock-like | Pass (automated) | 41/41; signed Release install and cold-launch smoke passed |
 | Android 15 | 35 | Redmi 23049RAD8C (`marble`) | HyperOS 3.0 | Pass (expanded automated baseline) | 41/41 on 2026-10-10; real incremental mutation and duplicate-hash flows passed; signed Release smoke passed |
-| Android 16 | 36 | CleanGuard_API_36 AVD | Google APIs / stock-like | Pass (limited) | Pre-expansion 39/39 suite passed on 2026-10-08; ADB lifecycle and permission smoke passed; two new R2 platform tests still require an API 36 rerun |
+| Android 16 | 36 | `CleanGuard_API_36` AVD | Google APIs / stock-like | Pass (automated) | Current expanded suite 41/41 on 2026-10-19; signed Release install and cold-launch smoke passed |
 
 ## Required OEM coverage
 
@@ -44,7 +45,7 @@ incomplete, so this matrix does not satisfy the R2 release gate.
 | Data partition | 10,167,132 kB total; 8,542,536 kB available at capture |
 | Test time | 2026-10-08, Asia/Shanghai |
 | App identity | `com.cleanguard.app`, version code 2, version name 0.2.0 |
-| Automated result | Current code: 39 passed, 0 failed, 0 errors, 0 skipped; 48.514 seconds |
+| Automated result | Current code: 41 passed, 0 failed, 0 errors, 0 skipped; full Gradle run successful on 2026-10-19 |
 | Media fixture count | 3 synthetic app-owned rows: image, video, and audio |
 
 ### Redmi / HyperOS physical device
@@ -115,3 +116,8 @@ Record brand, model, ROM, Android API, RAM, storage capacity/free space, media c
 
 Detailed results and remaining blockers are recorded in
 `OEM-DEVICE-VALIDATION-REPORT.md`.
+
+The approved continuation boundary is recorded in `R2-RISK-ACCEPTANCE.md`.
+R2 remains unchecked in the release checklist until the outstanding OEM and
+manual coverage is executed or separately accepted for the intended release
+channel.

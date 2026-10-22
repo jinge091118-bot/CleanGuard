@@ -1,5 +1,6 @@
 package com.cleanguard.app.feature.scanning
 
+import android.os.Trace
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cleanguard.app.domain.model.MediaPermissionStatus
@@ -30,6 +31,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicInteger
 
 class ScanningViewModel(
     private val scanMedia: ScanMediaUseCase,
@@ -44,6 +46,7 @@ class ScanningViewModel(
     val uiState: StateFlow<ScanningUiState> = _uiState.asStateFlow()
 
     private var scanJob: Job? = null
+    private val scanTraceCookie = AtomicInteger()
     init {
         startScan()
     }
@@ -59,6 +62,8 @@ class ScanningViewModel(
     private fun startScan() {
         scanJob?.cancel()
         _uiState.value = ScanningUiState(isScanning = true)
+        val traceCookie = scanTraceCookie.incrementAndGet()
+        val isTraceStarted = beginScanTrace(traceCookie)
         scanJob = viewModelScope.launch {
             try {
                 val hasMediaAccess = permissionRepository.getMediaPermissionStatus() != MediaPermissionStatus.NONE
@@ -236,6 +241,8 @@ class ScanningViewModel(
                         )
                     }
                 }
+            } finally {
+                if (isTraceStarted) endScanTrace(traceCookie)
             }
         }
     }
@@ -253,6 +260,24 @@ class ScanningViewModel(
                 isStopped = true,
             )
         }
+    }
+}
+
+private const val SCAN_TRACE_SECTION = "CleanGuardScan"
+
+private fun beginScanTrace(cookie: Int): Boolean = try {
+    Trace.beginAsyncSection(SCAN_TRACE_SECTION, cookie)
+    true
+} catch (_: RuntimeException) {
+    // Local JVM tests use Android stubs that cannot record platform traces.
+    false
+}
+
+private fun endScanTrace(cookie: Int) {
+    try {
+        Trace.endAsyncSection(SCAN_TRACE_SECTION, cookie)
+    } catch (_: RuntimeException) {
+        // Trace collection is diagnostic and must never alter scan completion.
     }
 }
 

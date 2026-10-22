@@ -118,6 +118,12 @@ android {
                 "proguard-rules.pro",
             )
         }
+        create("benchmark") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+            isDebuggable = false
+        }
     }
 
     compileOptions {
@@ -184,6 +190,7 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     implementation(platform(libs.kotlinx.serialization.bom))
     ksp(libs.androidx.room.compiler)
+    add("benchmarkImplementation", libs.androidx.profileinstaller)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

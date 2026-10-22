@@ -16,4 +16,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "CleanGuard"
 include(":app")
+include(":macrobenchmark")
 

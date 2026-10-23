@@ -39,7 +39,13 @@ class Phase9UiTest {
             .performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("所有扫描均在本机完成。")
             .performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("CleanGuard V0.2 不上传文件。")
+        composeRule.onNodeWithText(
+            "CleanGuard 不上传文件；除移入 Android 系统回收站与你主动使用系统分享/预览外，数据不会离开设备。",
+        )
+            .performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("常规扫描只读取文件名、类型、大小、修改时间与目录，不读取媒体内容。")
+            .performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("核对重复文件时会在本机流式计算 SHA-256，不保存文件副本。")
             .performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("CleanGuard V0.2 不读取聊天内容。")
             .performScrollTo().assertIsDisplayed()

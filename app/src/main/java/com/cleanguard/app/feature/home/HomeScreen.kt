@@ -213,7 +213,7 @@ fun HomeScreen(
                     Text(stringResource(R.string.settings_title))
                 }
                 Text(
-                    "设备容量与扫描结果均在本机生成；当前只读取索引和你明确授权的目录，不会修改任何文件。",
+                    "设备容量与扫描结果均在本机生成；本步骤只读取索引和你明确授权的目录，不会修改文件。",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

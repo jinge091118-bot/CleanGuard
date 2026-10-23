@@ -92,6 +92,8 @@ fun SettingsScreen(
             InfoCard(stringResource(R.string.settings_privacy_title)) {
                 Text(stringResource(R.string.privacy_local_only))
                 Text(stringResource(R.string.privacy_no_upload))
+                Text(stringResource(R.string.privacy_read_scope))
+                Text(stringResource(R.string.privacy_hash_disclosure))
                 Text(stringResource(R.string.privacy_no_chat_content))
                 Text(stringResource(R.string.privacy_no_private_dirs))
             }

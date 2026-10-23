@@ -206,6 +206,9 @@ V0.3 尚未开始。候选方向仅作为后续评审入口：
 
 任何 V0.3 功能都必须重新立项，不属于 V0.2 Release Acceptance。
 
+上述候选方向的价值、成本、风险与建议已逐项评估，见
+[`R10 V0.3 Project Evaluation`](docs/release/v0.2/R10-V03-PROJECT-EVALUATION.md)。
+
 ## 发布资料
 
 - [`CHANGELOG.md`](CHANGELOG.md)

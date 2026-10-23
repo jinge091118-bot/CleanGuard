@@ -188,9 +188,11 @@
     <string name="settings_ignore_clear">恢复全部提示</string>
     <string name="settings_privacy_title">隐私说明</string>
     <string name="privacy_local_only">所有扫描均在本机完成。</string>
-    <string name="privacy_no_upload">CleanGuard V0.2 不上传文件。</string>
+    <string name="privacy_no_upload">CleanGuard 不上传文件；除移入 Android 系统回收站与你主动使用系统分享/预览外，数据不会离开设备。</string>
     <string name="privacy_no_chat_content">CleanGuard V0.2 不读取聊天内容。</string>
     <string name="privacy_no_private_dirs">CleanGuard V0.2 不访问其他 App 私有目录。</string>
+    <string name="privacy_read_scope">常规扫描只读取文件名、类型、大小、修改时间与目录，不读取媒体内容。</string>
+    <string name="privacy_hash_disclosure">核对重复文件时会在本机流式计算 SHA-256，不保存文件副本。</string>
     <string name="ignore_30_days">暂时忽略 30 天</string>
     <string name="ignore_forever">不再提示</string>
     <string name="permission_center_title">权限中心</string>

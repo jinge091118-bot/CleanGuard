@@ -39,6 +39,16 @@ are recorded in `PERFORMANCE-REPORT.md` as functional correctness evidence
 only. No R3 performance row is satisfied, and the 50k and 100k tiers plus
 both required physical device classes remain outstanding.
 
+R4 is unchecked because four deliverables still require the project owner
+rather than further engineering work. The privacy policy, Data Safety draft,
+photo/video permission declaration, in-app rationale review, reviewer notes,
+store listing, and the underlying code audit are complete. Outstanding:
+owner approval, a public privacy-policy URL, a support address, the
+`PACKAGE_USAGE_STATS` sensitive-permission application, and the store
+graphics that need a physical device. R5 and R6 plans, the R7 feedback
+review process, the manual scenario scripts for the remaining R2 coverage,
+and the R10 V0.3 evaluation are also drafted.
+
 ## Permanent release safety checks
 
 - [x] No new scanning or deletion capability was added during R0.

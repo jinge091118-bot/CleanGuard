@@ -2,6 +2,19 @@
 
 本项目遵循语义化版本的发布命名方式。Release Candidate 用 `-rcN` 后缀标识。
 
+## 未发布
+
+### 验证工具
+
+- 新增 `tools/r3/generate-fixture.sh` 与 `tools/r3/remove-fixture.sh`，在专用 `/sdcard/CleanGuardR3` 目录内生成与回收 R3 合成媒体数据集，不触碰该目录之外的任何路径。
+- 新增 `R3ScanPerformanceTest` 与 `R3ScanMutationScenarioTest`，直接驱动生产扫描器采集执行类型、耗时、变化与移除计数、索引行数与堆内存，并覆盖 100 增 / 100 改 / 100 删序列。
+- `macrobenchmark` 模块支持 `cleanguardIterations*` 与 `cleanguardCompilation` instrumentation 参数，默认值不变。
+
+### 验证结论
+
+- Debug 单元测试与 Lint 通过；设备端 instrumented 套件 43/43 通过，原 41 项基线无回归。
+- R3 门禁未关闭。唯一可用设备经核实为虚拟化 Android 12 平台而非物理 Pixel，其数据仅作增量引擎功能性证据记录，不作为性能证据。
+
 ## 0.2.0 - 2026-10-07
 
 CleanGuard V0.2 持久化、增量分析、可解释建议与历史恢复版本。

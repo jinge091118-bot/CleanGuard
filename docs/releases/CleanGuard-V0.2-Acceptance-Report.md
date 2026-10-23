@@ -193,3 +193,16 @@ V0.2 当前 Manifest 与 `v0.1.0-rc1` 标签相比没有权限 diff。
 - V0.3 必须由新的任务书或用户明确指令启动，不在本轮实施。
 
 `CleanGuard V0.2 COMPLETE`
+
+---
+
+## 15. 后续追加说明（2026-10-23）
+
+本报告以上内容为 2026-10-07 V0.2 冻结时的验收记录，未被改写。
+
+2026-10-23 执行 R3 性能采集时，新增了以下内容，均不改变本报告的验收结论：
+
+- 新增 R3 采集工具与测量路径：`tools/r3/generate-fixture.sh`、`tools/r3/remove-fixture.sh`、`app/src/androidTest/.../R3ScanPerformanceTest.kt`、`app/src/androidTest/.../R3ScanMutationScenarioTest.kt`，以及 `macrobenchmark` 模块的可配置迭代参数。
+- 生产代码、Room Schema、Manifest 权限、清理能力、安全规则、推荐引擎职责分离均未改动。
+- 回归验证：Debug 单元测试与 Lint 通过；设备端 instrumented 套件 43/43 通过（原 41 项基线无回归，新增 2 项 R3 测试通过）。
+- R3 门禁仍未关闭。唯一可用设备被证实为虚拟化 Android 12 平台而非物理 Pixel，因此没有任何 R3 性能行被记为通过。详见 `docs/release/v0.2/PERFORMANCE-REPORT.md` 与 `RELEASE-CHECKLIST.md`。

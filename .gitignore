@@ -6,6 +6,8 @@
 .local-tools/
 .android-sdk/
 .qa/
+.workbuddy/
+tmp/
 local.properties
 *.jks
 *.keystore

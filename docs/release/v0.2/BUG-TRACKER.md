@@ -38,6 +38,16 @@ These are validation-environment blockers, not confirmed CleanGuard defects.
 | R2-ENV-02 | Remaining OEM matrix | No vivo/iQOO, Honor, Samsung, or physical Pixel has been validated | Cannot determine compatibility for the remaining required OEM families | Open |
 | R2-COV-01 | Huawei, Redmi, and OPPO manual scenarios | Expanded automated baselines passed, but partial-photo selection, actual SAF grant/revoke, large/special datasets, trash confirmation, undo, cancellation, OEM reclaim, and OPPO manual rotation remain | Required physical-device scenario coverage remains incomplete | Open |
 
+## R3 validation-environment blockers
+
+| ID | Scope | Blocker | Impact | Status |
+|---|---|---|---|---|
+| R3-ENV-01 | Physical-device classes | The device reachable on 2026-10-23 reported `ro.product.model=Pixel 5` but is a virtualized Android 12 platform: Spreadtrum sensor vendor strings, no gyroscope / gravity / rotation-vector sensor, kernel host `localhost`, no `Hardware` line in `/proc/cpuinfo`, and QEMU-style SELinux properties | R3 requires a physical device, so no performance row can be accepted from this device. The physical Google Pixel row in the device matrix stays `Not run` | Open |
+| R3-ENV-02 | Macrobenchmark execution | AndroidX Macrobenchmark completes no measured iteration on the virtualized platform. A 10-iteration cold-start run performed one profile install and then stopped producing output for 40 minutes; a reduced 2-iteration run with `CompilationMode.None()` stalled identically. Device-side `am start -W` completes in 150-491 ms and the app renders correctly, so the stall is in the Macrobenchmark and UiAutomator interaction rather than in the application | The Macrobenchmark-based collection path could not be exercised. The direct scanner instrumentation path was added and does complete | Open |
+
+Both R3 blockers are environment limitations. Neither indicates a CleanGuard
+defect, and neither may be recorded as a passed R3 row.
+
 P0 and P1 release gates cannot be declared globally clear until the required OEM
 and Android-version matrix is executed.
 

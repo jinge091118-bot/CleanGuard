@@ -1,7 +1,6 @@
 package com.cleanguard.app.macrobenchmark
 
 import android.os.Build
-import androidx.benchmark.macro.CompilationMode
 import androidx.benchmark.macro.ExperimentalMetricApi
 import androidx.benchmark.macro.MemoryUsageMetric
 import androidx.benchmark.macro.TraceSectionMetric
@@ -28,8 +27,8 @@ class ScanBenchmark {
         benchmarkRule.measureRepeated(
             packageName = TARGET_PACKAGE,
             metrics = scanMetrics(),
-            compilationMode = CompilationMode.Partial(),
-            iterations = FULL_SCAN_ITERATIONS,
+            compilationMode = BenchmarkConfig.compilationMode,
+            iterations = BenchmarkConfig.fullScanIterations,
             setupBlock = {
                 clearTargetDataAndGrantMediaAccess(device)
                 startActivityAndWait()
@@ -47,8 +46,8 @@ class ScanBenchmark {
         benchmarkRule.measureRepeated(
             packageName = TARGET_PACKAGE,
             metrics = scanMetrics(),
-            compilationMode = CompilationMode.Partial(),
-            iterations = INCREMENTAL_SCAN_ITERATIONS,
+            compilationMode = BenchmarkConfig.compilationMode,
+            iterations = BenchmarkConfig.incrementalScanIterations,
             setupBlock = {
                 killProcess()
                 startActivityAndWait()
@@ -126,7 +125,5 @@ class ScanBenchmark {
 }
 
 private const val SCAN_TRACE_SECTION = "CleanGuardScan"
-private const val FULL_SCAN_ITERATIONS = 3
-private const val INCREMENTAL_SCAN_ITERATIONS = 5
 private const val MAX_HOME_SCROLLS = 8
 private const val SCAN_TIMEOUT_MS = 15 * 60 * 1_000L

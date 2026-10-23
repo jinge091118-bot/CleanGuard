@@ -1,6 +1,5 @@
 package com.cleanguard.app.macrobenchmark
 
-import androidx.benchmark.macro.CompilationMode
 import androidx.benchmark.macro.FrameTimingMetric
 import androidx.benchmark.macro.StartupMode
 import androidx.benchmark.macro.junit4.MacrobenchmarkRule
@@ -24,9 +23,9 @@ class HomeScrollBenchmark {
         benchmarkRule.measureRepeated(
             packageName = TARGET_PACKAGE,
             metrics = listOf(FrameTimingMetric()),
-            compilationMode = CompilationMode.Partial(),
+            compilationMode = BenchmarkConfig.compilationMode,
             startupMode = StartupMode.WARM,
-            iterations = UI_ITERATIONS,
+            iterations = BenchmarkConfig.uiIterations,
             setupBlock = {
                 pressHome()
                 startActivityAndWait()

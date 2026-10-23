@@ -30,6 +30,15 @@ conditional continuation to R3 because additional OEM devices were unavailable.
 The scope, safeguards, and release limitation are recorded in
 `R2-RISK-ACCEPTANCE.md`; no untested OEM row is treated as passed.
 
+R3 remains unchecked. On 2026-10-23 the only device reachable for the R3
+session reported itself as a Google Pixel 5 but proved to be a virtualized
+Android 12 platform, so it cannot satisfy the physical-device requirement.
+The 10k-tier dataset, the direct scanner measurement path, and the
+100 add / 100 modify / 100 delete sequence were completed on that device and
+are recorded in `PERFORMANCE-REPORT.md` as functional correctness evidence
+only. No R3 performance row is satisfied, and the 50k and 100k tiers plus
+both required physical device classes remain outstanding.
+
 ## Permanent release safety checks
 
 - [x] No new scanning or deletion capability was added during R0.

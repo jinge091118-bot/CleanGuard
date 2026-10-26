@@ -17,6 +17,14 @@
 - 新增 R2 手测场景执行脚本，覆盖部分照片授权、SAF 授权与撤销、回收站确认与取消、风险规则生效、进程回收恢复、内存与长跑稳定性等 12 个场景。
 - 新增 R10 V0.3 立项评估文档。
 
+### 中国大陆市场分发路径
+
+- 新增 `docs/release/v0.2/CHINA-MARKET-DISTRIBUTION.md`：大陆渠道全量资质评估。
+- 新增 `docs/release/v0.2/ENTITY-AND-BUDGET-PLAN.md`：主体方案、各渠道主体要求矩阵、借用他人营业执照的法律风险、费用预算。
+- 新增 `docs/release/v0.2/copyright/MANUAL-TEMPLATE.md`：软著说明书写作模板与 15 张截图清单。
+- 新增 `docs/release/v0.2/copyright/CleanGuard-source-code.pdf`：软著源代码文档，60 页（167 个源文件、11,236 行有效代码），纯标准库 PDF 生成器 `tools/copyright/generate-source-doc.py`。
+- 新增 `docs/release/v0.2/REDMI-DEVICE-EXECUTION-PLAN.md`：红米 Note 12 Turbo（23049RAD8C / Android 15 / HyperOS 3.0，已在设备矩阵内）一次到位执行计划，覆盖商店素材拍摄、R2 手测补齐、R3 中端机档位采集。
+
 ### 隐私政策发布
 
 - 项目所有者已于 2026-10-26 批准隐私政策文本，R4 门禁关闭。

@@ -54,6 +54,13 @@ only, and it is explicitly not an open-source project. The reasoning, the
 audit of what was already public, and the measures in place are recorded in
 `SOURCE-AND-LICENSE-POLICY.md`.
 
+Closing R4 does not by itself make the app publishable. Google Play requires
+a personal developer account to run a closed test with at least 12 testers
+continuously opted in for 14 days before it can apply for production access,
+and the project's own gates R2, R3, R5, R6, R7, R8, and R9 are still open.
+The end-to-end path, the realistic timeline, and the recommended ordering
+are documented in `PUBLISHING-PATH.md`.
+
 ## Permanent release safety checks
 
 - [x] No new scanning or deletion capability was added during R0.

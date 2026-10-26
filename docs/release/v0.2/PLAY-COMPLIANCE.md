@@ -48,10 +48,16 @@ These require the Play Console itself rather than further code or documentation 
 
 1. Complete the `PACKAGE_USAGE_STATS` sensitive-permission application. The usage rationale is
    pre-drafted in `DATA-SAFETY.md`.
-2. Export the 512x512 icon, the 1024x500 feature graphic, and at least two phone screenshots.
+2. Fill the content rating questionnaire. Every answer is pre-drafted in
+   `CONTENT-RATING-QUESTIONNAIRE.md`, with the code evidence for each "no" answer.
+3. Export the 512x512 icon, the 1024x500 feature graphic, and at least two phone screenshots.
    The screenshot list is specified in `STORE-LISTING.md`; capturing them needs a physical
    device with a non-private demo dataset.
-3. Fill the content rating questionnaire in Play Console.
+4. Fill the content rating questionnaire and set the target audience so the two are consistent.
+   The recommended target audience and its rationale are in `CONTENT-RATING-QUESTIONNAIRE.md` §4.
+
+The end-to-end path from here to a live listing, including the Google-mandated closed testing
+window, is documented in `PUBLISHING-PATH.md`.
 
 ## Privacy policy hosting
 

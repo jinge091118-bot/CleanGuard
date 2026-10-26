@@ -24,6 +24,15 @@
 - 支持邮箱定为 jinge091118@gmail.com。
 - 新增 `tools/privacy-page/render.py`：仅依赖 Python 标准库的 Markdown → HTML 渲染器，把 `docs/release/v0.2/PRIVACY-POLICY.md` 转为公开页面，确保线上文本不会与仓库内的审核源脱节。
 
+### Play Console 上架准备
+
+- 新增 `tools/release/verify-aab.py`：AAB 上传就绪校验脚本。检查签名密钥类型、version code、SDK 版本、权限清单与隐私政策的一致性、调试标记、产物完整性。因 build-tools 的 `aapt2`/`apksigner` 只认 APK 不认 AAB，脚本直接解析 AAB 内的 protobuf manifest。
+- 2026-10-26 实测 `app-release.aab`（8.32 MB）全部通过：签名证书 `CN=JingeLi`（受保护的 upload key，非 debug）、versionCode 2、targetSdk 36、minSdk 29、6 项声明权限齐全且无禁用权限、无 `INTERNET`、未标记可调试、`safety_rules_v1.json` 已打包。
+- 新增 `docs/release/v0.2/PLAY-CONSOLE-FILL-IN-PACKAGE.md`：按实际点击顺序组织的逐题填写包，含敏感权限申请用途说明原文、Data Safety 全字段答案、内容分级逐题答案、目标受众设置、商店文案、版本号规则与上传后自检清单。
+- 新增 `docs/release/v0.2/PLAY-CONSOLE-SETUP-CHECKLIST.md`：账号注册、身份验证、付款、设备验证、创建应用条目的清单，以及个人账号与组织账号的决策对照与 D-U-N-S 申请要点。
+- 新增 `docs/release/v0.2/STORE-ASSET-CAPTURE-SCRIPT.md`：商店素材拍摄脚本，含无隐私演示数据准备、7 张截图的构图要点、1024×500 特色图制作、512×512 图标导出要求、抓屏命令与拍摄后自检。
+- 重新构建 `app-release.aab`，纳入本轮的隐私文案修正。
+
 ### 源码公开与版权
 
 - 确定「源码公开 + 专有许可」模式：源码可读可审阅，但未授予任何开源许可证，不是开源项目。

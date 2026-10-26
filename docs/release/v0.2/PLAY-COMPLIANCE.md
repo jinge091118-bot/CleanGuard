@@ -44,20 +44,37 @@ Status: **Approved by the project owner on 2026-10-26 — ready for Play Console
 
 ## R4 remaining before submission
 
-These require the Play Console itself rather than further code or documentation work:
+The answers for every Play Console form are prepared. What remains is the
+Play Console work itself, which requires the project owner's account.
 
-1. Complete the `PACKAGE_USAGE_STATS` sensitive-permission application. The usage rationale is
-   pre-drafted in `DATA-SAFETY.md`.
-2. Fill the content rating questionnaire. Every answer is pre-drafted in
-   `CONTENT-RATING-QUESTIONNAIRE.md`, with the code evidence for each "no" answer.
-3. Export the 512x512 icon, the 1024x500 feature graphic, and at least two phone screenshots.
-   The screenshot list is specified in `STORE-LISTING.md`; capturing them needs a physical
-   device with a non-private demo dataset.
-4. Fill the content rating questionnaire and set the target audience so the two are consistent.
-   The recommended target audience and its rationale are in `CONTENT-RATING-QUESTIONNAIRE.md` §4.
+1. Fill in the restricted-permission application for `PACKAGE_USAGE_STATS`. The
+   usage rationale is pre-drafted in `DATA-SAFETY.md`, and the full paste-ready
+   text is in `PLAY-CONSOLE-FILL-IN-PACKAGE.md`.
+2. Fill the Data Safety form. Every field answer is pre-drafted in
+   `DATA-SAFETY.md` and `PLAY-CONSOLE-FILL-IN-PACKAGE.md`.
+3. Fill the content rating questionnaire. Every answer is pre-drafted in
+   `CONTENT-RATING-QUESTIONNAIRE.md`, with the code evidence for each "no".
+4. Set the target audience so it is consistent with the content rating. The
+   recommended audience and its rationale are in
+   `CONTENT-RATING-QUESTIONNAIRE.md` section 4.
+5. Export the 512x512 icon, the 1024x500 feature graphic, and at least two phone
+   screenshots. The capture procedure is in `STORE-ASSET-CAPTURE-SCRIPT.md`;
+   it needs a physical device with a non-private demo dataset.
 
-The end-to-end path from here to a live listing, including the Google-mandated closed testing
-window, is documented in `PUBLISHING-PATH.md`.
+The account setup steps and the personal-versus-organization account decision
+are in `PLAY-CONSOLE-SETUP-CHECKLIST.md`. The end-to-end path from here to a
+live listing, including the Google-mandated closed testing window, is
+documented in `PUBLISHING-PATH.md`.
+
+Before uploading, verify the artifact:
+
+```bash
+python3 tools/release/verify-aab.py
+```
+
+This checks the signing key type, version code, SDK levels, the permission
+list against the published privacy policy, debug markers, and bundle contents.
+The 2026-10-26 run against `app-release.aab` reported every check as passing.
 
 ## Privacy policy hosting
 

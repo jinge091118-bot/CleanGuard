@@ -8,6 +8,7 @@
 .qa/
 .workbuddy/
 tmp/
+.pages-build/
 local.properties
 *.jks
 *.keystore

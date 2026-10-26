@@ -1,7 +1,9 @@
 # CleanGuard V0.2 Google Play 审核备注
 
-**状态**：草案，供提交审核时填入 Play Console 备注框或作为审核问询的应答底稿
+**状态**：已由项目所有者批准（2026-10-26），供提交审核时填入 Play Console 备注框或作为审核问询的应答底稿
 **应用**：`com.cleanguard.app` / version code 2 / version name 0.2.0
+**隐私政策**：<https://jinge091118-bot.github.io/CleanGuard/privacy-policy.html>
+**支持邮箱**：jinge091118@gmail.com
 **提交人**：项目所有者
 
 ---
@@ -154,9 +156,10 @@ CleanGuard 的核心功能是存储占用分析与用户确认的清理。媒体
 
 ---
 
-## 9. 隐私政策
+## 9. 隐私政策与联系方式
 
-- 隐私政策 URL：见商店页
+- 隐私政策 URL：<https://jinge091118-bot.github.io/CleanGuard/privacy-policy.html>
+- 支持邮箱：jinge091118@gmail.com
 - 本地副本：`docs/release/v0.2/PRIVACY-POLICY.md`
 - Data Safety 声明：见商店页「数据安全」区域
 

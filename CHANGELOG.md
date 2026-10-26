@@ -17,6 +17,13 @@
 - 新增 R2 手测场景执行脚本，覆盖部分照片授权、SAF 授权与撤销、回收站确认与取消、风险规则生效、进程回收恢复、内存与长跑稳定性等 12 个场景。
 - 新增 R10 V0.3 立项评估文档。
 
+### 隐私政策发布
+
+- 项目所有者已于 2026-10-26 批准隐私政策文本，R4 门禁关闭。
+- 隐私政策已公开托管于 <https://jinge091118-bot.github.io/CleanGuard/privacy-policy.html>，托管在仓库 `gh-pages` 分支，HTTPS 强制启用。
+- 支持邮箱定为 jinge091118@gmail.com。
+- 新增 `tools/privacy-page/render.py`：仅依赖 Python 标准库的 Markdown → HTML 渲染器，把 `docs/release/v0.2/PRIVACY-POLICY.md` 转为公开页面，确保线上文本不会与仓库内的审核源脱节。
+
 ### 应用内文案修正
 
 合规审计发现两处表述需要修正，均为事实性纠正，未触及任何扫描、清理、权限申请逻辑或安全规则：

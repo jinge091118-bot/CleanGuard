@@ -17,7 +17,7 @@ This checklist is the release-control source for CleanGuard V0.2. Feature work i
 - [x] R1 - Production signing system
 - [ ] R2 - OEM / Android device matrix
 - [ ] R3 - Physical-device performance validation
-- [ ] R4 - Privacy Policy, Data Safety, and media-permission declarations
+- [x] R4 - Privacy Policy, Data Safety, and media-permission declarations
 - [ ] R5 - Google Play Internal Test
 - [ ] R6 - Closed Test / Beta
 - [ ] R7 - Beta feedback review
@@ -39,15 +39,14 @@ are recorded in `PERFORMANCE-REPORT.md` as functional correctness evidence
 only. No R3 performance row is satisfied, and the 50k and 100k tiers plus
 both required physical device classes remain outstanding.
 
-R4 is unchecked because four deliverables still require the project owner
-rather than further engineering work. The privacy policy, Data Safety draft,
-photo/video permission declaration, in-app rationale review, reviewer notes,
-store listing, and the underlying code audit are complete. Outstanding:
-owner approval, a public privacy-policy URL, a support address, the
-`PACKAGE_USAGE_STATS` sensitive-permission application, and the store
-graphics that need a physical device. R5 and R6 plans, the R7 feedback
-review process, the manual scenario scripts for the remaining R2 coverage,
-and the R10 V0.3 evaluation are also drafted.
+R4 is checked. On 2026-10-26 the project owner approved the privacy policy
+text, the Data Safety answers, the photo/video permission declaration, the
+reviewer notes, and the store listing. The privacy policy is published at
+<https://jinge091118-bot.github.io/CleanGuard/privacy-policy.html> and the
+support address is jinge091118@gmail.com. The remaining R4 items are Play
+Console actions rather than documentation work: the `PACKAGE_USAGE_STATS`
+sensitive-permission application, the store graphics, and the content rating
+questionnaire.
 
 ## Permanent release safety checks
 
@@ -59,7 +58,7 @@ and the R10 V0.3 evaluation are also drafted.
 - [x] Release APK and AAB are signed with the protected upload key.
 - [ ] OEM and Android 10-16 validation is complete. Required in R2.
 - [ ] Physical-device performance gates are complete. Required in R3.
-- [ ] Play compliance materials are approved. Required in R4.
+- [x] Play compliance materials are approved and the privacy policy is published. Required in R4.
 
 ## Version-code rule
 

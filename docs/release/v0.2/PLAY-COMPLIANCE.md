@@ -1,6 +1,15 @@
 # CleanGuard V0.2 Play Compliance
 
-Status: **Drafts complete — pending project-owner approval**
+Status: **Approved by the project owner on 2026-10-26 — ready for Play Console submission**
+
+## Published compliance details
+
+| Item | Value |
+|---|---|
+| Privacy policy URL | <https://jinge091118-bot.github.io/CleanGuard/privacy-policy.html> |
+| Support email | jinge091118@gmail.com |
+| Privacy policy source | `docs/release/v0.2/PRIVACY-POLICY.md` |
+| Page generation | `tools/privacy-page/render.py`, published to the `gh-pages` branch |
 
 ## Current privacy and permission facts
 
@@ -24,26 +33,44 @@ Status: **Drafts complete — pending project-owner approval**
 ## R4 deliverables
 
 - [x] Privacy Policy draft — `PRIVACY-POLICY.md`
-- [ ] Privacy Policy owner-approved public URL — **blocking for submission**
+- [x] Privacy Policy owner-approved public URL — published 2026-10-26
 - [x] Google Play Data Safety draft — `DATA-SAFETY.md`
 - [x] Photo / Video Permission Declaration draft — `PHOTO-VIDEO-PERMISSION-DECLARATION.md`
 - [x] In-app permission rationale review — `IN-APP-PERMISSION-RATIONALE-REVIEW.md`
 - [x] Reviewer notes — `REVIEWER-NOTES.md`
 - [x] Store listing statements verified against actual behavior — `STORE-LISTING.md`
 - [x] Compliance fact audit with code evidence — `COMPLIANCE-AUDIT.md`
+- [x] Support contact address — jinge091118@gmail.com
 
 ## R4 remaining before submission
 
-These require the project owner or a hosted location, not further code work:
+These require the Play Console itself rather than further code or documentation work:
 
-1. Approve the privacy policy text and host it at a public URL.
-2. Provide a support contact address.
-3. Complete the `PACKAGE_USAGE_STATS` sensitive-permission application in Play Console. The
-   usage rationale is pre-drafted in `DATA-SAFETY.md`.
-4. Export the 512x512 icon, the 1024x500 feature graphic, and at least two phone screenshots.
+1. Complete the `PACKAGE_USAGE_STATS` sensitive-permission application. The usage rationale is
+   pre-drafted in `DATA-SAFETY.md`.
+2. Export the 512x512 icon, the 1024x500 feature graphic, and at least two phone screenshots.
    The screenshot list is specified in `STORE-LISTING.md`; capturing them needs a physical
    device with a non-private demo dataset.
-5. Fill the content rating questionnaire in Play Console.
+3. Fill the content rating questionnaire in Play Console.
+
+## Privacy policy hosting
+
+The published page is generated from the policy source in this repository, so the public text
+cannot drift from the reviewed source. To update the policy, edit
+`docs/release/v0.2/PRIVACY-POLICY.md`, then regenerate and publish:
+
+```bash
+python3 tools/privacy-page/render.py \
+  docs/release/v0.2/PRIVACY-POLICY.md \
+  .pages-build/privacy-policy.html
+```
+
+The generated HTML is committed to the `gh-pages` branch of the project repository. The public
+URL is `https://jinge091118-bot.github.io/CleanGuard/privacy-policy.html`.
+
+Note that the application itself has no network permission and therefore cannot open this URL
+in-app. This does not affect the Play requirement, which asks for a public URL on the store
+listing.
 
 ## In-application corrections made during R4
 

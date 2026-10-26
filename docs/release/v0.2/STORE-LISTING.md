@@ -1,6 +1,6 @@
 # CleanGuard V0.2 商店上架文案
 
-**状态**：草案，待项目所有者批准
+**状态**：已由项目所有者批准（2026-10-26），可填入 Play Console
 **用途**：Google Play 商店页填写
 **事实依据**：`PRIVACY-POLICY.md` + 2026-10-23 代码审计
 
@@ -129,11 +129,11 @@ CleanGuard 不识别相似图片或近似视频。它只确认内容完全相同
 
 | 项目 | 值 |
 |---|---|
-| 隐私政策 URL | **待提供** —— 源文件 `docs/release/v0.2/PRIVACY-POLICY.md`，需托管为公开可访问地址后方可提交 |
-| 支持邮箱 | **待提供** |
-| 营销页 | 可选 |
+| 隐私政策 URL | <https://jinge091118-bot.github.io/CleanGuard/privacy-policy.html> |
+| 支持邮箱 | jinge091118@gmail.com |
+| 营销页 | <https://jinge091118-bot.github.io/CleanGuard/> |
 
-> 隐私政策 URL 是提交的硬性前提。应用本身不具备网络能力，无法在应用内打开该链接，这不影响 Play 的要求 —— Play 要求的是商店页上的公开 URL。
+> 隐私政策 URL 已于 2026-10-26 公开上线，内容由 `docs/release/v0.2/PRIVACY-POLICY.md` 生成并托管在仓库的 `gh-pages` 分支。应用本身不具备网络能力，无法在应用内打开该链接，这不影响 Play 的要求 —— Play 要求的是商店页上的公开 URL。
 
 ---
 

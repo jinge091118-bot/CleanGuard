@@ -1,7 +1,9 @@
 # CleanGuard V0.2 照片 / 视频权限声明
 
-**状态**：草案，待项目所有者批准后方可在 Play Console 填写
+**状态**：已由项目所有者批准（2026-10-26），可在 Play Console 填写
 **应用**：`com.cleanguard.app` / version code 2
+**隐私政策**：<https://jinge091118-bot.github.io/CleanGuard/privacy-policy.html>
+**支持邮箱**：jinge091118@gmail.com
 
 ---
 

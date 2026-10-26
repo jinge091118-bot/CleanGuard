@@ -1,7 +1,9 @@
 # CleanGuard V0.2 Google Play Data Safety 声明
 
-**状态**：草案，待项目所有者批准后方可在 Play Console 填写
+**状态**：已由项目所有者批准（2026-10-26），可在 Play Console 填写
 **应用**：`com.cleanguard.app` / version code 2 / version name 0.2.0
+**隐私政策**：<https://jinge091118-bot.github.io/CleanGuard/privacy-policy.html>
+**支持邮箱**：jinge091118@gmail.com
 **事实依据**：`PRIVACY-POLICY.md` 与 2026-10-23 完成的代码审计（下文「审计依据」段）
 
 ---
@@ -118,7 +120,7 @@ Play Console 的 Data Safety 表单分为两大部分。本表逐项给出**应�
 3. **不要声明「收集用于分析/改进产品」**。CleanGuard 无任何分析或上报实现。
 4. **「文件与文档」与「应用信息」是审核最可能追问的两项**，两个专项说明已备好，可直接引用。
 5. **敏感权限声明与 Data Safety 是两套表单**。Data Safety 填完后仍需在 Play Console 的「应用内容」区域完成使用情况访问权限的单独申请与声明。
-6. **隐私政策 URL 需为公开可访问地址**。`docs/release/v0.2/PRIVACY-POLICY.md` 是源文件，托管为公开 URL 前不得提交审核。
+6. **隐私政策 URL 需为公开可访问地址**。已发布于 <https://jinge091118-bot.github.io/CleanGuard/privacy-policy.html>，内容与 `PRIVACY-POLICY.md` 一致。
 
 ---
 
@@ -126,7 +128,7 @@ Play Console 的 Data Safety 表单分为两大部分。本表逐项给出**应�
 
 提交前逐项确认：
 
-- [ ] 隐私政策 URL 可公开访问，内容与 `PRIVACY-POLICY.md` 一致
+- [x] 隐私政策 URL 可公开访问，内容与 `PRIVACY-POLICY.md` 一致
 - [ ] Data Safety 答案与本文档完全一致
 - [ ] 权限声明表（`PHOTO-VIDEO-PERMISSION-DECLARATION.md`）与 Manifest 声明一致
 - [ ] 商店文案中的隐私相关表述不超出本文档范围

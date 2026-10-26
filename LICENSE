@@ -1,0 +1,73 @@
+CleanGuard Proprietary License
+Copyright (c) 2026 CleanGuard. All Rights Reserved.
+
+NOTICE: This repository is published for transparency and documentation
+purposes only. It is NOT an open-source project. No open-source license is
+granted. See the terms below.
+
+1. Grant of Rights
+
+Permission is granted to view the source code in this repository and to read
+the documentation published alongside it, for the purpose of evaluating,
+auditing, or reporting on the software.
+
+NO OTHER RIGHTS ARE GRANTED. Without the prior written permission of the
+copyright holder, you may not use, copy, modify, adapt, translate, create
+derivative works of, publish, distribute, sublicense, sell, or exploit this
+software or any portion of it, in any medium and for any purpose.
+
+This includes, without limitation, incorporating this code into another
+project, whether open source or proprietary, whether for commercial or
+non-commercial use, and re-publishing a modified or unmodified build of it.
+
+2. Ownership
+
+The software, its design, architecture, algorithm, safety rules, rule
+definitions, user-interface design, documentation, and the CleanGuard name,
+logo, and branding are and remain the exclusive property of the copyright
+holder. The copyright holder reserves all rights not expressly granted in
+this license.
+
+3. Trademark
+
+"CleanGuard" and the associated logo and branding are trademarks of the
+copyright holder. This license grants no trademark rights. You may not use
+the CleanGuard name, logo, or branding in your product name, application
+identifier, icon, store listing, domain name, or marketing materials without
+prior written permission.
+
+4. Third-Party Components
+
+This repository depends on third-party libraries under their own licenses,
+principally the AndroidX and Jetpack families published by Google LLC and
+Kotlin libraries published by JetBrains s.r.o. Those licenses govern the
+use of those components. This license does not restrict, replace, or
+supersede them, and it imposes no additional obligation on them.
+
+5. Security Reports
+
+If you believe you have found a security or privacy defect in the published
+application, please report it to jinge091118@gmail.com rather than
+disclosing it publicly before a fix is available.
+
+6. No Warranty
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF, OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+7. Termination
+
+Any use of this software other than as permitted by Section 1 terminates
+this license automatically. Such use also constitutes a breach of the
+copyright holder's exclusive rights, and the copyright holder reserves the
+right to pursue all available remedies, including injunctive relief and
+claims for copyright infringement.
+
+8. Contact
+
+Permission requests and license inquiries:
+jinge091118@gmail.com

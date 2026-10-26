@@ -1,5 +1,16 @@
 # CleanGuard V0.2.0
 
+> **版权声明 / Copyright Notice**
+>
+> 本仓库公开源码仅供审阅、评估与安全报告使用，**不是开源项目**，未授予任何开源许可证。
+> 未经版权所有人书面许可，不得使用、复制、修改、改编、再分发、销售或基于本代码构建任何衍生作品。
+> `CleanGuard` 名称、Logo 与品牌标识为版权所有人商标，本许可不授予任何商标权。
+>
+> 完整条款见 [LICENSE](LICENSE)。授权申请：jinge091118@gmail.com
+>
+> **This repository is NOT open source.** No open-source license is granted.
+> See [LICENSE](LICENSE).
+
 CleanGuard 是一个以可解释判断、最小权限和用户确认为原则的 Android 本地空间分析工具。项目使用 Kotlin、Jetpack Compose、Material 3、Navigation Compose、Room 与 DataStore，支持 Android 10（API 29）及以上设备，`compileSdk` 和 `targetSdk` 均为 36。
 
 CleanGuard 不使用恐吓式文案，不把“建议优先级”等同于“风险等级”，也不提供全局一键清理、后台静默扫描或自动永久删除。扫描、分类、Hash 与历史数据全部在设备本地处理。

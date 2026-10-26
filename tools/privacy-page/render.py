@@ -310,7 +310,7 @@ footer p {{ margin: .4rem 0; }}
 {body}
 <footer>
 <p>本页面为 CleanGuard V0.2 的公开隐私政策，与应用内「设置 → 隐私说明」及 Google Play 商店页所列内容一致。</p>
-<p>政策正文源文件随应用源码一同发布，可在应用仓库的 <code>docs/release/v0.2/PRIVACY-POLICY.md</code> 查看。</p>
+<p>政策正文源文件随应用源码一同发布，可在应用仓库的 <code>docs/release/v0.2/PRIVACY-POLICY.md</code> 查看。仓库采用专有许可证，仅供审阅与审计，不授予开源许可。</p>
 </footer>
 </main>
 </body>

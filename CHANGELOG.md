@@ -24,6 +24,15 @@
 - 支持邮箱定为 jinge091118@gmail.com。
 - 新增 `tools/privacy-page/render.py`：仅依赖 Python 标准库的 Markdown → HTML 渲染器，把 `docs/release/v0.2/PRIVACY-POLICY.md` 转为公开页面，确保线上文本不会与仓库内的审核源脱节。
 
+### 源码公开与版权
+
+- 确定「源码公开 + 专有许可」模式：源码可读可审阅，但未授予任何开源许可证，不是开源项目。
+- 新增仓库根目录 `LICENSE`：专有许可，授予查看与审计许可，保留使用、修改、再分发、衍生作品的全部权利，并保留 CleanGuard 名称与标识的商标权。
+- `README.md` 顶部新增中英双语版权声明；GitHub 仓库描述与标签标注 `proprietary`、`not-open-source`。
+- 新增 `docs/release/v0.2/SOURCE-AND-LICENSE-POLICY.md`，记录法律与技术依据、已公开范围、密钥审计结果与未来加强保护的手段。
+- `feature/v0.2` 分支已推送至远端。推送前完成密钥审计：无 keystore、`key.properties`、`local.properties` 或硬编码凭据被跟踪。
+- 隐私政策托管所需的 `gh-pages` 分支保持公开可访问。
+
 ### 应用内文案修正
 
 合规审计发现两处表述需要修正，均为事实性纠正，未触及任何扫描、清理、权限申请逻辑或安全规则：

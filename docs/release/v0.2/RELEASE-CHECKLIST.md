@@ -48,6 +48,12 @@ Console actions rather than documentation work: the `PACKAGE_USAGE_STATS`
 sensitive-permission application, the store graphics, and the content rating
 questionnaire.
 
+Source publication and licensing are settled as well. The repository is
+published under a proprietary license that grants viewing and audit rights
+only, and it is explicitly not an open-source project. The reasoning, the
+audit of what was already public, and the measures in place are recorded in
+`SOURCE-AND-LICENSE-POLICY.md`.
+
 ## Permanent release safety checks
 
 - [x] No new scanning or deletion capability was added during R0.

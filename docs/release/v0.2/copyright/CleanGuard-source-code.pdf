@@ -1,0 +1,6954 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+3 0 obj
+<< /Length 2936 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (1) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(package com.cleanguard.app) Tj
+T*
+(import android.app.Application) Tj
+T*
+(import com.cleanguard.app.di.AppContainer) Tj
+T*
+(import com.cleanguard.app.di.DefaultAppContainer) Tj
+T*
+(class CleanGuardApplication : Application\(\) {) Tj
+T*
+(    val container: AppContainer by lazy { DefaultAppContainer\(applicationContext\) }) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.data.apk) Tj
+T*
+(import android.content.ContentResolver) Tj
+T*
+(import android.content.Context) Tj
+T*
+(import android.content.pm.PackageManager) Tj
+T*
+(import android.os.Build) Tj
+T*
+(import androidx.core.net.toUri) Tj
+T*
+(import com.cleanguard.app.domain.apk.ApkArchiveInspector) Tj
+T*
+(import com.cleanguard.app.domain.apk.ApkArchiveMetadata) Tj
+T*
+(import java.io.File) Tj
+T*
+(import java.io.FileNotFoundException) Tj
+T*
+(import kotlinx.coroutines.CoroutineDispatcher) Tj
+T*
+(import kotlinx.coroutines.Dispatchers) Tj
+T*
+(import kotlinx.coroutines.currentCoroutineContext) Tj
+T*
+(import kotlinx.coroutines.ensureActive) Tj
+T*
+(import kotlinx.coroutines.withContext) Tj
+T*
+(class AndroidApkArchiveInspector\() Tj
+T*
+(    private val context: Context,) Tj
+T*
+(    private val contentResolver: ContentResolver = context.contentResolver,) Tj
+T*
+(    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,) Tj
+T*
+(\) : ApkArchiveInspector {) Tj
+T*
+(    override suspend fun inspect\(contentUri: String\): ApkArchiveMetadata? = withContext\(ioDispatcher\) {) Tj
+T*
+(        val temporaryApk = File.createTempFile\(TEMP_PREFIX, APK_SUFFIX, context.cacheDir\)) Tj
+T*
+(        try {) Tj
+T*
+(            contentResolver.openInputStream\(contentUri.toUri\(\)\).use { input ->) Tj
+T*
+(                if \(input == null\) throw FileNotFoundException\("Unable to open APK URI"\)) Tj
+T*
+(                temporaryApk.outputStream\(\).buffered\(\).use { output ->) Tj
+T*
+(                    val buffer = ByteArray\(STREAM_BUFFER_SIZE\)) Tj
+T*
+(                    while \(true\) {) Tj
+T*
+(                        currentCoroutineContext\(\).ensureActive\(\)) Tj
+T*
+(                        val count = input.read\(buffer\)) Tj
+T*
+(                        if \(count < 0\) break) Tj
+T*
+(                        if \(count > 0\) output.write\(buffer, 0, count\)) Tj
+T*
+(                    }) Tj
+T*
+(                }) Tj
+T*
+(            }) Tj
+T*
+(            val packageInfo = if \(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU\) {) Tj
+T*
+(                context.packageManager.getPackageArchiveInfo\() Tj
+T*
+(                    temporaryApk.absolutePath,) Tj
+T*
+(                    PackageManager.PackageInfoFlags.of\(PackageManager.GET_META_DATA.toLong\(\)\),) Tj
+T*
+(                \)) Tj
+T*
+(            } else {) Tj
+T*
+(                @Suppress\("DEPRECATION"\)) Tj
+T*
+(                context.packageManager.getPackageArchiveInfo\() Tj
+ET
+endstream
+endobj
+4 0 obj
+<< /Length 2601 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (2) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(                    temporaryApk.absolutePath,) Tj
+T*
+(                    PackageManager.GET_META_DATA,) Tj
+T*
+(                \)) Tj
+T*
+(            } ?: return@withContext null) Tj
+T*
+(            val applicationInfo = packageInfo.applicationInfo?.apply {) Tj
+T*
+(                sourceDir = temporaryApk.absolutePath) Tj
+T*
+(                publicSourceDir = temporaryApk.absolutePath) Tj
+T*
+(            }) Tj
+T*
+(            ApkArchiveMetadata\() Tj
+T*
+(                packageName = packageInfo.packageName,) Tj
+T*
+(                versionName = packageInfo.versionName,) Tj
+T*
+(                longVersionCode = packageInfo.longVersionCode,) Tj
+T*
+(                applicationLabel = applicationInfo?.let {) Tj
+T*
+(                    runCatching { context.packageManager.getApplicationLabel\(it\).toString\(\) }.getOrNull\(\)) Tj
+T*
+(                },) Tj
+T*
+(            \)) Tj
+T*
+(        } finally {) Tj
+T*
+(            temporaryApk.delete\(\)) Tj
+T*
+(        }) Tj
+T*
+(    }) Tj
+T*
+(    private companion object {) Tj
+T*
+(        const val TEMP_PREFIX = "cg-apk-") Tj
+T*
+(        const val APK_SUFFIX = ".apk") Tj
+T*
+(        const val STREAM_BUFFER_SIZE = 64 * 1024) Tj
+T*
+(    }) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.data.apk) Tj
+T*
+(import android.content.pm.PackageManager) Tj
+T*
+(import android.os.Build) Tj
+T*
+(import com.cleanguard.app.domain.apk.InstalledPackageLookup) Tj
+T*
+(import com.cleanguard.app.domain.apk.InstalledPackageVersionProvider) Tj
+T*
+(class AndroidInstalledPackageVersionProvider\() Tj
+T*
+(    private val packageManager: PackageManager,) Tj
+T*
+(\) : InstalledPackageVersionProvider {) Tj
+T*
+(    override fun lookup\(packageName: String\): InstalledPackageLookup = try {) Tj
+T*
+(        val info = if \(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU\) {) Tj
+T*
+(            packageManager.getPackageInfo\(packageName, PackageManager.PackageInfoFlags.of\(0L\)\)) Tj
+T*
+(        } else {) Tj
+T*
+(            @Suppress\("DEPRECATION"\)) Tj
+T*
+(            packageManager.getPackageInfo\(packageName, 0\)) Tj
+T*
+(        }) Tj
+T*
+(        InstalledPackageLookup.Installed\(info.longVersionCode\)) Tj
+T*
+(    } catch \(_: PackageManager.NameNotFoundException\) {) Tj
+T*
+(        InstalledPackageLookup.Unknown) Tj
+T*
+(    } catch \(_: SecurityException\) {) Tj
+T*
+(        InstalledPackageLookup.Unknown) Tj
+T*
+(    }) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.data.apk) Tj
+T*
+(import com.cleanguard.app.domain.apk.ApkAnalysis) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Length 2994 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (3) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(import com.cleanguard.app.domain.apk.ApkAnalyzer) Tj
+T*
+(import com.cleanguard.app.domain.apk.ApkArchiveInspector) Tj
+T*
+(import com.cleanguard.app.domain.apk.ApkCandidate) Tj
+T*
+(import com.cleanguard.app.domain.apk.ApkInstalledComparison) Tj
+T*
+(import com.cleanguard.app.domain.apk.InstalledPackageLookup) Tj
+T*
+(import com.cleanguard.app.domain.apk.InstalledPackageVersionProvider) Tj
+T*
+(import java.io.IOException) Tj
+T*
+(import kotlinx.coroutines.CancellationException) Tj
+T*
+(class ApkAnalyzerImpl\() Tj
+T*
+(    private val archiveInspector: ApkArchiveInspector,) Tj
+T*
+(    private val installedVersionProvider: InstalledPackageVersionProvider,) Tj
+T*
+(\) : ApkAnalyzer {) Tj
+T*
+(    override suspend fun analyze\(candidate: ApkCandidate\): ApkAnalysis = try {) Tj
+T*
+(        val metadata = archiveInspector.inspect\(candidate.contentUri\)) Tj
+T*
+(            ?: return ApkAnalysis\() Tj
+T*
+(                candidate = candidate,) Tj
+T*
+(                metadata = null,) Tj
+T*
+(                installedComparison = ApkInstalledComparison.UNKNOWN,) Tj
+T*
+(                issueMessage = "???? APK ????",) Tj
+T*
+(            \)) Tj
+T*
+(        when \(val installed = installedVersionProvider.lookup\(metadata.packageName\)\) {) Tj
+T*
+(            is InstalledPackageLookup.Installed -> ApkAnalysis\() Tj
+T*
+(                candidate = candidate,) Tj
+T*
+(                metadata = metadata,) Tj
+T*
+(                installedComparison = when {) Tj
+T*
+(                    metadata.longVersionCode < installed.longVersionCode ->) Tj
+T*
+(                        ApkInstalledComparison.OLDER_THAN_INSTALLED) Tj
+T*
+(                    metadata.longVersionCode == installed.longVersionCode ->) Tj
+T*
+(                        ApkInstalledComparison.SAME_AS_INSTALLED) Tj
+T*
+(                    else -> ApkInstalledComparison.NEWER_THAN_INSTALLED) Tj
+T*
+(                },) Tj
+T*
+(                installedVersionCode = installed.longVersionCode,) Tj
+T*
+(            \)) Tj
+T*
+(            InstalledPackageLookup.NotInstalled -> ApkAnalysis\() Tj
+T*
+(                candidate = candidate,) Tj
+T*
+(                metadata = metadata,) Tj
+T*
+(                installedComparison = ApkInstalledComparison.NOT_INSTALLED,) Tj
+T*
+(            \)) Tj
+T*
+(            InstalledPackageLookup.Unknown -> ApkAnalysis\() Tj
+T*
+(                candidate = candidate,) Tj
+T*
+(                metadata = metadata,) Tj
+T*
+(                installedComparison = ApkInstalledComparison.UNKNOWN,) Tj
+T*
+(                issueMessage = "? Android ?????????????????",) Tj
+T*
+(            \)) Tj
+T*
+(        }) Tj
+T*
+(    } catch \(error: Throwable\) {) Tj
+T*
+(        if \(error is CancellationException\) throw error) Tj
+T*
+(        if \(error !is IOException && error !is SecurityException && error !is IllegalArgumentException\) {) Tj
+T*
+(            throw error) Tj
+T*
+(        }) Tj
+ET
+endstream
+endobj
+6 0 obj
+<< /Length 2587 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (4) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(        ApkAnalysis\() Tj
+T*
+(            candidate = candidate,) Tj
+T*
+(            metadata = null,) Tj
+T*
+(            installedComparison = ApkInstalledComparison.UNKNOWN,) Tj
+T*
+(            issueMessage = "APK ?????????????",) Tj
+T*
+(        \)) Tj
+T*
+(    }) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.data.apps) Tj
+T*
+(import android.app.AppOpsManager) Tj
+T*
+(import android.app.usage.StorageStatsManager) Tj
+T*
+(import android.content.Context) Tj
+T*
+(import android.content.Intent) Tj
+T*
+(import android.content.pm.ApplicationInfo) Tj
+T*
+(import android.content.pm.PackageManager) Tj
+T*
+(import android.os.Process) Tj
+T*
+(import android.os.storage.StorageManager) Tj
+T*
+(import com.cleanguard.app.domain.model.AppStorageItem) Tj
+T*
+(import com.cleanguard.app.domain.model.AppStorageScanResult) Tj
+T*
+(import com.cleanguard.app.domain.model.UsageAccessStatus) Tj
+T*
+(import com.cleanguard.app.domain.repository.AppStorageRepository) Tj
+T*
+(import java.io.IOException) Tj
+T*
+(import kotlinx.coroutines.CancellationException) Tj
+T*
+(import kotlinx.coroutines.CoroutineDispatcher) Tj
+T*
+(import kotlinx.coroutines.Dispatchers) Tj
+T*
+(import kotlinx.coroutines.ensureActive) Tj
+T*
+(import kotlinx.coroutines.withContext) Tj
+T*
+(import kotlin.coroutines.coroutineContext) Tj
+T*
+(class AndroidAppStorageRepository\() Tj
+T*
+(    private val context: Context,) Tj
+T*
+(    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,) Tj
+T*
+(\) : AppStorageRepository {) Tj
+T*
+(    private val appOpsManager = context.getSystemService\(AppOpsManager::class.java\)) Tj
+T*
+(    private val storageStatsManager = context.getSystemService\(StorageStatsManager::class.java\)) Tj
+T*
+(    private val packageManager = context.packageManager) Tj
+T*
+(    override fun usageAccessStatus\(\): UsageAccessStatus {) Tj
+T*
+(        val mode = appOpsManager.checkOpNoThrow\() Tj
+T*
+(            AppOpsManager.OPSTR_GET_USAGE_STATS,) Tj
+T*
+(            Process.myUid\(\),) Tj
+T*
+(            context.packageName,) Tj
+T*
+(        \)) Tj
+T*
+(        return if \(mode == AppOpsManager.MODE_ALLOWED\) {) Tj
+T*
+(            UsageAccessStatus.GRANTED) Tj
+T*
+(        } else {) Tj
+T*
+(            UsageAccessStatus.NOT_GRANTED) Tj
+T*
+(        }) Tj
+T*
+(    }) Tj
+T*
+(    override suspend fun loadLaunchableAppStorage\(\): Result<AppStorageScanResult> = withContext\(ioDispatcher\) {) Tj
+T*
+(        try {) Tj
+T*
+(            check\(usageAccessStatus\(\) == UsageAccessStatus.GRANTED\) {) Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Length 3018 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (5) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(                "Usage access is required to read app storage statistics.") Tj
+T*
+(            }) Tj
+T*
+(            val launcherIntent = Intent\(Intent.ACTION_MAIN\).addCategory\(Intent.CATEGORY_LAUNCHER\)) Tj
+T*
+(            val launchableApps = packageManager.queryIntentActivities\() Tj
+T*
+(                launcherIntent,) Tj
+T*
+(                PackageManager.MATCH_ALL,) Tj
+T*
+(            \).mapNotNull { it.activityInfo?.applicationInfo }) Tj
+T*
+(                .distinctBy\(ApplicationInfo::packageName\)) Tj
+T*
+(            var skippedCount = 0) Tj
+T*
+(            val items = buildList {) Tj
+T*
+(                launchableApps.forEach { applicationInfo ->) Tj
+T*
+(                    coroutineContext.ensureActive\(\)) Tj
+T*
+(                    try {) Tj
+T*
+(                        val stats = storageStatsManager.queryStatsForPackage\() Tj
+T*
+(                            StorageManager.UUID_DEFAULT,) Tj
+T*
+(                            applicationInfo.packageName,) Tj
+T*
+(                            Process.myUserHandle\(\),) Tj
+T*
+(                        \)) Tj
+T*
+(                        add\() Tj
+T*
+(                            AppStorageItem\() Tj
+T*
+(                                packageName = applicationInfo.packageName,) Tj
+T*
+(                                appName = applicationInfo.loadLabel\(packageManager\).toString\(\)) Tj
+T*
+(                                    .ifBlank { applicationInfo.packageName },) Tj
+T*
+(                                appBytes = stats.appBytes.coerceAtLeast\(0L\),) Tj
+T*
+(                                dataBytes = stats.dataBytes.coerceAtLeast\(0L\),) Tj
+T*
+(                                cacheBytes = stats.cacheBytes.coerceAtLeast\(0L\),) Tj
+T*
+(                            \),) Tj
+T*
+(                        \)) Tj
+T*
+(                    } catch \(exception: CancellationException\) {) Tj
+T*
+(                        throw exception) Tj
+T*
+(                    } catch \(_: PackageManager.NameNotFoundException\) {) Tj
+T*
+(                        skippedCount += 1) Tj
+T*
+(                    } catch \(_: SecurityException\) {) Tj
+T*
+(                        skippedCount += 1) Tj
+T*
+(                    } catch \(_: IOException\) {) Tj
+T*
+(                        skippedCount += 1) Tj
+T*
+(                    } catch \(_: IllegalArgumentException\) {) Tj
+T*
+(                        skippedCount += 1) Tj
+T*
+(                    }) Tj
+T*
+(                }) Tj
+T*
+(            }) Tj
+T*
+(            Result.success\() Tj
+T*
+(                AppStorageScanResult\() Tj
+T*
+(                    items = items.sortedByDescending\(AppStorageItem::totalBytes\),) Tj
+T*
+(                    skippedAppCount = skippedCount,) Tj
+T*
+(                \),) Tj
+T*
+(            \)) Tj
+T*
+(        } catch \(exception: CancellationException\) {) Tj
+T*
+(            throw exception) Tj
+T*
+(        } catch \(exception: Exception\) {) Tj
+ET
+endstream
+endobj
+8 0 obj
+<< /Length 2962 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (6) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(            Result.failure\(exception\)) Tj
+T*
+(        }) Tj
+T*
+(    }) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.data.cleanup) Tj
+T*
+(import android.content.ContentResolver) Tj
+T*
+(import android.content.ContentUris) Tj
+T*
+(import android.content.IntentSender) Tj
+T*
+(import android.net.Uri) Tj
+T*
+(import android.os.Build) Tj
+T*
+(import android.provider.MediaStore) Tj
+T*
+(import com.cleanguard.app.domain.model.CleanupAction) Tj
+T*
+(import com.cleanguard.app.domain.model.CleanupOutcome) Tj
+T*
+(import com.cleanguard.app.domain.model.CleanupPlan) Tj
+T*
+(import com.cleanguard.app.domain.model.CleanupResult) Tj
+T*
+(import com.cleanguard.app.domain.model.ScanSource) Tj
+T*
+(import com.cleanguard.app.domain.model.RiskLevel) Tj
+T*
+(import com.cleanguard.app.domain.model.SystemConfirmationOutcome) Tj
+T*
+(import com.cleanguard.app.domain.repository.CleanupRepository) Tj
+T*
+(import com.cleanguard.app.domain.repository.CleanupHistoryRepository) Tj
+T*
+(import com.cleanguard.app.domain.repository.NoOpCleanupHistoryRepository) Tj
+T*
+(import com.cleanguard.app.domain.repository.StorageRepository) Tj
+T*
+(import com.cleanguard.app.domain.model.persistence.CleanupHistoryEntry) Tj
+T*
+(import com.cleanguard.app.domain.model.persistence.CleanupHistoryItem) Tj
+T*
+(import com.cleanguard.app.domain.model.persistence.CleanupHistoryType) Tj
+T*
+(import com.cleanguard.app.domain.model.persistence.CleanupRestoreStatus) Tj
+T*
+(import java.io.IOException) Tj
+T*
+(import kotlinx.coroutines.CancellationException) Tj
+T*
+(import kotlinx.coroutines.CoroutineDispatcher) Tj
+T*
+(import kotlinx.coroutines.Dispatchers) Tj
+T*
+(import kotlinx.coroutines.flow.Flow) Tj
+T*
+(import kotlinx.coroutines.flow.MutableStateFlow) Tj
+T*
+(import kotlinx.coroutines.flow.asStateFlow) Tj
+T*
+(import kotlinx.coroutines.withContext) Tj
+T*
+(class MediaStoreCleanupRepository\() Tj
+T*
+(    private val contentResolver: ContentResolver,) Tj
+T*
+(    private val storageRepository: StorageRepository,) Tj
+T*
+(    private val cleanupHistoryRepository: CleanupHistoryRepository = NoOpCleanupHistoryRepository,) Tj
+T*
+(    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,) Tj
+T*
+(    private val currentTimeMillis: \(\) -> Long = System::currentTimeMillis,) Tj
+T*
+(\) : CleanupRepository {) Tj
+T*
+(    private val result = MutableStateFlow<CleanupResult?>\(null\)) Tj
+T*
+(    private var pendingPlan: CleanupPlan? = null) Tj
+T*
+(    private var undoPlan: CleanupPlan? = null) Tj
+T*
+(    private var beforeUsedBytes: Long = 0L) Tj
+T*
+(    override val latestResult: Flow<CleanupResult?> = result.asStateFlow\(\)) Tj
+T*
+(    override suspend fun createTrashRequest\(plan: CleanupPlan\): Result<IntentSender> =) Tj
+T*
+(        withContext\(ioDispatcher\) {) Tj
+T*
+(            beforeUsedBytes = currentUsedBytes\(fallback = 0L\)) Tj
+T*
+(            pendingPlan = plan) Tj
+ET
+endstream
+endobj
+9 0 obj
+<< /Length 2877 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (7) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(            createMediaStoreTrashRequest\(plan, trash = true\)) Tj
+T*
+(        }) Tj
+T*
+(    override suspend fun completeTrashRequest\() Tj
+T*
+(        plan: CleanupPlan,) Tj
+T*
+(        outcome: SystemConfirmationOutcome,) Tj
+T*
+(    \): CleanupResult = withContext\(ioDispatcher\) {) Tj
+T*
+(        val activePlan = pendingPlan?.takeIf { it.id == plan.id } ?: plan) Tj
+T*
+(        val afterUsedBytes = currentUsedBytes\(fallback = beforeUsedBytes\)) Tj
+T*
+(        val completedResult = CleanupResultFactory.fromTrashOutcome\() Tj
+T*
+(            plan = activePlan,) Tj
+T*
+(            outcome = outcome,) Tj
+T*
+(            beforeUsedBytes = beforeUsedBytes,) Tj
+T*
+(            afterUsedBytes = afterUsedBytes,) Tj
+T*
+(        \)) Tj
+T*
+(        undoPlan = activePlan.takeIf { outcome == SystemConfirmationOutcome.CONFIRMED }) Tj
+T*
+(        pendingPlan = null) Tj
+T*
+(        result.value = completedResult) Tj
+T*
+(        persistHistory\(activePlan, completedResult, outcome\)) Tj
+T*
+(        completedResult) Tj
+T*
+(    }) Tj
+T*
+(    override suspend fun createUndoRequest\(\): Result<IntentSender> = withContext\(ioDispatcher\) {) Tj
+T*
+(        val plan = undoPlan) Tj
+T*
+(            ?: return@withContext Result.failure\(IllegalStateException\("No trash operation is available to undo"\)\)) Tj
+T*
+(        createMediaStoreTrashRequest\(plan, trash = false\)) Tj
+T*
+(    }) Tj
+T*
+(    override suspend fun completeUndoRequest\(confirmed: Boolean\): Result<CleanupResult> =) Tj
+T*
+(        withContext\(ioDispatcher\) {) Tj
+T*
+(            val currentResult = result.value) Tj
+T*
+(                ?: return@withContext Result.failure\(IllegalStateException\("No cleanup result is available"\)\)) Tj
+T*
+(            if \(!confirmed\) return@withContext Result.success\(currentResult\)) Tj
+T*
+(            val updatedResult = CleanupResultFactory.afterUndo\() Tj
+T*
+(                result = currentResult,) Tj
+T*
+(                afterUsedBytes = currentUsedBytes\(fallback = currentResult.beforeUsedBytes\),) Tj
+T*
+(            \)) Tj
+T*
+(            undoPlan = null) Tj
+T*
+(            result.value = updatedResult) Tj
+T*
+(            runCatching {) Tj
+T*
+(                cleanupHistoryRepository.updateRestoreStatus\() Tj
+T*
+(                    currentResult.cleanupId ?: return@runCatching,) Tj
+T*
+(                    CleanupRestoreStatus.RESTORED,) Tj
+T*
+(                \)) Tj
+T*
+(            }) Tj
+T*
+(            Result.success\(updatedResult\)) Tj
+T*
+(        }) Tj
+T*
+(    private suspend fun persistHistory\() Tj
+T*
+(        plan: CleanupPlan,) Tj
+T*
+(        cleanupResult: CleanupResult,) Tj
+T*
+(        outcome: SystemConfirmationOutcome,) Tj
+T*
+(    \) {) Tj
+T*
+(        val entry = CleanupHistoryEntryFactory.fromTrashOutcome\() Tj
+ET
+endstream
+endobj
+10 0 obj
+<< /Length 2689 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (8) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(            plan = plan,) Tj
+T*
+(            result = cleanupResult,) Tj
+T*
+(            outcome = outcome,) Tj
+T*
+(            timestamp = currentTimeMillis\(\),) Tj
+T*
+(        \)) Tj
+T*
+(        try {) Tj
+T*
+(            cleanupHistoryRepository.save\(entry\)) Tj
+T*
+(        } catch \(exception: CancellationException\) {) Tj
+T*
+(            throw exception) Tj
+T*
+(        } catch \(_: Exception\) {) Tj
+T*
+(        }) Tj
+T*
+(    }) Tj
+T*
+(    private fun createMediaStoreTrashRequest\() Tj
+T*
+(        plan: CleanupPlan,) Tj
+T*
+(        trash: Boolean,) Tj
+T*
+(    \): Result<IntentSender> {) Tj
+T*
+(        try {) Tj
+T*
+(            if \(Build.VERSION.SDK_INT < Build.VERSION_CODES.R\) {) Tj
+T*
+(                return Result.failure\() Tj
+T*
+(                    UnsupportedOperationException\("MediaStore Trash requires Android 11 or newer"\),) Tj
+T*
+(                \)) Tj
+T*
+(            }) Tj
+T*
+(            val uris = plan.items.map { item ->) Tj
+T*
+(                require\(item.source == ScanSource.MEDIA_STORE\) {) Tj
+T*
+(                    "Only MediaStore items can enter a MediaStore trash request") Tj
+T*
+(                }) Tj
+T*
+(                require\(item.action == CleanupAction.TRASH\) {) Tj
+T*
+(                    "Only TRASH actions can enter a MediaStore trash request") Tj
+T*
+(                }) Tj
+T*
+(                require\(item.riskLevel == RiskLevel.SAFE || item.riskLevel == RiskLevel.REVIEW\) {) Tj
+T*
+(                    "Protected items cannot enter a MediaStore trash request") Tj
+T*
+(                }) Tj
+T*
+(                mediaStoreUri\(item.itemId\)) Tj
+T*
+(                    ?: throw IllegalArgumentException\("Invalid MediaStore item id: ${item.itemId}"\)) Tj
+T*
+(            }) Tj
+T*
+(            require\(uris.isNotEmpty\(\)\) { "Trash request cannot be empty" }) Tj
+T*
+(            return Result.success\() Tj
+T*
+(                MediaStore.createTrashRequest\(contentResolver, uris, trash\).intentSender,) Tj
+T*
+(            \)) Tj
+T*
+(        } catch \(exception: CancellationException\) {) Tj
+T*
+(            throw exception) Tj
+T*
+(        } catch \(exception: SecurityException\) {) Tj
+T*
+(            return Result.failure\(exception\)) Tj
+T*
+(        } catch \(exception: IOException\) {) Tj
+T*
+(            return Result.failure\(exception\)) Tj
+T*
+(        } catch \(exception: IllegalArgumentException\) {) Tj
+T*
+(            return Result.failure\(exception\)) Tj
+T*
+(        } catch \(exception: IllegalStateException\) {) Tj
+T*
+(            return Result.failure\(exception\)) Tj
+T*
+(        }) Tj
+ET
+endstream
+endobj
+11 0 obj
+<< /Length 2630 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (9) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(    }) Tj
+T*
+(    private suspend fun currentUsedBytes\(fallback: Long\): Long =) Tj
+T*
+(        storageRepository.loadStorageOverview\(\).getOrNull\(\)?.usedBytes ?: fallback) Tj
+T*
+(}) Tj
+T*
+(internal object CleanupResultFactory {) Tj
+T*
+(    fun fromTrashOutcome\() Tj
+T*
+(        plan: CleanupPlan,) Tj
+T*
+(        outcome: SystemConfirmationOutcome,) Tj
+T*
+(        beforeUsedBytes: Long,) Tj
+T*
+(        afterUsedBytes: Long,) Tj
+T*
+(    \): CleanupResult {) Tj
+T*
+(        val requestedCount = plan.items.size) Tj
+T*
+(        return CleanupResult\() Tj
+T*
+(            cleanupId = plan.id,) Tj
+T*
+(            requestedCount = requestedCount,) Tj
+T*
+(            successCount = if \(outcome == SystemConfirmationOutcome.CONFIRMED\) requestedCount else 0,) Tj
+T*
+(            failureCount = if \(outcome == SystemConfirmationOutcome.FAILED\) requestedCount else 0,) Tj
+T*
+(            cancelledCount = if \(outcome == SystemConfirmationOutcome.CANCELLED\) requestedCount else 0,) Tj
+T*
+(            reclaimedBytes = if \(outcome == SystemConfirmationOutcome.CONFIRMED\) {) Tj
+T*
+(                \(beforeUsedBytes - afterUsedBytes\).coerceAtLeast\(0L\)) Tj
+T*
+(            } else {) Tj
+T*
+(                0L) Tj
+T*
+(            },) Tj
+T*
+(            beforeUsedBytes = beforeUsedBytes.coerceAtLeast\(0L\),) Tj
+T*
+(            afterUsedBytes = afterUsedBytes.coerceAtLeast\(0L\),) Tj
+T*
+(            undoAvailable = outcome == SystemConfirmationOutcome.CONFIRMED,) Tj
+T*
+(            outcome = when \(outcome\) {) Tj
+T*
+(                SystemConfirmationOutcome.CONFIRMED -> CleanupOutcome.COMPLETED) Tj
+T*
+(                SystemConfirmationOutcome.CANCELLED -> CleanupOutcome.CANCELLED) Tj
+T*
+(                SystemConfirmationOutcome.FAILED -> CleanupOutcome.FAILED) Tj
+T*
+(            },) Tj
+T*
+(        \)) Tj
+T*
+(    }) Tj
+T*
+(    fun afterUndo\() Tj
+T*
+(        result: CleanupResult,) Tj
+T*
+(        afterUsedBytes: Long,) Tj
+T*
+(    \): CleanupResult = result.copy\() Tj
+T*
+(        reclaimedBytes = 0L,) Tj
+T*
+(        afterUsedBytes = afterUsedBytes.coerceAtLeast\(0L\),) Tj
+T*
+(        undoAvailable = false,) Tj
+T*
+(        outcome = CleanupOutcome.UNDONE,) Tj
+T*
+(    \)) Tj
+T*
+(}) Tj
+T*
+(internal object CleanupHistoryEntryFactory {) Tj
+T*
+(    fun fromTrashOutcome\() Tj
+T*
+(        plan: CleanupPlan,) Tj
+T*
+(        result: CleanupResult,) Tj
+T*
+(        outcome: SystemConfirmationOutcome,) Tj
+T*
+(        timestamp: Long,) Tj
+T*
+(    \): CleanupHistoryEntry = CleanupHistoryEntry\() Tj
+ET
+endstream
+endobj
+12 0 obj
+<< /Length 2568 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (10) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(        cleanupId = plan.id,) Tj
+T*
+(        timestamp = timestamp,) Tj
+T*
+(        requestedItemCount = result.requestedCount,) Tj
+T*
+(        processedItemCount = result.successCount,) Tj
+T*
+(        failedItemCount = result.failureCount,) Tj
+T*
+(        requestedBytes = plan.estimatedReclaimBytes,) Tj
+T*
+(        freedBytes = result.reclaimedBytes,) Tj
+T*
+(        cleanupType = CleanupHistoryType.MEDIA_STORE_TRASH,) Tj
+T*
+(        usedMediaStoreTrash = true,) Tj
+T*
+(        restoreStatus = if \(outcome == SystemConfirmationOutcome.CONFIRMED\) {) Tj
+T*
+(            CleanupRestoreStatus.AVAILABLE) Tj
+T*
+(        } else {) Tj
+T*
+(            CleanupRestoreStatus.NOT_AVAILABLE) Tj
+T*
+(        },) Tj
+T*
+(        items = plan.items.map { item ->) Tj
+T*
+(            CleanupHistoryItem\() Tj
+T*
+(                itemKey = item.itemId,) Tj
+T*
+(                contentUri = mediaStoreContentUriString\(item.itemId\),) Tj
+T*
+(            \)) Tj
+T*
+(        },) Tj
+T*
+(    \)) Tj
+T*
+(}) Tj
+T*
+(internal fun mediaStoreUri\(itemId: String\): Uri? {) Tj
+T*
+(    val reference = parseMediaStoreItemId\(itemId\) ?: return null) Tj
+T*
+(    val collectionUri = when \(reference.collection\) {) Tj
+T*
+(        "image" -> MediaStore.Images.Media.EXTERNAL_CONTENT_URI) Tj
+T*
+(        "video" -> MediaStore.Video.Media.EXTERNAL_CONTENT_URI) Tj
+T*
+(        "audio" -> MediaStore.Audio.Media.EXTERNAL_CONTENT_URI) Tj
+T*
+(        else -> return null) Tj
+T*
+(    }) Tj
+T*
+(    return ContentUris.withAppendedId\(collectionUri, reference.mediaId\)) Tj
+T*
+(}) Tj
+T*
+(internal fun mediaStoreContentUriString\(itemId: String\): String? {) Tj
+T*
+(    val reference = parseMediaStoreItemId\(itemId\) ?: return null) Tj
+T*
+(    val path = when \(reference.collection\) {) Tj
+T*
+(        "image" -> "images") Tj
+T*
+(        "video" -> "video") Tj
+T*
+(        "audio" -> "audio") Tj
+T*
+(        else -> return null) Tj
+T*
+(    }) Tj
+T*
+(    return "content://media/external/$path/media/${reference.mediaId}") Tj
+T*
+(}) Tj
+T*
+(internal data class MediaStoreItemReference\() Tj
+T*
+(    val collection: String,) Tj
+T*
+(    val mediaId: Long,) Tj
+T*
+(\)) Tj
+T*
+(internal fun parseMediaStoreItemId\(itemId: String\): MediaStoreItemReference? {) Tj
+T*
+(    val match = MEDIA_ITEM_ID.matchEntire\(itemId\) ?: return null) Tj
+T*
+(    val mediaId = match.groupValues[2].toLongOrNull\(\) ?: return null) Tj
+T*
+(    return MediaStoreItemReference\(match.groupValues[1], mediaId\)) Tj
+ET
+endstream
+endobj
+13 0 obj
+<< /Length 2906 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (11) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(}) Tj
+T*
+(private val MEDIA_ITEM_ID = Regex\("^media:\(image|video|audio\):\([0-9]+\)$"\)) Tj
+T*
+(package com.cleanguard.app.data.cleanup) Tj
+T*
+(import android.content.ContentResolver) Tj
+T*
+(import android.content.IntentSender) Tj
+T*
+(import android.net.Uri) Tj
+T*
+(import android.os.Build) Tj
+T*
+(import android.provider.MediaStore) Tj
+T*
+(import androidx.annotation.RequiresApi) Tj
+T*
+(import com.cleanguard.app.domain.model.SystemConfirmationOutcome) Tj
+T*
+(import com.cleanguard.app.domain.model.persistence.CleanupHistoryEntry) Tj
+T*
+(import com.cleanguard.app.domain.model.persistence.CleanupHistoryType) Tj
+T*
+(import com.cleanguard.app.domain.model.persistence.CleanupRestoreStatus) Tj
+T*
+(import com.cleanguard.app.domain.repository.CleanupHistoryRepository) Tj
+T*
+(import com.cleanguard.app.domain.repository.MediaRecoveryRepository) Tj
+T*
+(import java.io.IOException) Tj
+T*
+(import kotlinx.coroutines.CancellationException) Tj
+T*
+(import kotlinx.coroutines.CoroutineDispatcher) Tj
+T*
+(import kotlinx.coroutines.Dispatchers) Tj
+T*
+(import kotlinx.coroutines.withContext) Tj
+T*
+(class MediaStoreRecoveryRepository internal constructor\() Tj
+T*
+(    private val historyRepository: CleanupHistoryRepository,) Tj
+T*
+(    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,) Tj
+T*
+(    private val sdkInt: Int = Build.VERSION.SDK_INT,) Tj
+T*
+(    private val requestFactory: MediaStoreTrashRequestFactory,) Tj
+T*
+(\) : MediaRecoveryRepository {) Tj
+T*
+(    constructor\() Tj
+T*
+(        contentResolver: ContentResolver,) Tj
+T*
+(        historyRepository: CleanupHistoryRepository,) Tj
+T*
+(        ioDispatcher: CoroutineDispatcher = Dispatchers.IO,) Tj
+T*
+(    \) : this\() Tj
+T*
+(        historyRepository = historyRepository,) Tj
+T*
+(        ioDispatcher = ioDispatcher,) Tj
+T*
+(        sdkInt = Build.VERSION.SDK_INT,) Tj
+T*
+(        requestFactory = AndroidMediaStoreTrashRequestFactory\(contentResolver\),) Tj
+T*
+(    \)) Tj
+T*
+(    override suspend fun createRestoreRequest\() Tj
+T*
+(        entry: CleanupHistoryEntry,) Tj
+T*
+(    \): Result<IntentSender> = withContext\(ioDispatcher\) {) Tj
+T*
+(        if \(entry.restoreStatus != CleanupRestoreStatus.AVAILABLE\) {) Tj
+T*
+(            return@withContext Result.failure\() Tj
+T*
+(                IllegalStateException\("This cleanup history entry is not available for restore"\),) Tj
+T*
+(            \)) Tj
+T*
+(        }) Tj
+T*
+(        try {) Tj
+T*
+(            if \(sdkInt < Build.VERSION_CODES.R\) {) Tj
+T*
+(                throw UnsupportedOperationException\("MediaStore restore requires Android 11 or newer"\)) Tj
+T*
+(            }) Tj
+T*
+(            Result.success\(requestFactory.create\(requireRestoreUris\(entry\), trash = false\)\)) Tj
+T*
+(        } catch \(exception: CancellationException\) {) Tj
+ET
+endstream
+endobj
+14 0 obj
+<< /Length 2417 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (12) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(            throw exception) Tj
+T*
+(        } catch \(exception: Exception\) {) Tj
+T*
+(            if \(exception is SecurityException ||) Tj
+T*
+(                exception is IOException ||) Tj
+T*
+(                exception is IllegalArgumentException ||) Tj
+T*
+(                exception is IllegalStateException ||) Tj
+T*
+(                exception is UnsupportedOperationException) Tj
+T*
+(            \) {) Tj
+T*
+(                markUnavailable\(entry.cleanupId\)) Tj
+T*
+(                Result.failure\(exception\)) Tj
+T*
+(            } else {) Tj
+T*
+(                throw exception) Tj
+T*
+(            }) Tj
+T*
+(        }) Tj
+T*
+(    }) Tj
+T*
+(    override suspend fun completeRestore\() Tj
+T*
+(        entry: CleanupHistoryEntry,) Tj
+T*
+(        outcome: SystemConfirmationOutcome,) Tj
+T*
+(    \): Result<Unit> = withContext\(ioDispatcher\) {) Tj
+T*
+(        try {) Tj
+T*
+(            when \(outcome\) {) Tj
+T*
+(                SystemConfirmationOutcome.CONFIRMED -> updateStatus\() Tj
+T*
+(                    entry.cleanupId,) Tj
+T*
+(                    CleanupRestoreStatus.RESTORED,) Tj
+T*
+(                \)) Tj
+T*
+(                SystemConfirmationOutcome.CANCELLED -> Unit) Tj
+T*
+(                SystemConfirmationOutcome.FAILED -> markUnavailable\(entry.cleanupId\)) Tj
+T*
+(            }) Tj
+T*
+(            Result.success\(Unit\)) Tj
+T*
+(        } catch \(exception: CancellationException\) {) Tj
+T*
+(            throw exception) Tj
+T*
+(        } catch \(exception: Exception\) {) Tj
+T*
+(            Result.failure\(exception\)) Tj
+T*
+(        }) Tj
+T*
+(    }) Tj
+T*
+(    private suspend fun markUnavailable\(cleanupId: String\) {) Tj
+T*
+(        try {) Tj
+T*
+(            updateStatus\(cleanupId, CleanupRestoreStatus.FAILED\)) Tj
+T*
+(        } catch \(exception: CancellationException\) {) Tj
+T*
+(            throw exception) Tj
+T*
+(        } catch \(_: Exception\) {) Tj
+T*
+(        }) Tj
+T*
+(    }) Tj
+T*
+(    private suspend fun updateStatus\(cleanupId: String, status: CleanupRestoreStatus\) {) Tj
+T*
+(        check\(historyRepository.updateRestoreStatus\(cleanupId, status\) == 1\) {) Tj
+T*
+(            "Cleanup history entry no longer exists") Tj
+T*
+(        }) Tj
+T*
+(    }) Tj
+T*
+(}) Tj
+T*
+(internal fun requireRestoreUris\(entry: CleanupHistoryEntry\): List<Uri> {) Tj
+ET
+endstream
+endobj
+15 0 obj
+<< /Length 2984 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (13) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(    return restoreUriStrings\(entry\).map\(Uri::parse\)) Tj
+T*
+(}) Tj
+T*
+(internal fun restoreUriStrings\(entry: CleanupHistoryEntry\): List<String> {) Tj
+T*
+(    require\(entry.cleanupType == CleanupHistoryType.MEDIA_STORE_TRASH\)) Tj
+T*
+(    require\(entry.usedMediaStoreTrash\)) Tj
+T*
+(    require\(entry.processedItemCount > 0\)) Tj
+T*
+(    val uris = entry.items.map { item ->) Tj
+T*
+(        val uri = item.contentUri) Tj
+T*
+(            ?: throw IllegalArgumentException\("Missing MediaStore URI"\)) Tj
+T*
+(        require\(uri.startsWith\("${ContentResolver.SCHEME_CONTENT}://media/"\)\) {) Tj
+T*
+(            "Invalid MediaStore URI") Tj
+T*
+(        }) Tj
+T*
+(        uri) Tj
+T*
+(    }.distinct\(\)) Tj
+T*
+(    require\(uris.isNotEmpty\(\)\) { "Restore request cannot be empty" }) Tj
+T*
+(    return uris) Tj
+T*
+(}) Tj
+T*
+(internal fun interface MediaStoreTrashRequestFactory {) Tj
+T*
+(    fun create\(uris: List<Uri>, trash: Boolean\): IntentSender) Tj
+T*
+(}) Tj
+T*
+(private class AndroidMediaStoreTrashRequestFactory\() Tj
+T*
+(    private val contentResolver: ContentResolver,) Tj
+T*
+(\) : MediaStoreTrashRequestFactory {) Tj
+T*
+(    @RequiresApi\(Build.VERSION_CODES.R\)) Tj
+T*
+(    override fun create\(uris: List<Uri>, trash: Boolean\): IntentSender =) Tj
+T*
+(        MediaStore.createTrashRequest\(contentResolver, uris, trash\).intentSender) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.data.download) Tj
+T*
+(import com.cleanguard.app.domain.download.DownloadAgeBucket) Tj
+T*
+(import com.cleanguard.app.domain.download.DownloadAgeInsight) Tj
+T*
+(import com.cleanguard.app.domain.download.DownloadInsightsEngine) Tj
+T*
+(import com.cleanguard.app.domain.model.ScannedFile) Tj
+T*
+(import com.cleanguard.app.domain.model.ScanSource) Tj
+T*
+(class DownloadInsightsEngineImpl : DownloadInsightsEngine {) Tj
+T*
+(    override fun analyze\(files: List<ScannedFile>, nowEpochMillis: Long\): List<DownloadAgeInsight> {) Tj
+T*
+(        val grouped = files.asSequence\(\)) Tj
+T*
+(            .filter { it.source == ScanSource.SAF }) Tj
+T*
+(            .groupBy { it.ageBucket\(nowEpochMillis\) }) Tj
+T*
+(        return DownloadAgeBucket.entries.map { bucket ->) Tj
+T*
+(            val bucketFiles = grouped[bucket].orEmpty\(\).sortedWith\() Tj
+T*
+(                compareByDescending<ScannedFile> { it.sizeBytes }.thenBy { it.id },) Tj
+T*
+(            \)) Tj
+T*
+(            DownloadAgeInsight\() Tj
+T*
+(                bucket = bucket,) Tj
+T*
+(                files = bucketFiles,) Tj
+T*
+(                fileCount = bucketFiles.size,) Tj
+T*
+(                totalBytes = bucketFiles.fold\(0L\) { total, file -> saturatingAdd\(total, file.sizeBytes\) },) Tj
+T*
+(                largestFile = bucketFiles.maxByOrNull { it.sizeBytes },) Tj
+T*
+(                fileTypes = bucketFiles.mapTo\(sortedSetOf\(\)\) { file -> file.typeLabel\(\) },) Tj
+T*
+(            \)) Tj
+ET
+endstream
+endobj
+16 0 obj
+<< /Length 2668 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (14) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(        }) Tj
+T*
+(    }) Tj
+T*
+(}) Tj
+T*
+(private fun ScannedFile.ageBucket\(now: Long\): DownloadAgeBucket {) Tj
+T*
+(    if \(modifiedAtEpochMillis <= 0L\) return DownloadAgeBucket.UNKNOWN) Tj
+T*
+(    val age = \(now - modifiedAtEpochMillis\).coerceAtLeast\(0L\)) Tj
+T*
+(    return when {) Tj
+T*
+(        age < DAYS_30 -> DownloadAgeBucket.RECENT_30_DAYS) Tj
+T*
+(        age < DAYS_90 -> DownloadAgeBucket.DAYS_30_TO_90) Tj
+T*
+(        age < DAYS_180 -> DownloadAgeBucket.DAYS_90_TO_180) Tj
+T*
+(        else -> DownloadAgeBucket.OVER_180_DAYS) Tj
+T*
+(    }) Tj
+T*
+(}) Tj
+T*
+(private fun ScannedFile.typeLabel\(\): String = mimeType) Tj
+T*
+(    ?.substringBefore\('/'\)) Tj
+T*
+(    ?.takeIf { it.isNotBlank\(\) }) Tj
+T*
+(    ?: category.name.lowercase\(\)) Tj
+T*
+(private fun saturatingAdd\(total: Long, value: Long\): Long =) Tj
+T*
+(    if \(value > 0L && total > Long.MAX_VALUE - value\) Long.MAX_VALUE else total + value) Tj
+T*
+(private const val DAY_MILLIS = 24L * 60L * 60L * 1_000L) Tj
+T*
+(private const val DAYS_30 = 30L * DAY_MILLIS) Tj
+T*
+(private const val DAYS_90 = 90L * DAY_MILLIS) Tj
+T*
+(private const val DAYS_180 = 180L * DAY_MILLIS) Tj
+T*
+(package com.cleanguard.app.data.duplicate) Tj
+T*
+(import com.cleanguard.app.domain.duplicate.DuplicateFile) Tj
+T*
+(import com.cleanguard.app.domain.duplicate.DuplicateFileHasher) Tj
+T*
+(import com.cleanguard.app.domain.model.persistence.HashCacheEntry) Tj
+T*
+(import com.cleanguard.app.domain.repository.HashCacheRepository) Tj
+T*
+(class CachingDuplicateFileHasher\() Tj
+T*
+(    private val cacheRepository: HashCacheRepository,) Tj
+T*
+(    private val calculator: StreamHashCalculator,) Tj
+T*
+(    private val currentTimeMillis: \(\) -> Long = System::currentTimeMillis,) Tj
+T*
+(\) : DuplicateFileHasher {) Tj
+T*
+(    override suspend fun quickHash\(file: DuplicateFile\): String {) Tj
+T*
+(        val cached = currentEntry\(file\)) Tj
+T*
+(        cached?.quickHash?.let { return it }) Tj
+T*
+(        val hash = calculator.quickHash\(file\)) Tj
+T*
+(        cacheRepository.upsert\() Tj
+T*
+(            cached.orNew\(file\).copy\() Tj
+T*
+(                quickHash = hash,) Tj
+T*
+(                updatedAt = currentTimeMillis\(\),) Tj
+T*
+(            \),) Tj
+T*
+(        \)) Tj
+T*
+(        return hash) Tj
+T*
+(    }) Tj
+T*
+(    override suspend fun fullHash\(file: DuplicateFile\): String {) Tj
+T*
+(        val cached = currentEntry\(file\)) Tj
+T*
+(        cached?.fullHash?.let { return it }) Tj
+T*
+(        val hash = calculator.fullHash\(file\)) Tj
+T*
+(        cacheRepository.upsert\() Tj
+ET
+endstream
+endobj
+17 0 obj
+<< /Length 2677 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (15) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(            cached.orNew\(file\).copy\() Tj
+T*
+(                fullHash = hash,) Tj
+T*
+(                updatedAt = currentTimeMillis\(\),) Tj
+T*
+(            \),) Tj
+T*
+(        \)) Tj
+T*
+(        return hash) Tj
+T*
+(    }) Tj
+T*
+(    private suspend fun currentEntry\(file: DuplicateFile\): HashCacheEntry? {) Tj
+T*
+(        cacheRepository.invalidateStale\() Tj
+T*
+(            contentUri = file.contentUri,) Tj
+T*
+(            sizeBytes = file.sizeBytes,) Tj
+T*
+(            modifiedAt = file.modifiedAtEpochMillis,) Tj
+T*
+(        \)) Tj
+T*
+(        return cacheRepository.findCurrent\() Tj
+T*
+(            contentUri = file.contentUri,) Tj
+T*
+(            sizeBytes = file.sizeBytes,) Tj
+T*
+(            modifiedAt = file.modifiedAtEpochMillis,) Tj
+T*
+(        \)) Tj
+T*
+(    }) Tj
+T*
+(    private fun HashCacheEntry?.orNew\(file: DuplicateFile\): HashCacheEntry = this ?: HashCacheEntry\() Tj
+T*
+(        id = "${file.contentUri}#${file.sizeBytes}#${file.modifiedAtEpochMillis}",) Tj
+T*
+(        contentUri = file.contentUri,) Tj
+T*
+(        sizeBytes = file.sizeBytes,) Tj
+T*
+(        modifiedAt = file.modifiedAtEpochMillis,) Tj
+T*
+(        quickHash = null,) Tj
+T*
+(        fullHash = null,) Tj
+T*
+(        updatedAt = currentTimeMillis\(\),) Tj
+T*
+(    \)) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.data.duplicate) Tj
+T*
+(import com.cleanguard.app.domain.duplicate.DuplicateGroup) Tj
+T*
+(import com.cleanguard.app.domain.duplicate.DuplicateSessionRepository) Tj
+T*
+(import kotlinx.coroutines.flow.MutableStateFlow) Tj
+T*
+(import kotlinx.coroutines.flow.StateFlow) Tj
+T*
+(import kotlinx.coroutines.flow.asStateFlow) Tj
+T*
+(class CurrentDuplicateSessionRepository : DuplicateSessionRepository {) Tj
+T*
+(    private val mutableGroups = MutableStateFlow<List<DuplicateGroup>>\(emptyList\(\)\)) Tj
+T*
+(    private var cleanupSelection: Set<String> = emptySet\(\)) Tj
+T*
+(    override val groups: StateFlow<List<DuplicateGroup>> = mutableGroups.asStateFlow\(\)) Tj
+T*
+(    override suspend fun replaceGroups\(groups: List<DuplicateGroup>\) {) Tj
+T*
+(        mutableGroups.value = groups.toList\(\)) Tj
+T*
+(    }) Tj
+T*
+(    override fun findGroup\(groupId: String\): DuplicateGroup? =) Tj
+T*
+(        mutableGroups.value.firstOrNull { it.id == groupId }) Tj
+T*
+(    override fun stageCleanupSelection\(itemIds: Set<String>\) {) Tj
+T*
+(        cleanupSelection = itemIds.toSet\(\)) Tj
+T*
+(    }) Tj
+T*
+(    override fun consumeCleanupSelection\(\): Set<String> = cleanupSelection.also {) Tj
+T*
+(        cleanupSelection = emptySet\(\)) Tj
+T*
+(    }) Tj
+ET
+endstream
+endobj
+18 0 obj
+<< /Length 3232 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (16) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(}) Tj
+T*
+(package com.cleanguard.app.data.duplicate) Tj
+T*
+(import com.cleanguard.app.domain.duplicate.DuplicateFile) Tj
+T*
+(import com.cleanguard.app.domain.duplicate.DuplicateFileHasher) Tj
+T*
+(import com.cleanguard.app.domain.duplicate.DuplicateGroup) Tj
+T*
+(import com.cleanguard.app.domain.duplicate.DuplicateVerificationEngine) Tj
+T*
+(import com.cleanguard.app.domain.duplicate.DuplicateVerificationIssue) Tj
+T*
+(import com.cleanguard.app.domain.duplicate.DuplicateVerificationResult) Tj
+T*
+(import com.cleanguard.app.domain.duplicate.DuplicateVerificationStatus) Tj
+T*
+(import com.cleanguard.app.domain.model.RiskLevel) Tj
+T*
+(import java.io.IOException) Tj
+T*
+(import java.util.Collections) Tj
+T*
+(import java.util.concurrent.atomic.AtomicInteger) Tj
+T*
+(import kotlinx.coroutines.CancellationException) Tj
+T*
+(import kotlinx.coroutines.async) Tj
+T*
+(import kotlinx.coroutines.awaitAll) Tj
+T*
+(import kotlinx.coroutines.coroutineScope) Tj
+T*
+(import kotlinx.coroutines.currentCoroutineContext) Tj
+T*
+(import kotlinx.coroutines.ensureActive) Tj
+T*
+(import kotlinx.coroutines.yield) Tj
+T*
+(class DuplicateVerificationEngineImpl\() Tj
+T*
+(    private val fileHasher: DuplicateFileHasher,) Tj
+T*
+(    fullHashParallelism: Int = MAX_FULL_HASH_PARALLELISM,) Tj
+T*
+(\) : DuplicateVerificationEngine {) Tj
+T*
+(    private val fullHashParallelism = fullHashParallelism.coerceIn\(1, MAX_FULL_HASH_PARALLELISM\)) Tj
+T*
+(    override suspend fun verify\(files: List<DuplicateFile>\): DuplicateVerificationResult {) Tj
+T*
+(        val issues = mutableListOf<DuplicateVerificationIssue>\(\)) Tj
+T*
+(        val sizeGroups = files.asSequence\(\)) Tj
+T*
+(            .filter { it.sizeBytes > 0L && it.riskLevel == RiskLevel.REVIEW }) Tj
+T*
+(            .groupBy\(DuplicateFile::sizeBytes\)) Tj
+T*
+(            .values) Tj
+T*
+(            .filter { it.size >= 2 }) Tj
+T*
+(        val quickGroups = buildList {) Tj
+T*
+(            sizeGroups.forEach { sameSizeFiles ->) Tj
+T*
+(                val quickHashes = ArrayList<Pair<String, DuplicateFile>>\(sameSizeFiles.size\)) Tj
+T*
+(                sameSizeFiles.forEachIndexed { index, file ->) Tj
+T*
+(                    if \(index % CANCELLATION_CHECK_INTERVAL == 0\) yield\(\)) Tj
+T*
+(                    runHash\(file, issues\) { fileHasher.quickHash\(file\) }) Tj
+T*
+(                        ?.let { quickHashes += it to file }) Tj
+T*
+(                }) Tj
+T*
+(                quickHashes.groupBy\(keySelector = { it.first }, valueTransform = { it.second }\)) Tj
+T*
+(                    .filterValues { it.size >= 2 }) Tj
+T*
+(                    .forEach { \(quickHash, groupedFiles\) -> add\(quickHash to groupedFiles\) }) Tj
+T*
+(            }) Tj
+T*
+(        }) Tj
+T*
+(        val confirmedGroups = quickGroups.flatMap { \(quickHash, groupedFiles\) ->) Tj
+T*
+(            val fullHashes = hashFullWithBoundedWorkers\(groupedFiles, issues\)) Tj
+T*
+(            fullHashes.groupBy\(keySelector = { it.first }, valueTransform = { it.second }\)) Tj
+T*
+(                .filterValues { it.size >= 2 }) Tj
+T*
+(                .map { \(fullHash, filesWithSameContent\) ->) Tj
+ET
+endstream
+endobj
+19 0 obj
+<< /Length 2891 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (17) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(                    val sortedFiles = filesWithSameContent.sortedWith\() Tj
+T*
+(                        compareByDescending<DuplicateFile> { it.modifiedAtEpochMillis }) Tj
+T*
+(                            .thenBy\(DuplicateFile::itemId\),) Tj
+T*
+(                    \)) Tj
+T*
+(                    val totalBytes = saturatingMultiply\(sortedFiles.first\(\).sizeBytes, sortedFiles.size\)) Tj
+T*
+(                    DuplicateGroup\() Tj
+T*
+(                        id = "duplicate:$fullHash",) Tj
+T*
+(                        files = sortedFiles,) Tj
+T*
+(                        totalBytes = totalBytes,) Tj
+T*
+(                        reclaimableBytes = saturatingMultiply\() Tj
+T*
+(                            sortedFiles.first\(\).sizeBytes,) Tj
+T*
+(                            sortedFiles.size - 1,) Tj
+T*
+(                        \),) Tj
+T*
+(                        verificationStatus = DuplicateVerificationStatus.CONFIRMED_DUPLICATE,) Tj
+T*
+(                        quickHash = quickHash,) Tj
+T*
+(                        fullHash = fullHash,) Tj
+T*
+(                    \)) Tj
+T*
+(                }) Tj
+T*
+(        }.sortedWith\(compareByDescending<DuplicateGroup>\(DuplicateGroup::reclaimableBytes\).thenBy { it.id }\)) Tj
+T*
+(        return DuplicateVerificationResult\() Tj
+T*
+(            groups = confirmedGroups,) Tj
+T*
+(            issues = issues.distinctBy { it.itemId },) Tj
+T*
+(        \)) Tj
+T*
+(    }) Tj
+T*
+(    private suspend fun hashFullWithBoundedWorkers\() Tj
+T*
+(        files: List<DuplicateFile>,) Tj
+T*
+(        issues: MutableList<DuplicateVerificationIssue>,) Tj
+T*
+(    \): List<Pair<String, DuplicateFile>> = coroutineScope {) Tj
+T*
+(        val nextIndex = AtomicInteger\(0\)) Tj
+T*
+(        val results = Collections.synchronizedList\() Tj
+T*
+(            ArrayList<Pair<String, DuplicateFile>>\(files.size\),) Tj
+T*
+(        \)) Tj
+T*
+(        List\(minOf\(fullHashParallelism, files.size\)\) {) Tj
+T*
+(            async {) Tj
+T*
+(                while \(true\) {) Tj
+T*
+(                    currentCoroutineContext\(\).ensureActive\(\)) Tj
+T*
+(                    val index = nextIndex.getAndIncrement\(\)) Tj
+T*
+(                    if \(index >= files.size\) break) Tj
+T*
+(                    if \(index % CANCELLATION_CHECK_INTERVAL == 0\) yield\(\)) Tj
+T*
+(                    val file = files[index]) Tj
+T*
+(                    runHash\(file, issues\) { fileHasher.fullHash\(file\) }) Tj
+T*
+(                        ?.let { hash -> results += hash to file }) Tj
+T*
+(                }) Tj
+T*
+(            }) Tj
+T*
+(        }.awaitAll\(\)) Tj
+T*
+(        results.toList\(\)) Tj
+T*
+(    }) Tj
+T*
+(    private suspend fun runHash\() Tj
+T*
+(        file: DuplicateFile,) Tj
+T*
+(        issues: MutableList<DuplicateVerificationIssue>,) Tj
+ET
+endstream
+endobj
+20 0 obj
+<< /Length 2370 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (18) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(        block: suspend \(\) -> String,) Tj
+T*
+(    \): String? = try {) Tj
+T*
+(        block\(\)) Tj
+T*
+(    } catch \(error: Throwable\) {) Tj
+T*
+(        if \(error is CancellationException\) throw error) Tj
+T*
+(        if \(error !is IOException && error !is SecurityException && error !is IllegalArgumentException\) {) Tj
+T*
+(            throw error) Tj
+T*
+(        }) Tj
+T*
+(        synchronized\(issues\) {) Tj
+T*
+(            issues += DuplicateVerificationIssue\() Tj
+T*
+(                itemId = file.itemId,) Tj
+T*
+(                message = "??????????????????????",) Tj
+T*
+(            \)) Tj
+T*
+(        }) Tj
+T*
+(        null) Tj
+T*
+(    }) Tj
+T*
+(    companion object {) Tj
+T*
+(        const val MAX_FULL_HASH_PARALLELISM = 2) Tj
+T*
+(    }) Tj
+T*
+(}) Tj
+T*
+(private const val CANCELLATION_CHECK_INTERVAL = 64) Tj
+T*
+(private fun saturatingMultiply\(value: Long, multiplier: Int\): Long {) Tj
+T*
+(    if \(value <= 0L || multiplier <= 0\) return 0L) Tj
+T*
+(    return if \(value > Long.MAX_VALUE / multiplier\) Long.MAX_VALUE else value * multiplier) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.data.duplicate) Tj
+T*
+(import android.content.ContentResolver) Tj
+T*
+(import androidx.core.net.toUri) Tj
+T*
+(import com.cleanguard.app.domain.duplicate.DuplicateFile) Tj
+T*
+(import java.io.FileNotFoundException) Tj
+T*
+(import java.io.InputStream) Tj
+T*
+(import java.nio.ByteBuffer) Tj
+T*
+(import java.security.MessageDigest) Tj
+T*
+(import kotlinx.coroutines.CoroutineDispatcher) Tj
+T*
+(import kotlinx.coroutines.Dispatchers) Tj
+T*
+(import kotlinx.coroutines.currentCoroutineContext) Tj
+T*
+(import kotlinx.coroutines.ensureActive) Tj
+T*
+(import kotlinx.coroutines.withContext) Tj
+T*
+(fun interface HashInputSource {) Tj
+T*
+(    fun open\(contentUri: String\): InputStream) Tj
+T*
+(}) Tj
+T*
+(class ContentResolverHashInputSource\() Tj
+T*
+(    private val contentResolver: ContentResolver,) Tj
+T*
+(\) : HashInputSource {) Tj
+T*
+(    override fun open\(contentUri: String\): InputStream =) Tj
+T*
+(        contentResolver.openInputStream\(contentUri.toUri\(\)\)) Tj
+T*
+(            ?: throw FileNotFoundException\("Unable to open content URI"\)) Tj
+T*
+(}) Tj
+T*
+(class StreamHashCalculator\() Tj
+T*
+(    private val inputSource: HashInputSource,) Tj
+ET
+endstream
+endobj
+21 0 obj
+<< /Length 2814 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (19) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,) Tj
+T*
+(\) {) Tj
+T*
+(    suspend fun quickHash\(file: DuplicateFile\): String = withContext\(ioDispatcher\) {) Tj
+T*
+(        val digest = MessageDigest.getInstance\(HASH_ALGORITHM\)) Tj
+T*
+(        digest.update\(ByteBuffer.allocate\(Long.SIZE_BYTES\).putLong\(file.sizeBytes\).array\(\)\)) Tj
+T*
+(        inputSource.open\(file.contentUri\).use { stream ->) Tj
+T*
+(            digest.update\(stream.readAtMost\(QUICK_HASH_CHUNK_SIZE\)\)) Tj
+T*
+(        }) Tj
+T*
+(        if \(file.sizeBytes > QUICK_HASH_CHUNK_SIZE\) {) Tj
+T*
+(            inputSource.open\(file.contentUri\).use { stream ->) Tj
+T*
+(                stream.skipFully\(\(file.sizeBytes - QUICK_HASH_CHUNK_SIZE\).coerceAtLeast\(0L\)\)) Tj
+T*
+(                digest.update\(stream.readAtMost\(QUICK_HASH_CHUNK_SIZE\)\)) Tj
+T*
+(            }) Tj
+T*
+(        }) Tj
+T*
+(        digest.digest\(\).toHex\(\)) Tj
+T*
+(    }) Tj
+T*
+(    suspend fun fullHash\(file: DuplicateFile\): String = withContext\(ioDispatcher\) {) Tj
+T*
+(        val digest = MessageDigest.getInstance\(HASH_ALGORITHM\)) Tj
+T*
+(        val buffer = ByteArray\(STREAM_BUFFER_SIZE\)) Tj
+T*
+(        inputSource.open\(file.contentUri\).use { stream ->) Tj
+T*
+(            while \(true\) {) Tj
+T*
+(                currentCoroutineContext\(\).ensureActive\(\)) Tj
+T*
+(                val count = stream.read\(buffer\)) Tj
+T*
+(                if \(count < 0\) break) Tj
+T*
+(                if \(count > 0\) digest.update\(buffer, 0, count\)) Tj
+T*
+(            }) Tj
+T*
+(        }) Tj
+T*
+(        digest.digest\(\).toHex\(\)) Tj
+T*
+(    }) Tj
+T*
+(    private suspend fun InputStream.skipFully\(byteCount: Long\) {) Tj
+T*
+(        var remaining = byteCount) Tj
+T*
+(        val fallback = ByteArray\(STREAM_BUFFER_SIZE\)) Tj
+T*
+(        while \(remaining > 0L\) {) Tj
+T*
+(            currentCoroutineContext\(\).ensureActive\(\)) Tj
+T*
+(            val skipped = skip\(remaining\)) Tj
+T*
+(            if \(skipped > 0L\) {) Tj
+T*
+(                remaining -= skipped) Tj
+T*
+(            } else {) Tj
+T*
+(                val read = read\(fallback, 0, minOf\(fallback.size.toLong\(\), remaining\).toInt\(\)\)) Tj
+T*
+(                if \(read < 0\) break) Tj
+T*
+(                remaining -= read) Tj
+T*
+(            }) Tj
+T*
+(        }) Tj
+T*
+(    }) Tj
+T*
+(    private suspend fun InputStream.readAtMost\(maxBytes: Int\): ByteArray {) Tj
+T*
+(        val output = ByteArray\(maxBytes\)) Tj
+T*
+(        var offset = 0) Tj
+T*
+(        while \(offset < maxBytes\) {) Tj
+T*
+(            currentCoroutineContext\(\).ensureActive\(\)) Tj
+T*
+(            val count = read\(output, offset, maxBytes - offset\)) Tj
+ET
+endstream
+endobj
+22 0 obj
+<< /Length 2665 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (20) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(            if \(count < 0\) break) Tj
+T*
+(            offset += count) Tj
+T*
+(        }) Tj
+T*
+(        return if \(offset == output.size\) output else output.copyOf\(offset\)) Tj
+T*
+(    }) Tj
+T*
+(    private fun ByteArray.toHex\(\): String = joinToString\(separator = ""\) { byte -> "%02x".format\(byte\) }) Tj
+T*
+(    companion object {) Tj
+T*
+(        const val QUICK_HASH_CHUNK_SIZE = 64 * 1024) Tj
+T*
+(        private const val STREAM_BUFFER_SIZE = 64 * 1024) Tj
+T*
+(        private const val HASH_ALGORITHM = "SHA-256") Tj
+T*
+(    }) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.data.local) Tj
+T*
+(import android.content.Context) Tj
+T*
+(import androidx.room.Database) Tj
+T*
+(import androidx.room.Room) Tj
+T*
+(import androidx.room.RoomDatabase) Tj
+T*
+(import com.cleanguard.app.data.local.dao.AppStorageHistoryDao) Tj
+T*
+(import com.cleanguard.app.data.local.dao.CleanupHistoryDao) Tj
+T*
+(import com.cleanguard.app.data.local.dao.HashCacheDao) Tj
+T*
+(import com.cleanguard.app.data.local.dao.IgnoreRuleDao) Tj
+T*
+(import com.cleanguard.app.data.local.dao.IndexedItemDao) Tj
+T*
+(import com.cleanguard.app.data.local.dao.MediaSyncStateDao) Tj
+T*
+(import com.cleanguard.app.data.local.dao.ScanHistoryDao) Tj
+T*
+(import com.cleanguard.app.data.local.entity.AppStorageSnapshotEntity) Tj
+T*
+(import com.cleanguard.app.data.local.entity.CleanupHistoryEntity) Tj
+T*
+(import com.cleanguard.app.data.local.entity.CleanupHistoryItemEntity) Tj
+T*
+(import com.cleanguard.app.data.local.entity.HashCacheEntity) Tj
+T*
+(import com.cleanguard.app.data.local.entity.IgnoredItemEntity) Tj
+T*
+(import com.cleanguard.app.data.local.entity.IndexedItemEntity) Tj
+T*
+(import com.cleanguard.app.data.local.entity.MediaSyncStateEntity) Tj
+T*
+(import com.cleanguard.app.data.local.entity.ScanSnapshotEntity) Tj
+T*
+(@Database\() Tj
+T*
+(    entities = [) Tj
+T*
+(        IndexedItemEntity::class,) Tj
+T*
+(        MediaSyncStateEntity::class,) Tj
+T*
+(        ScanSnapshotEntity::class,) Tj
+T*
+(        AppStorageSnapshotEntity::class,) Tj
+T*
+(        HashCacheEntity::class,) Tj
+T*
+(        IgnoredItemEntity::class,) Tj
+T*
+(        CleanupHistoryEntity::class,) Tj
+T*
+(        CleanupHistoryItemEntity::class,) Tj
+T*
+(    ],) Tj
+T*
+(    version = CleanGuardDatabase.VERSION,) Tj
+T*
+(    exportSchema = true,) Tj
+T*
+(\)) Tj
+T*
+(abstract class CleanGuardDatabase : RoomDatabase\(\) {) Tj
+T*
+(    abstract fun indexedItemDao\(\): IndexedItemDao) Tj
+T*
+(    abstract fun mediaSyncStateDao\(\): MediaSyncStateDao) Tj
+T*
+(    abstract fun scanHistoryDao\(\): ScanHistoryDao) Tj
+ET
+endstream
+endobj
+23 0 obj
+<< /Length 2614 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (21) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(    abstract fun appStorageHistoryDao\(\): AppStorageHistoryDao) Tj
+T*
+(    abstract fun hashCacheDao\(\): HashCacheDao) Tj
+T*
+(    abstract fun ignoreRuleDao\(\): IgnoreRuleDao) Tj
+T*
+(    abstract fun cleanupHistoryDao\(\): CleanupHistoryDao) Tj
+T*
+(    companion object {) Tj
+T*
+(        const val VERSION = 1) Tj
+T*
+(        const val DATABASE_NAME = "cleanguard.db") Tj
+T*
+(        @Volatile) Tj
+T*
+(        private var instance: CleanGuardDatabase? = null) Tj
+T*
+(        fun getInstance\(context: Context\): CleanGuardDatabase =) Tj
+T*
+(            instance ?: synchronized\(this\) {) Tj
+T*
+(                instance ?: Room.databaseBuilder\() Tj
+T*
+(                    context.applicationContext,) Tj
+T*
+(                    CleanGuardDatabase::class.java,) Tj
+T*
+(                    DATABASE_NAME,) Tj
+T*
+(                \).build\(\).also { instance = it }) Tj
+T*
+(            }) Tj
+T*
+(    }) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.data.local.dao) Tj
+T*
+(import androidx.room.Dao) Tj
+T*
+(import androidx.room.Insert) Tj
+T*
+(import androidx.room.OnConflictStrategy) Tj
+T*
+(import androidx.room.Query) Tj
+T*
+(import com.cleanguard.app.data.local.entity.AppStorageSnapshotEntity) Tj
+T*
+(import kotlinx.coroutines.flow.Flow) Tj
+T*
+(data class AppStorageTotalRow\() Tj
+T*
+(    val timestamp: Long,) Tj
+T*
+(    val totalBytes: Long,) Tj
+T*
+(\)) Tj
+T*
+(@Dao) Tj
+T*
+(interface AppStorageHistoryDao {) Tj
+T*
+(    @Insert\(onConflict = OnConflictStrategy.ABORT\)) Tj
+T*
+(    suspend fun insert\(snapshot: AppStorageSnapshotEntity\): Long) Tj
+T*
+(    @Insert\(onConflict = OnConflictStrategy.ABORT\)) Tj
+T*
+(    suspend fun insertAll\(snapshots: List<AppStorageSnapshotEntity>\): List<Long>) Tj
+T*
+(    @Query\("SELECT MAX\(timestamp\) FROM app_storage_snapshots"\)) Tj
+T*
+(    suspend fun findLatestTimestamp\(\): Long?) Tj
+T*
+(    @Query\() Tj
+T*
+(        "SELECT * FROM app_storage_snapshots " +) Tj
+T*
+(            "WHERE timestamp = :timestamp ORDER BY totalBytes DESC, packageName ASC",) Tj
+T*
+(    \)) Tj
+T*
+(    suspend fun findAtTimestamp\(timestamp: Long\): List<AppStorageSnapshotEntity>) Tj
+T*
+(    @Query\() Tj
+T*
+(        "SELECT * FROM app_storage_snapshots " +) Tj
+T*
+(            "WHERE packageName = :packageName ORDER BY timestamp DESC",) Tj
+T*
+(    \)) Tj
+T*
+(    fun observeForPackage\(packageName: String\): Flow<List<AppStorageSnapshotEntity>>) Tj
+T*
+(    @Query\() Tj
+T*
+(        "SELECT timestamp, SUM\(totalBytes\) AS totalBytes FROM app_storage_snapshots " +) Tj
+ET
+endstream
+endobj
+24 0 obj
+<< /Length 2770 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (22) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(            "GROUP BY timestamp ORDER BY timestamp DESC LIMIT :limit",) Tj
+T*
+(    \)) Tj
+T*
+(    fun observeRecentTotals\(limit: Int\): Flow<List<AppStorageTotalRow>>) Tj
+T*
+(    @Query\("DELETE FROM app_storage_snapshots WHERE timestamp < :cutoffEpochMillis"\)) Tj
+T*
+(    suspend fun deleteBefore\(cutoffEpochMillis: Long\): Int) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.data.local.dao) Tj
+T*
+(import androidx.room.Dao) Tj
+T*
+(import androidx.room.Insert) Tj
+T*
+(import androidx.room.OnConflictStrategy) Tj
+T*
+(import androidx.room.Query) Tj
+T*
+(import androidx.room.Transaction) Tj
+T*
+(import com.cleanguard.app.data.local.entity.CleanupHistoryEntity) Tj
+T*
+(import com.cleanguard.app.data.local.entity.CleanupHistoryItemEntity) Tj
+T*
+(import com.cleanguard.app.data.local.relation.CleanupHistoryWithItems) Tj
+T*
+(import kotlinx.coroutines.flow.Flow) Tj
+T*
+(@Dao) Tj
+T*
+(interface CleanupHistoryDao {) Tj
+T*
+(    @Insert\(onConflict = OnConflictStrategy.REPLACE\)) Tj
+T*
+(    suspend fun upsertHistory\(history: CleanupHistoryEntity\)) Tj
+T*
+(    @Insert\(onConflict = OnConflictStrategy.REPLACE\)) Tj
+T*
+(    suspend fun upsertItems\(items: List<CleanupHistoryItemEntity>\)) Tj
+T*
+(    @Query\("DELETE FROM cleanup_history_items WHERE cleanupId = :cleanupId"\)) Tj
+T*
+(    suspend fun deleteItems\(cleanupId: String\)) Tj
+T*
+(    @Transaction) Tj
+T*
+(    suspend fun save\() Tj
+T*
+(        history: CleanupHistoryEntity,) Tj
+T*
+(        items: List<CleanupHistoryItemEntity>,) Tj
+T*
+(    \) {) Tj
+T*
+(        upsertHistory\(history\)) Tj
+T*
+(        deleteItems\(history.cleanupId\)) Tj
+T*
+(        if \(items.isNotEmpty\(\)\) upsertItems\(items\)) Tj
+T*
+(    }) Tj
+T*
+(    @Transaction) Tj
+T*
+(    @Query\("SELECT * FROM cleanup_history WHERE cleanupId = :cleanupId LIMIT 1"\)) Tj
+T*
+(    suspend fun findById\(cleanupId: String\): CleanupHistoryWithItems?) Tj
+T*
+(    @Transaction) Tj
+T*
+(    @Query\("SELECT * FROM cleanup_history ORDER BY timestamp DESC LIMIT :limit"\)) Tj
+T*
+(    fun observeRecent\(limit: Int\): Flow<List<CleanupHistoryWithItems>>) Tj
+T*
+(    @Query\("UPDATE cleanup_history SET restoreStatus = :restoreStatus WHERE cleanupId = :cleanupId"\)) Tj
+T*
+(    suspend fun updateRestoreStatus\(cleanupId: String, restoreStatus: String\): Int) Tj
+T*
+(    @Query\("SELECT COUNT\(*\) FROM cleanup_history"\)) Tj
+T*
+(    suspend fun count\(\): Int) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.data.local.dao) Tj
+T*
+(import androidx.room.Dao) Tj
+T*
+(import androidx.room.Insert) Tj
+T*
+(import androidx.room.OnConflictStrategy) Tj
+T*
+(import androidx.room.Query) Tj
+T*
+(import com.cleanguard.app.data.local.entity.HashCacheEntity) Tj
+ET
+endstream
+endobj
+25 0 obj
+<< /Length 2548 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (23) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(@Dao) Tj
+T*
+(interface HashCacheDao {) Tj
+T*
+(    @Insert\(onConflict = OnConflictStrategy.REPLACE\)) Tj
+T*
+(    suspend fun upsert\(entry: HashCacheEntity\)) Tj
+T*
+(    @Query\() Tj
+T*
+(        "SELECT * FROM hash_cache WHERE contentUri = :contentUri " +) Tj
+T*
+(            "AND sizeBytes = :sizeBytes AND modifiedAt = :modifiedAt LIMIT 1",) Tj
+T*
+(    \)) Tj
+T*
+(    suspend fun findCurrent\() Tj
+T*
+(        contentUri: String,) Tj
+T*
+(        sizeBytes: Long,) Tj
+T*
+(        modifiedAt: Long,) Tj
+T*
+(    \): HashCacheEntity?) Tj
+T*
+(    @Query\() Tj
+T*
+(        "DELETE FROM hash_cache WHERE contentUri = :contentUri " +) Tj
+T*
+(            "AND \(sizeBytes != :sizeBytes OR modifiedAt != :modifiedAt\)",) Tj
+T*
+(    \)) Tj
+T*
+(    suspend fun invalidateStale\() Tj
+T*
+(        contentUri: String,) Tj
+T*
+(        sizeBytes: Long,) Tj
+T*
+(        modifiedAt: Long,) Tj
+T*
+(    \): Int) Tj
+T*
+(    @Query\("SELECT COUNT\(*\) FROM hash_cache WHERE contentUri = :contentUri"\)) Tj
+T*
+(    suspend fun countForUri\(contentUri: String\): Int) Tj
+T*
+(    @Query\() Tj
+T*
+(        "DELETE FROM hash_cache WHERE updatedAt < :cutoffEpochMillis AND NOT EXISTS \(" +) Tj
+T*
+(            "SELECT 1 FROM indexed_items WHERE indexed_items.contentUri = hash_cache.contentUri " +) Tj
+T*
+(            "AND indexed_items.sizeBytes = hash_cache.sizeBytes " +) Tj
+T*
+(            "AND indexed_items.modifiedAt = hash_cache.modifiedAt\)",) Tj
+T*
+(    \)) Tj
+T*
+(    suspend fun pruneOrphansUpdatedBefore\(cutoffEpochMillis: Long\): Int) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.data.local.dao) Tj
+T*
+(import androidx.room.Dao) Tj
+T*
+(import androidx.room.Insert) Tj
+T*
+(import androidx.room.OnConflictStrategy) Tj
+T*
+(import androidx.room.Query) Tj
+T*
+(import com.cleanguard.app.data.local.entity.IgnoredItemEntity) Tj
+T*
+(import kotlinx.coroutines.flow.Flow) Tj
+T*
+(@Dao) Tj
+T*
+(interface IgnoreRuleDao {) Tj
+T*
+(    @Insert\(onConflict = OnConflictStrategy.REPLACE\)) Tj
+T*
+(    suspend fun upsert\(item: IgnoredItemEntity\)) Tj
+T*
+(    @Query\() Tj
+T*
+(        "SELECT * FROM ignored_items WHERE expiresAt IS NULL OR expiresAt > :nowEpochMillis " +) Tj
+T*
+(            "ORDER BY ignoredAt DESC",) Tj
+T*
+(    \)) Tj
+T*
+(    fun observeActive\(nowEpochMillis: Long\): Flow<List<IgnoredItemEntity>>) Tj
+T*
+(    @Query\("DELETE FROM ignored_items WHERE itemKey = :itemKey"\)) Tj
+T*
+(    suspend fun deleteByItemKey\(itemKey: String\): Int) Tj
+ET
+endstream
+endobj
+26 0 obj
+<< /Length 2941 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (24) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(    @Query\("SELECT COUNT\(*\) FROM ignored_items"\)) Tj
+T*
+(    suspend fun count\(\): Int) Tj
+T*
+(    @Query\("DELETE FROM ignored_items WHERE expiresAt IS NOT NULL AND expiresAt <= :nowEpochMillis"\)) Tj
+T*
+(    suspend fun deleteExpired\(nowEpochMillis: Long\): Int) Tj
+T*
+(    @Query\("DELETE FROM ignored_items"\)) Tj
+T*
+(    suspend fun deleteAll\(\): Int) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.data.local.dao) Tj
+T*
+(import androidx.room.Dao) Tj
+T*
+(import androidx.room.Insert) Tj
+T*
+(import androidx.room.OnConflictStrategy) Tj
+T*
+(import androidx.room.Query) Tj
+T*
+(import androidx.room.Transaction) Tj
+T*
+(import com.cleanguard.app.data.local.entity.IndexedItemEntity) Tj
+T*
+(import kotlinx.coroutines.flow.Flow) Tj
+T*
+(@Dao) Tj
+T*
+(interface IndexedItemDao {) Tj
+T*
+(    @Insert\(onConflict = OnConflictStrategy.REPLACE\)) Tj
+T*
+(    suspend fun upsert\(item: IndexedItemEntity\)) Tj
+T*
+(    @Insert\(onConflict = OnConflictStrategy.REPLACE\)) Tj
+T*
+(    suspend fun upsertAll\(items: List<IndexedItemEntity>\)) Tj
+T*
+(    @Transaction) Tj
+T*
+(    suspend fun upsertScanBatch\() Tj
+T*
+(        scanId: String,) Tj
+T*
+(        items: List<IndexedItemEntity>,) Tj
+T*
+(    \) {) Tj
+T*
+(        upsertAll\(items.map { it.copy\(lastSeenScanId = scanId\) }\)) Tj
+T*
+(    }) Tj
+T*
+(    @Query\("SELECT * FROM indexed_items WHERE contentUri = :contentUri LIMIT 1"\)) Tj
+T*
+(    suspend fun findByContentUri\(contentUri: String\): IndexedItemEntity?) Tj
+T*
+(    @Query\("SELECT * FROM indexed_items WHERE volumeName = :volumeName ORDER BY displayName"\)) Tj
+T*
+(    fun observeByVolume\(volumeName: String\): Flow<List<IndexedItemEntity>>) Tj
+T*
+(    @Query\("SELECT * FROM indexed_items WHERE volumeName = :volumeName ORDER BY id"\)) Tj
+T*
+(    suspend fun findByVolume\(volumeName: String\): List<IndexedItemEntity>) Tj
+T*
+(    @Query\("SELECT * FROM indexed_items ORDER BY volumeName, id"\)) Tj
+T*
+(    suspend fun findAll\(\): List<IndexedItemEntity>) Tj
+T*
+(    @Query\("UPDATE indexed_items SET lastSeenScanId = :scanId WHERE volumeName = :volumeName"\)) Tj
+T*
+(    suspend fun markVolumeSeen\(volumeName: String, scanId: String\): Int) Tj
+T*
+(    @Query\("DELETE FROM indexed_items WHERE id IN \(:itemIds\)"\)) Tj
+T*
+(    suspend fun deleteByIds\(itemIds: List<String>\): Int) Tj
+T*
+(    @Query\("DELETE FROM indexed_items WHERE volumeName = :volumeName"\)) Tj
+T*
+(    suspend fun deleteByVolume\(volumeName: String\): Int) Tj
+T*
+(    @Query\("DELETE FROM indexed_items WHERE contentUri = :contentUri"\)) Tj
+T*
+(    suspend fun deleteByContentUri\(contentUri: String\): Int) Tj
+T*
+(    @Query\("SELECT COUNT\(*\) FROM indexed_items"\)) Tj
+T*
+(    suspend fun count\(\): Int) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.data.local.dao) Tj
+T*
+(import androidx.room.Dao) Tj
+T*
+(import androidx.room.Insert) Tj
+ET
+endstream
+endobj
+27 0 obj
+<< /Length 2755 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (25) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(import androidx.room.OnConflictStrategy) Tj
+T*
+(import androidx.room.Query) Tj
+T*
+(import com.cleanguard.app.data.local.entity.MediaSyncStateEntity) Tj
+T*
+(import kotlinx.coroutines.flow.Flow) Tj
+T*
+(@Dao) Tj
+T*
+(interface MediaSyncStateDao {) Tj
+T*
+(    @Insert\(onConflict = OnConflictStrategy.REPLACE\)) Tj
+T*
+(    suspend fun upsert\(state: MediaSyncStateEntity\)) Tj
+T*
+(    @Query\("SELECT * FROM media_sync_states WHERE volumeName = :volumeName LIMIT 1"\)) Tj
+T*
+(    suspend fun findByVolume\(volumeName: String\): MediaSyncStateEntity?) Tj
+T*
+(    @Query\("SELECT * FROM media_sync_states ORDER BY volumeName"\)) Tj
+T*
+(    fun observeAll\(\): Flow<List<MediaSyncStateEntity>>) Tj
+T*
+(    @Query\("SELECT * FROM media_sync_states ORDER BY volumeName"\)) Tj
+T*
+(    suspend fun findAll\(\): List<MediaSyncStateEntity>) Tj
+T*
+(    @Query\("DELETE FROM media_sync_states WHERE volumeName = :volumeName"\)) Tj
+T*
+(    suspend fun deleteByVolume\(volumeName: String\): Int) Tj
+T*
+(    @Query\("SELECT COUNT\(*\) FROM media_sync_states"\)) Tj
+T*
+(    suspend fun count\(\): Int) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.data.local.dao) Tj
+T*
+(import androidx.room.Dao) Tj
+T*
+(import androidx.room.Insert) Tj
+T*
+(import androidx.room.OnConflictStrategy) Tj
+T*
+(import androidx.room.Query) Tj
+T*
+(import com.cleanguard.app.data.local.entity.ScanSnapshotEntity) Tj
+T*
+(import kotlinx.coroutines.flow.Flow) Tj
+T*
+(@Dao) Tj
+T*
+(interface ScanHistoryDao {) Tj
+T*
+(    @Insert\(onConflict = OnConflictStrategy.REPLACE\)) Tj
+T*
+(    suspend fun upsert\(snapshot: ScanSnapshotEntity\)) Tj
+T*
+(    @Query\("SELECT * FROM scan_snapshots WHERE scanId = :scanId LIMIT 1"\)) Tj
+T*
+(    suspend fun findById\(scanId: String\): ScanSnapshotEntity?) Tj
+T*
+(    @Query\() Tj
+T*
+(        "SELECT * FROM scan_snapshots " +) Tj
+T*
+(            "WHERE scanStatus = 'COMPLETED' " +) Tj
+T*
+(            "ORDER BY completedAt DESC, startedAt DESC LIMIT :limit",) Tj
+T*
+(    \)) Tj
+T*
+(    fun observeRecent\(limit: Int\): Flow<List<ScanSnapshotEntity>>) Tj
+T*
+(    @Query\() Tj
+T*
+(        "DELETE FROM scan_snapshots WHERE scanStatus = 'COMPLETED' AND scanId NOT IN \(" +) Tj
+T*
+(            "SELECT scanId FROM scan_snapshots WHERE scanStatus = 'COMPLETED' " +) Tj
+T*
+(            "ORDER BY completedAt DESC, startedAt DESC LIMIT :retainCount" +) Tj
+T*
+(            "\)",) Tj
+T*
+(    \)) Tj
+T*
+(    suspend fun pruneCompleted\(retainCount: Int\): Int) Tj
+T*
+(    @Query\("SELECT COUNT\(*\) FROM scan_snapshots"\)) Tj
+T*
+(    suspend fun count\(\): Int) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.data.local.entity) Tj
+T*
+(import androidx.room.Entity) Tj
+ET
+endstream
+endobj
+28 0 obj
+<< /Length 1962 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (26) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(import androidx.room.Index) Tj
+T*
+(import androidx.room.PrimaryKey) Tj
+T*
+(@Entity\() Tj
+T*
+(    tableName = "app_storage_snapshots",) Tj
+T*
+(    indices = [) Tj
+T*
+(        Index\(value = ["packageName", "timestamp"]\),) Tj
+T*
+(        Index\(value = ["timestamp"]\),) Tj
+T*
+(    ],) Tj
+T*
+(\)) Tj
+T*
+(data class AppStorageSnapshotEntity\() Tj
+T*
+(    @PrimaryKey\(autoGenerate = true\) val id: Long = 0,) Tj
+T*
+(    val packageName: String,) Tj
+T*
+(    val appName: String,) Tj
+T*
+(    val timestamp: Long,) Tj
+T*
+(    val appBytes: Long,) Tj
+T*
+(    val dataBytes: Long,) Tj
+T*
+(    val cacheBytes: Long,) Tj
+T*
+(    val totalBytes: Long,) Tj
+T*
+(\)) Tj
+T*
+(package com.cleanguard.app.data.local.entity) Tj
+T*
+(import androidx.room.Entity) Tj
+T*
+(import androidx.room.Index) Tj
+T*
+(import androidx.room.PrimaryKey) Tj
+T*
+(@Entity\() Tj
+T*
+(    tableName = "cleanup_history",) Tj
+T*
+(    indices = [Index\(value = ["timestamp"]\)],) Tj
+T*
+(\)) Tj
+T*
+(data class CleanupHistoryEntity\() Tj
+T*
+(    @PrimaryKey val cleanupId: String,) Tj
+T*
+(    val timestamp: Long,) Tj
+T*
+(    val requestedItemCount: Int,) Tj
+T*
+(    val processedItemCount: Int,) Tj
+T*
+(    val failedItemCount: Int,) Tj
+T*
+(    val requestedBytes: Long,) Tj
+T*
+(    val freedBytes: Long,) Tj
+T*
+(    val cleanupType: String,) Tj
+T*
+(    val usedMediaStoreTrash: Boolean,) Tj
+T*
+(    val restoreStatus: String,) Tj
+T*
+(\)) Tj
+T*
+(package com.cleanguard.app.data.local.entity) Tj
+T*
+(import androidx.room.Entity) Tj
+T*
+(import androidx.room.ForeignKey) Tj
+T*
+(import androidx.room.Index) Tj
+T*
+(@Entity\() Tj
+T*
+(    tableName = "cleanup_history_items",) Tj
+T*
+(    primaryKeys = ["cleanupId", "itemKey"],) Tj
+T*
+(    foreignKeys = [) Tj
+T*
+(        ForeignKey\() Tj
+T*
+(            entity = CleanupHistoryEntity::class,) Tj
+T*
+(            parentColumns = ["cleanupId"],) Tj
+ET
+endstream
+endobj
+29 0 obj
+<< /Length 1837 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (27) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(            childColumns = ["cleanupId"],) Tj
+T*
+(            onDelete = ForeignKey.CASCADE,) Tj
+T*
+(        \),) Tj
+T*
+(    ],) Tj
+T*
+(    indices = [Index\(value = ["cleanupId"]\)],) Tj
+T*
+(\)) Tj
+T*
+(data class CleanupHistoryItemEntity\() Tj
+T*
+(    val cleanupId: String,) Tj
+T*
+(    val itemKey: String,) Tj
+T*
+(    val contentUri: String?,) Tj
+T*
+(\)) Tj
+T*
+(package com.cleanguard.app.data.local.entity) Tj
+T*
+(import androidx.room.Entity) Tj
+T*
+(import androidx.room.Index) Tj
+T*
+(import androidx.room.PrimaryKey) Tj
+T*
+(@Entity\() Tj
+T*
+(    tableName = "hash_cache",) Tj
+T*
+(    indices = [) Tj
+T*
+(        Index\(value = ["contentUri", "sizeBytes", "modifiedAt"], unique = true\),) Tj
+T*
+(        Index\(value = ["quickHash"]\),) Tj
+T*
+(        Index\(value = ["fullHash"]\),) Tj
+T*
+(    ],) Tj
+T*
+(\)) Tj
+T*
+(data class HashCacheEntity\() Tj
+T*
+(    @PrimaryKey val id: String,) Tj
+T*
+(    val contentUri: String,) Tj
+T*
+(    val sizeBytes: Long,) Tj
+T*
+(    val modifiedAt: Long,) Tj
+T*
+(    val quickHash: String?,) Tj
+T*
+(    val fullHash: String?,) Tj
+T*
+(    val updatedAt: Long,) Tj
+T*
+(\)) Tj
+T*
+(package com.cleanguard.app.data.local.entity) Tj
+T*
+(import androidx.room.Entity) Tj
+T*
+(import androidx.room.Index) Tj
+T*
+(import androidx.room.PrimaryKey) Tj
+T*
+(@Entity\() Tj
+T*
+(    tableName = "ignored_items",) Tj
+T*
+(    indices = [) Tj
+T*
+(        Index\(value = ["itemKey"], unique = true\),) Tj
+T*
+(        Index\(value = ["expiresAt"]\),) Tj
+T*
+(    ],) Tj
+T*
+(\)) Tj
+T*
+(data class IgnoredItemEntity\() Tj
+T*
+(    @PrimaryKey val id: String,) Tj
+T*
+(    val itemKey: String,) Tj
+T*
+(    val ignoredAt: Long,) Tj
+T*
+(    val expiresAt: Long?,) Tj
+T*
+(    val ignoreType: String,) Tj
+T*
+(\)) Tj
+ET
+endstream
+endobj
+30 0 obj
+<< /Length 2034 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (28) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(package com.cleanguard.app.data.local.entity) Tj
+T*
+(import androidx.room.Entity) Tj
+T*
+(import androidx.room.Index) Tj
+T*
+(import androidx.room.PrimaryKey) Tj
+T*
+(@Entity\() Tj
+T*
+(    tableName = "indexed_items",) Tj
+T*
+(    indices = [) Tj
+T*
+(        Index\(value = ["contentUri"], unique = true\),) Tj
+T*
+(        Index\(value = ["volumeName"]\),) Tj
+T*
+(        Index\(value = ["lastSeenScanId"]\),) Tj
+T*
+(        Index\(value = ["sizeBytes", "modifiedAt"]\),) Tj
+T*
+(        Index\(value = ["quickHash"]\),) Tj
+T*
+(        Index\(value = ["fullHash"]\),) Tj
+T*
+(    ],) Tj
+T*
+(\)) Tj
+T*
+(data class IndexedItemEntity\() Tj
+T*
+(    @PrimaryKey val id: String,) Tj
+T*
+(    val contentUri: String,) Tj
+T*
+(    val source: String,) Tj
+T*
+(    val displayName: String,) Tj
+T*
+(    val mimeType: String?,) Tj
+T*
+(    val sizeBytes: Long,) Tj
+T*
+(    val modifiedAt: Long,) Tj
+T*
+(    val relativePath: String?,) Tj
+T*
+(    val category: String,) Tj
+T*
+(    val riskLevel: String,) Tj
+T*
+(    val quickHash: String?,) Tj
+T*
+(    val fullHash: String?,) Tj
+T*
+(    val mediaStoreGeneration: Long?,) Tj
+T*
+(    val lastSeenScanId: String?,) Tj
+T*
+(    val lastIndexedAt: Long,) Tj
+T*
+(    val volumeName: String?,) Tj
+T*
+(\)) Tj
+T*
+(package com.cleanguard.app.data.local.entity) Tj
+T*
+(import androidx.room.Entity) Tj
+T*
+(import androidx.room.PrimaryKey) Tj
+T*
+(@Entity\(tableName = "media_sync_states"\)) Tj
+T*
+(data class MediaSyncStateEntity\() Tj
+T*
+(    @PrimaryKey val volumeName: String,) Tj
+T*
+(    val mediaStoreVersion: String?,) Tj
+T*
+(    val lastGeneration: Long?,) Tj
+T*
+(    val lastSuccessfulScanAt: Long?,) Tj
+T*
+(\)) Tj
+T*
+(package com.cleanguard.app.data.local.entity) Tj
+T*
+(import androidx.room.Entity) Tj
+T*
+(import androidx.room.Index) Tj
+T*
+(import androidx.room.PrimaryKey) Tj
+T*
+(@Entity\() Tj
+T*
+(    tableName = "scan_snapshots",) Tj
+T*
+(    indices = [Index\(value = ["startedAt"]\)],) Tj
+ET
+endstream
+endobj
+31 0 obj
+<< /Length 2783 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (29) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(\)) Tj
+T*
+(data class ScanSnapshotEntity\() Tj
+T*
+(    @PrimaryKey val scanId: String,) Tj
+T*
+(    val startedAt: Long,) Tj
+T*
+(    val completedAt: Long?,) Tj
+T*
+(    val durationMs: Long?,) Tj
+T*
+(    val scanStatus: String,) Tj
+T*
+(    val usedBytes: Long,) Tj
+T*
+(    val freeBytes: Long,) Tj
+T*
+(    val totalBytes: Long,) Tj
+T*
+(    val imageBytes: Long,) Tj
+T*
+(    val videoBytes: Long,) Tj
+T*
+(    val audioBytes: Long,) Tj
+T*
+(    val downloadBytes: Long,) Tj
+T*
+(    val apkBytes: Long,) Tj
+T*
+(    val largeFileBytes: Long,) Tj
+T*
+(    val duplicateCandidateBytes: Long,) Tj
+T*
+(    val safeBytes: Long,) Tj
+T*
+(    val reviewBytes: Long,) Tj
+T*
+(    val dangerBytes: Long,) Tj
+T*
+(    val unknownBytes: Long,) Tj
+T*
+(    val scannedItemCount: Int,) Tj
+T*
+(    val isIncremental: Boolean,) Tj
+T*
+(    val mediaAccessState: String,) Tj
+T*
+(\)) Tj
+T*
+(package com.cleanguard.app.data.local.mapper) Tj
+T*
+(import com.cleanguard.app.data.local.entity.AppStorageSnapshotEntity) Tj
+T*
+(import com.cleanguard.app.data.local.entity.CleanupHistoryEntity) Tj
+T*
+(import com.cleanguard.app.data.local.entity.CleanupHistoryItemEntity) Tj
+T*
+(import com.cleanguard.app.data.local.entity.HashCacheEntity) Tj
+T*
+(import com.cleanguard.app.data.local.entity.IgnoredItemEntity) Tj
+T*
+(import com.cleanguard.app.data.local.entity.IndexedItemEntity) Tj
+T*
+(import com.cleanguard.app.data.local.entity.MediaSyncStateEntity) Tj
+T*
+(import com.cleanguard.app.data.local.entity.ScanSnapshotEntity) Tj
+T*
+(import com.cleanguard.app.data.local.relation.CleanupHistoryWithItems) Tj
+T*
+(import com.cleanguard.app.domain.model.FileCategory) Tj
+T*
+(import com.cleanguard.app.domain.model.RiskLevel) Tj
+T*
+(import com.cleanguard.app.domain.model.ScanSource) Tj
+T*
+(import com.cleanguard.app.domain.model.persistence.AppStorageSnapshot) Tj
+T*
+(import com.cleanguard.app.domain.model.persistence.CleanupHistoryEntry) Tj
+T*
+(import com.cleanguard.app.domain.model.persistence.CleanupHistoryItem) Tj
+T*
+(import com.cleanguard.app.domain.model.persistence.CleanupHistoryType) Tj
+T*
+(import com.cleanguard.app.domain.model.persistence.CleanupRestoreStatus) Tj
+T*
+(import com.cleanguard.app.domain.model.persistence.HashCacheEntry) Tj
+T*
+(import com.cleanguard.app.domain.model.persistence.IgnoreType) Tj
+T*
+(import com.cleanguard.app.domain.model.persistence.IgnoredItem) Tj
+T*
+(import com.cleanguard.app.domain.model.persistence.IndexedItemRecord) Tj
+T*
+(import com.cleanguard.app.domain.model.persistence.MediaSyncState) Tj
+T*
+(import com.cleanguard.app.domain.model.persistence.PersistedMediaAccessState) Tj
+T*
+(import com.cleanguard.app.domain.model.persistence.PersistedScanStatus) Tj
+ET
+endstream
+endobj
+32 0 obj
+<< /Length 2230 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (30) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(import com.cleanguard.app.domain.model.persistence.ScanSnapshot) Tj
+T*
+(fun IndexedItemRecord.toEntity\(\): IndexedItemEntity = IndexedItemEntity\() Tj
+T*
+(    id = id,) Tj
+T*
+(    contentUri = contentUri,) Tj
+T*
+(    source = source.name,) Tj
+T*
+(    displayName = displayName,) Tj
+T*
+(    mimeType = mimeType,) Tj
+T*
+(    sizeBytes = sizeBytes,) Tj
+T*
+(    modifiedAt = modifiedAt,) Tj
+T*
+(    relativePath = relativePath,) Tj
+T*
+(    category = category.name,) Tj
+T*
+(    riskLevel = riskLevel.name,) Tj
+T*
+(    quickHash = quickHash,) Tj
+T*
+(    fullHash = fullHash,) Tj
+T*
+(    mediaStoreGeneration = mediaStoreGeneration,) Tj
+T*
+(    lastSeenScanId = lastSeenScanId,) Tj
+T*
+(    lastIndexedAt = lastIndexedAt,) Tj
+T*
+(    volumeName = volumeName,) Tj
+T*
+(\)) Tj
+T*
+(fun IndexedItemEntity.toDomain\(\): IndexedItemRecord = IndexedItemRecord\() Tj
+T*
+(    id = id,) Tj
+T*
+(    contentUri = contentUri,) Tj
+T*
+(    source = ScanSource.valueOf\(source\),) Tj
+T*
+(    displayName = displayName,) Tj
+T*
+(    mimeType = mimeType,) Tj
+T*
+(    sizeBytes = sizeBytes,) Tj
+T*
+(    modifiedAt = modifiedAt,) Tj
+T*
+(    relativePath = relativePath,) Tj
+T*
+(    category = FileCategory.valueOf\(category\),) Tj
+T*
+(    riskLevel = RiskLevel.valueOf\(riskLevel\),) Tj
+T*
+(    quickHash = quickHash,) Tj
+T*
+(    fullHash = fullHash,) Tj
+T*
+(    mediaStoreGeneration = mediaStoreGeneration,) Tj
+T*
+(    lastSeenScanId = lastSeenScanId,) Tj
+T*
+(    lastIndexedAt = lastIndexedAt,) Tj
+T*
+(    volumeName = volumeName,) Tj
+T*
+(\)) Tj
+T*
+(fun MediaSyncState.toEntity\(\) = MediaSyncStateEntity\() Tj
+T*
+(    volumeName = volumeName,) Tj
+T*
+(    mediaStoreVersion = mediaStoreVersion,) Tj
+T*
+(    lastGeneration = lastGeneration,) Tj
+T*
+(    lastSuccessfulScanAt = lastSuccessfulScanAt,) Tj
+T*
+(\)) Tj
+T*
+(fun MediaSyncStateEntity.toDomain\(\) = MediaSyncState\() Tj
+T*
+(    volumeName = volumeName,) Tj
+T*
+(    mediaStoreVersion = mediaStoreVersion,) Tj
+T*
+(    lastGeneration = lastGeneration,) Tj
+T*
+(    lastSuccessfulScanAt = lastSuccessfulScanAt,) Tj
+T*
+(\)) Tj
+T*
+(fun ScanSnapshot.toEntity\(\) = ScanSnapshotEntity\() Tj
+ET
+endstream
+endobj
+33 0 obj
+<< /Length 2622 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (31) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(                            appStorageTotals = timeline.appStorageTotals.associate {) Tj
+T*
+(                                it.timestamp to it.totalBytes) Tj
+T*
+(                            },) Tj
+T*
+(                            hasError = false,) Tj
+T*
+(                        \)) Tj
+T*
+(                    }) Tj
+T*
+(                }) Tj
+T*
+(        }) Tj
+T*
+(    }) Tj
+T*
+(    fun onEvent\(event: ScanHistoryUiEvent\) {) Tj
+T*
+(        when \(event\) {) Tj
+T*
+(            is ScanHistoryUiEvent.SelectMetric ->) Tj
+T*
+(                _uiState.update { it.copy\(selectedMetric = event.metric\) }) Tj
+T*
+(        }) Tj
+T*
+(    }) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.feature.scanning) Tj
+T*
+(import androidx.compose.foundation.layout.Arrangement) Tj
+T*
+(import androidx.compose.foundation.layout.Box) Tj
+T*
+(import androidx.compose.foundation.layout.Column) Tj
+T*
+(import androidx.compose.foundation.layout.Row) Tj
+T*
+(import androidx.compose.foundation.layout.Spacer) Tj
+T*
+(import androidx.compose.foundation.layout.fillMaxSize) Tj
+T*
+(import androidx.compose.foundation.layout.fillMaxWidth) Tj
+T*
+(import androidx.compose.foundation.layout.height) Tj
+T*
+(import androidx.compose.foundation.layout.padding) Tj
+T*
+(import androidx.compose.foundation.layout.size) Tj
+T*
+(import androidx.compose.foundation.rememberScrollState) Tj
+T*
+(import androidx.compose.foundation.verticalScroll) Tj
+T*
+(import androidx.compose.material3.Button) Tj
+T*
+(import androidx.compose.material3.CircularProgressIndicator) Tj
+T*
+(import androidx.compose.material3.MaterialTheme) Tj
+T*
+(import androidx.compose.material3.OutlinedButton) Tj
+T*
+(import androidx.compose.material3.Scaffold) Tj
+T*
+(import androidx.compose.material3.Text) Tj
+T*
+(import androidx.compose.runtime.Composable) Tj
+T*
+(import androidx.compose.runtime.getValue) Tj
+T*
+(import androidx.compose.ui.Alignment) Tj
+T*
+(import androidx.compose.ui.Modifier) Tj
+T*
+(import androidx.compose.ui.text.font.FontWeight) Tj
+T*
+(import androidx.compose.ui.unit.dp) Tj
+T*
+(import androidx.lifecycle.compose.collectAsStateWithLifecycle) Tj
+T*
+(import androidx.compose.ui.res.stringResource) Tj
+T*
+(import com.cleanguard.app.R) Tj
+T*
+(import com.cleanguard.app.ui.components.CleanGuardTopBar) Tj
+T*
+(import com.cleanguard.app.ui.components.InfoCard) Tj
+T*
+(import com.cleanguard.app.ui.components.MetricTile) Tj
+T*
+(import com.cleanguard.app.ui.util.formatBytes) Tj
+T*
+(import com.cleanguard.app.ui.util.labelResource) Tj
+T*
+(import kotlin.math.roundToInt) Tj
+ET
+endstream
+endobj
+34 0 obj
+<< /Length 2485 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (32) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(@Composable) Tj
+T*
+(fun ScanningRoute\() Tj
+T*
+(    viewModel: ScanningViewModel,) Tj
+T*
+(    onBack: \(\) -> Unit,) Tj
+T*
+(    onViewResults: \(\) -> Unit,) Tj
+T*
+(\) {) Tj
+T*
+(    val state by viewModel.uiState.collectAsStateWithLifecycle\(\)) Tj
+T*
+(    ScanningScreen\() Tj
+T*
+(        uiState = state,) Tj
+T*
+(        onBack = onBack,) Tj
+T*
+(        onEvent = { event ->) Tj
+T*
+(            if \(event == ScanningUiEvent.ViewResults\) onViewResults\(\) else viewModel.onEvent\(event\)) Tj
+T*
+(        },) Tj
+T*
+(    \)) Tj
+T*
+(}) Tj
+T*
+(@Composable) Tj
+T*
+(fun ScanningScreen\() Tj
+T*
+(    uiState: ScanningUiState,) Tj
+T*
+(    onBack: \(\) -> Unit,) Tj
+T*
+(    onEvent: \(ScanningUiEvent\) -> Unit,) Tj
+T*
+(\) {) Tj
+T*
+(    Scaffold\(topBar = { CleanGuardTopBar\("????", onBack\) }\) { innerPadding ->) Tj
+T*
+(        Column\() Tj
+T*
+(            modifier = Modifier) Tj
+T*
+(                .fillMaxSize\(\)) Tj
+T*
+(                .padding\(innerPadding\)) Tj
+T*
+(                .verticalScroll\(rememberScrollState\(\)\)) Tj
+T*
+(                .padding\(20.dp\),) Tj
+T*
+(            verticalArrangement = Arrangement.spacedBy\(20.dp\),) Tj
+T*
+(        \) {) Tj
+T*
+(            Box\(modifier = Modifier.fillMaxWidth\(\), contentAlignment = Alignment.Center\) {) Tj
+T*
+(                CircularProgressIndicator\() Tj
+T*
+(                    progress = { uiState.progress },) Tj
+T*
+(                    modifier = Modifier.size\(164.dp\),) Tj
+T*
+(                    strokeWidth = 12.dp,) Tj
+T*
+(                    trackColor = MaterialTheme.colorScheme.surfaceVariant,) Tj
+T*
+(                \)) Tj
+T*
+(                Column\(horizontalAlignment = Alignment.CenterHorizontally\) {) Tj
+T*
+(                    Text\() Tj
+T*
+(                        "${\(uiState.progress * 100\).roundToInt\(\)}%",) Tj
+T*
+(                        style = MaterialTheme.typography.displaySmall,) Tj
+T*
+(                    \)) Tj
+T*
+(                    Text\(uiState.statusLabel\(\)\)) Tj
+T*
+(                }) Tj
+T*
+(            }) Tj
+T*
+(            Column\(verticalArrangement = Arrangement.spacedBy\(5.dp\)\) {) Tj
+T*
+(                Text\(uiState.stage, style = MaterialTheme.typography.titleLarge\)) Tj
+T*
+(                Text\() Tj
+T*
+(                    uiState.statusMessage,) Tj
+T*
+(                    color = MaterialTheme.colorScheme.onSurfaceVariant,) Tj
+ET
+endstream
+endobj
+35 0 obj
+<< /Length 3208 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (33) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(                \)) Tj
+T*
+(            }) Tj
+T*
+(            InfoCard\("????"\) {) Tj
+T*
+(                Row\(horizontalArrangement = Arrangement.spacedBy\(10.dp\)\) {) Tj
+T*
+(                    MetricTile\() Tj
+T*
+(                        stringResource\(R.string.scan_type_label\),) Tj
+T*
+(                        stringResource\(uiState.scanExecutionType.labelResource\(\)\),) Tj
+T*
+(                        Modifier.weight\(1f\),) Tj
+T*
+(                    \)) Tj
+T*
+(                    MetricTile\() Tj
+T*
+(                        stringResource\(R.string.scan_duration_label\),) Tj
+T*
+(                        stringResource\(R.string.scan_duration_value, uiState.scanDurationMs / 1_000.0\),) Tj
+T*
+(                        Modifier.weight\(1f\),) Tj
+T*
+(                    \)) Tj
+T*
+(                }) Tj
+T*
+(                Row\(horizontalArrangement = Arrangement.spacedBy\(10.dp\)\) {) Tj
+T*
+(                    MetricTile\("?????", uiState.scannedFileCount.toString\(\), Modifier.weight\(1f\)\)) Tj
+T*
+(                    MetricTile\("?????", uiState.scannedBytes.formatBytes\(\), Modifier.weight\(1f\)\)) Tj
+T*
+(                }) Tj
+T*
+(                Row\(horizontalArrangement = Arrangement.spacedBy\(10.dp\)\) {) Tj
+T*
+(                    MetricTile\("???????", uiState.classifiedFileCount.toString\(\), Modifier.weight\(1f\)\)) Tj
+T*
+(                    MetricTile\("????", uiState.errorCount.toString\(\), Modifier.weight\(1f\)\)) Tj
+T*
+(                }) Tj
+T*
+(                MetricTile\("????????", uiState.largeFileBytes.formatBytes\(\), Modifier.fillMaxWidth\(\)\)) Tj
+T*
+(                if \(uiState.isComplete\) {) Tj
+T*
+(                    Row\(horizontalArrangement = Arrangement.spacedBy\(10.dp\)\) {) Tj
+T*
+(                        MetricTile\() Tj
+T*
+(                            stringResource\(R.string.scan_changed_label\),) Tj
+T*
+(                            uiState.changedItemCount.toString\(\),) Tj
+T*
+(                            Modifier.weight\(1f\),) Tj
+T*
+(                        \)) Tj
+T*
+(                        MetricTile\() Tj
+T*
+(                            stringResource\(R.string.scan_removed_label\),) Tj
+T*
+(                            uiState.removedItemCount.toString\(\),) Tj
+T*
+(                            Modifier.weight\(1f\),) Tj
+T*
+(                        \)) Tj
+T*
+(                    }) Tj
+T*
+(                }) Tj
+T*
+(            }) Tj
+T*
+(            if \(uiState.isScanning\) {) Tj
+T*
+(                OutlinedButton\() Tj
+T*
+(                    onClick = { onEvent\(ScanningUiEvent.StopScan\) },) Tj
+T*
+(                    modifier = Modifier.fillMaxWidth\(\),) Tj
+T*
+(                \) {) Tj
+T*
+(                    Text\("????", fontWeight = FontWeight.SemiBold\)) Tj
+T*
+(                }) Tj
+T*
+(            } else if \(uiState.isStopped || uiState.failureMessage != null || uiState.requiresPermission\) {) Tj
+T*
+(                OutlinedButton\() Tj
+T*
+(                    onClick = { onEvent\(ScanningUiEvent.RetryScan\) },) Tj
+T*
+(                    modifier = Modifier.fillMaxWidth\(\),) Tj
+ET
+endstream
+endobj
+36 0 obj
+<< /Length 2313 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (34) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(                \) {) Tj
+T*
+(                    Text\(if \(uiState.requiresPermission\) "??????" else "????"\)) Tj
+T*
+(                }) Tj
+T*
+(            } else if \(uiState.isComplete\) {) Tj
+T*
+(                OutlinedButton\() Tj
+T*
+(                    onClick = { onEvent\(ScanningUiEvent.RetryScan\) },) Tj
+T*
+(                    modifier = Modifier.fillMaxWidth\(\),) Tj
+T*
+(                \) {) Tj
+T*
+(                    Text\("????"\)) Tj
+T*
+(                }) Tj
+T*
+(                Button\() Tj
+T*
+(                    onClick = { onEvent\(ScanningUiEvent.ViewResults\) },) Tj
+T*
+(                    modifier = Modifier.fillMaxWidth\(\),) Tj
+T*
+(                \) {) Tj
+T*
+(                    Text\("??????"\)) Tj
+T*
+(                }) Tj
+T*
+(                Text\() Tj
+T*
+(                    "???????????????????????????????????",) Tj
+T*
+(                    style = MaterialTheme.typography.bodyMedium,) Tj
+T*
+(                    color = MaterialTheme.colorScheme.onSurfaceVariant,) Tj
+T*
+(                \)) Tj
+T*
+(            }) Tj
+T*
+(            Spacer\(Modifier.height\(8.dp\)\)) Tj
+T*
+(        }) Tj
+T*
+(    }) Tj
+T*
+(}) Tj
+T*
+(private fun ScanningUiState.statusLabel\(\): String = when {) Tj
+T*
+(    requiresPermission -> "???") Tj
+T*
+(    isStopped -> "???") Tj
+T*
+(    isComplete -> "???") Tj
+T*
+(    isScanning -> "?????") Tj
+T*
+(    failureMessage != null -> "????") Tj
+T*
+(    else -> "???") Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.feature.scanning) Tj
+T*
+(sealed interface ScanningUiEvent {) Tj
+T*
+(    data object StopScan : ScanningUiEvent) Tj
+T*
+(    data object RetryScan : ScanningUiEvent) Tj
+T*
+(    data object ViewResults : ScanningUiEvent) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.feature.scanning) Tj
+T*
+(import com.cleanguard.app.domain.model.MediaScanExecutionType) Tj
+T*
+(data class ScanningUiState\() Tj
+T*
+(    val stage: String = "????????",) Tj
+T*
+(    val statusMessage: String = "??????????????????????????",) Tj
+T*
+(    val progress: Float = 0f,) Tj
+T*
+(    val scannedFileCount: Long = 0L,) Tj
+T*
+(    val scannedBytes: Long = 0L,) Tj
+T*
+(    val classifiedFileCount: Long = 0L,) Tj
+T*
+(    val largeFileBytes: Long = 0L,) Tj
+ET
+endstream
+endobj
+37 0 obj
+<< /Length 2861 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (35) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(    val errorCount: Int = 0,) Tj
+T*
+(    val isScanning: Boolean = false,) Tj
+T*
+(    val isComplete: Boolean = false,) Tj
+T*
+(    val isStopped: Boolean = false,) Tj
+T*
+(    val requiresPermission: Boolean = false,) Tj
+T*
+(    val failureMessage: String? = null,) Tj
+T*
+(    val scanExecutionType: MediaScanExecutionType = MediaScanExecutionType.FULL,) Tj
+T*
+(    val changedItemCount: Int = 0,) Tj
+T*
+(    val removedItemCount: Int = 0,) Tj
+T*
+(    val scanDurationMs: Long = 0L,) Tj
+T*
+(\)) Tj
+T*
+(package com.cleanguard.app.feature.scanning) Tj
+T*
+(import android.os.Trace) Tj
+T*
+(import androidx.lifecycle.ViewModel) Tj
+T*
+(import androidx.lifecycle.viewModelScope) Tj
+T*
+(import com.cleanguard.app.domain.model.MediaPermissionStatus) Tj
+T*
+(import com.cleanguard.app.domain.model.FileCategory) Tj
+T*
+(import com.cleanguard.app.domain.model.LargeFileThreshold) Tj
+T*
+(import com.cleanguard.app.domain.model.MediaScanEvent) Tj
+T*
+(import com.cleanguard.app.domain.model.MediaScanMetadata) Tj
+T*
+(import com.cleanguard.app.domain.model.MediaScanStage) Tj
+T*
+(import com.cleanguard.app.domain.model.SafScanEvent) Tj
+T*
+(import com.cleanguard.app.domain.model.ScannedFile) Tj
+T*
+(import com.cleanguard.app.domain.model.ScanRunInfo) Tj
+T*
+(import com.cleanguard.app.domain.model.toScannedFile) Tj
+T*
+(import com.cleanguard.app.domain.repository.DownloadAccessRepository) Tj
+T*
+(import com.cleanguard.app.domain.repository.PermissionRepository) Tj
+T*
+(import com.cleanguard.app.domain.repository.SafScanner) Tj
+T*
+(import com.cleanguard.app.domain.repository.ScanSessionRepository) Tj
+T*
+(import com.cleanguard.app.domain.repository.SettingsRepository) Tj
+T*
+(import com.cleanguard.app.domain.usecase.ScanMediaUseCase) Tj
+T*
+(import com.cleanguard.app.domain.usecase.ApplySafetyRulesUseCase) Tj
+T*
+(import kotlinx.coroutines.CancellationException) Tj
+T*
+(import kotlinx.coroutines.Job) Tj
+T*
+(import kotlinx.coroutines.currentCoroutineContext) Tj
+T*
+(import kotlinx.coroutines.flow.MutableStateFlow) Tj
+T*
+(import kotlinx.coroutines.flow.StateFlow) Tj
+T*
+(import kotlinx.coroutines.flow.asStateFlow) Tj
+T*
+(import kotlinx.coroutines.flow.collect) Tj
+T*
+(import kotlinx.coroutines.flow.update) Tj
+T*
+(import kotlinx.coroutines.flow.first) Tj
+T*
+(import kotlinx.coroutines.job) Tj
+T*
+(import kotlinx.coroutines.launch) Tj
+T*
+(import java.util.concurrent.atomic.AtomicInteger) Tj
+T*
+(class ScanningViewModel\() Tj
+T*
+(    private val scanMedia: ScanMediaUseCase,) Tj
+T*
+(    private val applySafetyRules: ApplySafetyRulesUseCase,) Tj
+T*
+(    private val permissionRepository: PermissionRepository,) Tj
+T*
+(    private val scanSessionRepository: ScanSessionRepository,) Tj
+T*
+(    private val downloadAccessRepository: DownloadAccessRepository,) Tj
+ET
+endstream
+endobj
+38 0 obj
+<< /Length 2838 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (36) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(    private val safScanner: SafScanner,) Tj
+T*
+(    private val settingsRepository: SettingsRepository? = null,) Tj
+T*
+(\) : ViewModel\(\) {) Tj
+T*
+(    private val _uiState = MutableStateFlow\(ScanningUiState\(\)\)) Tj
+T*
+(    val uiState: StateFlow<ScanningUiState> = _uiState.asStateFlow\(\)) Tj
+T*
+(    private var scanJob: Job? = null) Tj
+T*
+(    private val scanTraceCookie = AtomicInteger\(\)) Tj
+T*
+(    init {) Tj
+T*
+(        startScan\(\)) Tj
+T*
+(    }) Tj
+T*
+(    fun onEvent\(event: ScanningUiEvent\) {) Tj
+T*
+(        when \(event\) {) Tj
+T*
+(            ScanningUiEvent.StopScan -> stopScan\(\)) Tj
+T*
+(            ScanningUiEvent.RetryScan -> startScan\(\)) Tj
+T*
+(            ScanningUiEvent.ViewResults -> Unit) Tj
+T*
+(        }) Tj
+T*
+(    }) Tj
+T*
+(    private fun startScan\(\) {) Tj
+T*
+(        scanJob?.cancel\(\)) Tj
+T*
+(        _uiState.value = ScanningUiState\(isScanning = true\)) Tj
+T*
+(        val traceCookie = scanTraceCookie.incrementAndGet\(\)) Tj
+T*
+(        val isTraceStarted = beginScanTrace\(traceCookie\)) Tj
+T*
+(        scanJob = viewModelScope.launch {) Tj
+T*
+(            try {) Tj
+T*
+(                val hasMediaAccess = permissionRepository.getMediaPermissionStatus\(\) != MediaPermissionStatus.NONE) Tj
+T*
+(                val treeUri = downloadAccessRepository.persistedTreeUri\(\)) Tj
+T*
+(                if \(!hasMediaAccess && treeUri == null\) {) Tj
+T*
+(                    _uiState.value = ScanningUiState\() Tj
+T*
+(                        stage = "????????",) Tj
+T*
+(                        statusMessage = "???????????????? Download ?????????",) Tj
+T*
+(                        requiresPermission = true,) Tj
+T*
+(                    \)) Tj
+T*
+(                    scanJob = null) Tj
+T*
+(                    return@launch) Tj
+T*
+(                }) Tj
+T*
+(                val scannedFiles = mutableListOf<ScannedFile>\(\)) Tj
+T*
+(                var scannedBytes = 0L) Tj
+T*
+(                var errorCount = 0) Tj
+T*
+(                var mediaFileCount = 0L) Tj
+T*
+(                var mediaBytes = 0L) Tj
+T*
+(                var mediaScanMetadata = MediaScanMetadata\(\)) Tj
+T*
+(                if \(hasMediaAccess\) {) Tj
+T*
+(                    scanMedia\(\).collect { event ->) Tj
+T*
+(                        when \(event\) {) Tj
+T*
+(                            is MediaScanEvent.Progress -> {) Tj
+T*
+(                                val progress = event.value) Tj
+T*
+(                                _uiState.update { state ->) Tj
+T*
+(                                    state.copy\() Tj
+T*
+(                                        stage = progress.stage.displayName\(\),) Tj
+T*
+(                                        statusMessage = "????????????????????",) Tj
+ET
+endstream
+endobj
+39 0 obj
+<< /Length 3435 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (37) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(                                        progress = progress.fraction * if \(treeUri == null\) 0.85f else 0.65f,) Tj
+T*
+(                                        scannedFileCount = progress.scannedFileCount,) Tj
+T*
+(                                        scannedBytes = progress.scannedBytes,) Tj
+T*
+(                                        errorCount = progress.errorCount,) Tj
+T*
+(                                        isScanning = true,) Tj
+T*
+(                                        isComplete = false,) Tj
+T*
+(                                        failureMessage = null,) Tj
+T*
+(                                        scanExecutionType = progress.executionType,) Tj
+T*
+(                                    \)) Tj
+T*
+(                                }) Tj
+T*
+(                            }) Tj
+T*
+(                            is MediaScanEvent.Completed -> {) Tj
+T*
+(                                val mediaFiles = event.result.items.map { it.toScannedFile\(\) }) Tj
+T*
+(                                scannedFiles += mediaFiles) Tj
+T*
+(                                mediaFileCount = mediaFiles.size.toLong\(\)) Tj
+T*
+(                                mediaBytes = event.result.totalBytes) Tj
+T*
+(                                scannedBytes = mediaBytes) Tj
+T*
+(                                errorCount = event.result.errors.size) Tj
+T*
+(                                mediaScanMetadata = event.result.metadata) Tj
+T*
+(                            }) Tj
+T*
+(                        }) Tj
+T*
+(                    }) Tj
+T*
+(                }) Tj
+T*
+(                if \(treeUri != null\) {) Tj
+T*
+(                    safScanner.scan\(treeUri\).collect { event ->) Tj
+T*
+(                        when \(event\) {) Tj
+T*
+(                            is SafScanEvent.Progress -> {) Tj
+T*
+(                                val progress = event.value) Tj
+T*
+(                                _uiState.update {) Tj
+T*
+(                                    it.copy\() Tj
+T*
+(                                        stage = "???????????",) Tj
+T*
+(                                        statusMessage = "??????????????????????",) Tj
+T*
+(                                        progress = if \(hasMediaAccess\) 0.78f else 0.72f,) Tj
+T*
+(                                        scannedFileCount = mediaFileCount + progress.scannedFileCount,) Tj
+T*
+(                                        scannedBytes = saturatingAdd\(mediaBytes, progress.scannedBytes\),) Tj
+T*
+(                                        errorCount = errorCount + progress.errorCount,) Tj
+T*
+(                                        isScanning = true,) Tj
+T*
+(                                        isComplete = false,) Tj
+T*
+(                                    \)) Tj
+T*
+(                                }) Tj
+T*
+(                            }) Tj
+T*
+(                            is SafScanEvent.Completed -> {) Tj
+T*
+(                                scannedFiles += event.result.items) Tj
+T*
+(                                scannedBytes = saturatingAdd\(mediaBytes, event.result.totalBytes\)) Tj
+T*
+(                                errorCount += event.result.errors.size) Tj
+T*
+(                            }) Tj
+T*
+(                        }) Tj
+T*
+(                    }) Tj
+T*
+(                }) Tj
+T*
+(                _uiState.update {) Tj
+ET
+endstream
+endobj
+40 0 obj
+<< /Length 2997 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (38) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(                    it.copy\() Tj
+T*
+(                        stage = "????????",) Tj
+T*
+(                        statusMessage = "?????????????????????????",) Tj
+T*
+(                        progress = 0.92f,) Tj
+T*
+(                        scannedFileCount = scannedFiles.size.toLong\(\),) Tj
+T*
+(                        scannedBytes = scannedBytes,) Tj
+T*
+(                        errorCount = errorCount,) Tj
+T*
+(                    \)) Tj
+T*
+(                }) Tj
+T*
+(                val threshold = settingsRepository?.settings?.first\(\)?.largeFileThreshold) Tj
+T*
+(                    ?: LargeFileThreshold.DEFAULT) Tj
+T*
+(                val classifiedResult = applySafetyRules\(scannedFiles, threshold\)) Tj
+T*
+(                if \(classifiedResult.isFailure\) {) Tj
+T*
+(                    _uiState.update {) Tj
+T*
+(                        it.copy\() Tj
+T*
+(                            stage = "??????????",) Tj
+T*
+(                            statusMessage = "????????????????????????",) Tj
+T*
+(                            isScanning = false,) Tj
+T*
+(                            isComplete = false,) Tj
+T*
+(                            failureMessage = "????????",) Tj
+T*
+(                        \)) Tj
+T*
+(                    }) Tj
+T*
+(                    return@launch) Tj
+T*
+(                }) Tj
+T*
+(                val classifiedItems = classifiedResult.getOrThrow\(\)) Tj
+T*
+(                scanSessionRepository.replaceScanSession\() Tj
+T*
+(                    scannedFiles = scannedFiles,) Tj
+T*
+(                    analyzedItems = classifiedItems,) Tj
+T*
+(                    threshold = threshold,) Tj
+T*
+(                    scanRunInfo = ScanRunInfo\() Tj
+T*
+(                        executionType = mediaScanMetadata.executionType,) Tj
+T*
+(                        durationMs = mediaScanMetadata.durationMs,) Tj
+T*
+(                        scannedItemCount = scannedFiles.size,) Tj
+T*
+(                        changedItemCount = mediaScanMetadata.changedItemCount,) Tj
+T*
+(                        removedItemCount = mediaScanMetadata.removedItemCount,) Tj
+T*
+(                        scannedVolumeCount = mediaScanMetadata.scannedVolumeCount,) Tj
+T*
+(                    \),) Tj
+T*
+(                \)) Tj
+T*
+(                val largeFileBytes = classifiedItems) Tj
+T*
+(                    .filter { it.category == FileCategory.LARGE_FILE }) Tj
+T*
+(                    .sumOf { it.sizeBytes }) Tj
+T*
+(                _uiState.update {) Tj
+T*
+(                    it.copy\() Tj
+T*
+(                        stage = "????????",) Tj
+T*
+(                        statusMessage = if \(errorCount == 0\) {) Tj
+T*
+(                            "???????????????????") Tj
+T*
+(                        } else {) Tj
+T*
+(                            "????????$errorCount ?????????") Tj
+T*
+(                        },) Tj
+T*
+(                        progress = 1f,) Tj
+ET
+endstream
+endobj
+41 0 obj
+<< /Length 2710 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (39) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(                        scannedFileCount = scannedFiles.size.toLong\(\),) Tj
+T*
+(                        scannedBytes = scannedBytes,) Tj
+T*
+(                        classifiedFileCount = classifiedItems.size.toLong\(\),) Tj
+T*
+(                        largeFileBytes = largeFileBytes,) Tj
+T*
+(                        errorCount = errorCount,) Tj
+T*
+(                        isScanning = false,) Tj
+T*
+(                        isComplete = true,) Tj
+T*
+(                        scanExecutionType = mediaScanMetadata.executionType,) Tj
+T*
+(                        changedItemCount = mediaScanMetadata.changedItemCount,) Tj
+T*
+(                        removedItemCount = mediaScanMetadata.removedItemCount,) Tj
+T*
+(                        scanDurationMs = mediaScanMetadata.durationMs,) Tj
+T*
+(                    \)) Tj
+T*
+(                }) Tj
+T*
+(                if \(currentCoroutineContext\(\).job === scanJob\) {) Tj
+T*
+(                    scanJob = null) Tj
+T*
+(                }) Tj
+T*
+(            } catch \(cancelled: CancellationException\) {) Tj
+T*
+(                if \(currentCoroutineContext\(\).job === scanJob\) {) Tj
+T*
+(                    scanJob = null) Tj
+T*
+(                    _uiState.update {) Tj
+T*
+(                        it.copy\() Tj
+T*
+(                            stage = "?????",) Tj
+T*
+(                            statusMessage = "?????????????????????",) Tj
+T*
+(                            isScanning = false,) Tj
+T*
+(                            isComplete = false,) Tj
+T*
+(                            isStopped = true,) Tj
+T*
+(                        \)) Tj
+T*
+(                    }) Tj
+T*
+(                }) Tj
+T*
+(                throw cancelled) Tj
+T*
+(            } catch \(_: Exception\) {) Tj
+T*
+(                if \(currentCoroutineContext\(\).job === scanJob\) {) Tj
+T*
+(                    scanJob = null) Tj
+T*
+(                    _uiState.update {) Tj
+T*
+(                        it.copy\() Tj
+T*
+(                            stage = "????????",) Tj
+T*
+(                            statusMessage = "????????????????????",) Tj
+T*
+(                            isScanning = false,) Tj
+T*
+(                            isComplete = false,) Tj
+T*
+(                            failureMessage = "????",) Tj
+T*
+(                        \)) Tj
+T*
+(                    }) Tj
+T*
+(                }) Tj
+T*
+(            } finally {) Tj
+T*
+(                if \(isTraceStarted\) endScanTrace\(traceCookie\)) Tj
+T*
+(            }) Tj
+T*
+(        }) Tj
+T*
+(    }) Tj
+T*
+(    private fun stopScan\(\) {) Tj
+T*
+(        val activeJob = scanJob ?: return) Tj
+ET
+endstream
+endobj
+42 0 obj
+<< /Length 2414 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (40) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(        scanJob = null) Tj
+T*
+(        activeJob.cancel\(CancellationException\("????????"\)\)) Tj
+T*
+(        _uiState.update {) Tj
+T*
+(            it.copy\() Tj
+T*
+(                stage = "?????",) Tj
+T*
+(                statusMessage = "?????????????????????",) Tj
+T*
+(                isScanning = false,) Tj
+T*
+(                isComplete = false,) Tj
+T*
+(                isStopped = true,) Tj
+T*
+(            \)) Tj
+T*
+(        }) Tj
+T*
+(    }) Tj
+T*
+(}) Tj
+T*
+(private const val SCAN_TRACE_SECTION = "CleanGuardScan") Tj
+T*
+(private fun beginScanTrace\(cookie: Int\): Boolean = try {) Tj
+T*
+(    Trace.beginAsyncSection\(SCAN_TRACE_SECTION, cookie\)) Tj
+T*
+(    true) Tj
+T*
+(} catch \(_: RuntimeException\) {) Tj
+T*
+(    false) Tj
+T*
+(}) Tj
+T*
+(private fun endScanTrace\(cookie: Int\) {) Tj
+T*
+(    try {) Tj
+T*
+(        Trace.endAsyncSection\(SCAN_TRACE_SECTION, cookie\)) Tj
+T*
+(    } catch \(_: RuntimeException\) {) Tj
+T*
+(    }) Tj
+T*
+(}) Tj
+T*
+(private fun saturatingAdd\(left: Long, right: Long\): Long =) Tj
+T*
+(    if \(right > 0L && left > Long.MAX_VALUE - right\) Long.MAX_VALUE else left + right) Tj
+T*
+(private fun MediaScanStage.displayName\(\): String = when \(this\) {) Tj
+T*
+(    MediaScanStage.PREPARING -> "????????") Tj
+T*
+(    MediaScanStage.IMAGES -> "??????") Tj
+T*
+(    MediaScanStage.VIDEOS -> "??????") Tj
+T*
+(    MediaScanStage.AUDIO -> "??????") Tj
+T*
+(    MediaScanStage.COMPLETE -> "????????") Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.feature.settings) Tj
+T*
+(import androidx.compose.foundation.layout.Arrangement) Tj
+T*
+(import androidx.compose.foundation.layout.Column) Tj
+T*
+(import androidx.compose.foundation.layout.Row) Tj
+T*
+(import androidx.compose.foundation.layout.fillMaxSize) Tj
+T*
+(import androidx.compose.foundation.layout.fillMaxWidth) Tj
+T*
+(import androidx.compose.foundation.layout.padding) Tj
+T*
+(import androidx.compose.foundation.horizontalScroll) Tj
+T*
+(import androidx.compose.foundation.rememberScrollState) Tj
+T*
+(import androidx.compose.foundation.verticalScroll) Tj
+T*
+(import androidx.compose.material3.FilterChip) Tj
+T*
+(import androidx.compose.material3.MaterialTheme) Tj
+T*
+(import androidx.compose.material3.OutlinedButton) Tj
+T*
+(import androidx.compose.material3.Scaffold) Tj
+T*
+(import androidx.compose.material3.Text) Tj
+ET
+endstream
+endobj
+43 0 obj
+<< /Length 3098 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (41) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(import androidx.compose.runtime.Composable) Tj
+T*
+(import androidx.compose.runtime.getValue) Tj
+T*
+(import androidx.compose.ui.Modifier) Tj
+T*
+(import androidx.compose.ui.res.stringResource) Tj
+T*
+(import androidx.compose.ui.unit.dp) Tj
+T*
+(import androidx.lifecycle.compose.collectAsStateWithLifecycle) Tj
+T*
+(import com.cleanguard.app.R) Tj
+T*
+(import com.cleanguard.app.domain.model.LargeFileThreshold) Tj
+T*
+(import com.cleanguard.app.domain.model.persistence.ScanHistoryRetentionPolicy) Tj
+T*
+(import com.cleanguard.app.ui.components.CleanGuardTopBar) Tj
+T*
+(import com.cleanguard.app.ui.components.InfoCard) Tj
+T*
+(@Composable) Tj
+T*
+(fun SettingsRoute\() Tj
+T*
+(    viewModel: SettingsViewModel,) Tj
+T*
+(    onBack: \(\) -> Unit,) Tj
+T*
+(    onOpenPermissionCenter: \(\) -> Unit,) Tj
+T*
+(\) {) Tj
+T*
+(    val state by viewModel.uiState.collectAsStateWithLifecycle\(\)) Tj
+T*
+(    SettingsScreen\(state, onBack, onOpenPermissionCenter, viewModel::onEvent\)) Tj
+T*
+(}) Tj
+T*
+(@Composable) Tj
+T*
+(fun SettingsScreen\() Tj
+T*
+(    uiState: SettingsUiState,) Tj
+T*
+(    onBack: \(\) -> Unit,) Tj
+T*
+(    onOpenPermissionCenter: \(\) -> Unit,) Tj
+T*
+(    onEvent: \(SettingsUiEvent\) -> Unit,) Tj
+T*
+(\) {) Tj
+T*
+(    Scaffold\(topBar = { CleanGuardTopBar\(stringResource\(R.string.settings_title\), onBack\) }\) { padding ->) Tj
+T*
+(        Column\() Tj
+T*
+(            Modifier.fillMaxSize\(\).padding\(padding\).verticalScroll\(rememberScrollState\(\)\).padding\(20.dp\),) Tj
+T*
+(            verticalArrangement = Arrangement.spacedBy\(16.dp\),) Tj
+T*
+(        \) {) Tj
+T*
+(            InfoCard\(stringResource\(R.string.settings_scan_title\)\) {) Tj
+T*
+(                Text\(stringResource\(R.string.settings_large_file_threshold_help\), color = MaterialTheme.colorScheme.onSurfaceVariant\)) Tj
+T*
+(                ChoiceRow\(LargeFileThreshold.entries, uiState.largeFileThreshold, { it.displayName }\) {) Tj
+T*
+(                    onEvent\(SettingsUiEvent.SelectLargeFileThreshold\(it\)\)) Tj
+T*
+(                }) Tj
+T*
+(            }) Tj
+T*
+(            InfoCard\(stringResource\(R.string.settings_duplicate_title\)\) {) Tj
+T*
+(                Text\(stringResource\(R.string.settings_duplicate_quick\)\)) Tj
+T*
+(                Text\(stringResource\(R.string.settings_duplicate_full\), color = MaterialTheme.colorScheme.onSurfaceVariant\)) Tj
+T*
+(                Text\(stringResource\(R.string.settings_duplicate_no_auto\), color = MaterialTheme.colorScheme.onSurfaceVariant\)) Tj
+T*
+(            }) Tj
+T*
+(            InfoCard\(stringResource\(R.string.settings_history_title\)\) {) Tj
+T*
+(                Text\(stringResource\(R.string.settings_history_help\), color = MaterialTheme.colorScheme.onSurfaceVariant\)) Tj
+T*
+(                ChoiceRow\() Tj
+T*
+(                    ScanHistoryRetentionPolicy.entries,) Tj
+T*
+(                    uiState.historyRetentionPolicy,) Tj
+T*
+(                    { policy ->) Tj
+T*
+(                        when \(policy\) {) Tj
+ET
+endstream
+endobj
+44 0 obj
+<< /Length 3246 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (42) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(                            ScanHistoryRetentionPolicy.TEN_SCANS -> stringResource\(R.string.settings_history_10\)) Tj
+T*
+(                            ScanHistoryRetentionPolicy.THIRTY_SCANS -> stringResource\(R.string.settings_history_30\)) Tj
+T*
+(                            ScanHistoryRetentionPolicy.NINETY_SCANS -> stringResource\(R.string.settings_history_90\)) Tj
+T*
+(                            ScanHistoryRetentionPolicy.UNLIMITED -> stringResource\(R.string.settings_history_all\)) Tj
+T*
+(                        }) Tj
+T*
+(                    },) Tj
+T*
+(                \) { onEvent\(SettingsUiEvent.SelectHistoryRetention\(it\)\) }) Tj
+T*
+(            }) Tj
+T*
+(            InfoCard\(stringResource\(R.string.settings_permissions_title\)\) {) Tj
+T*
+(                Text\(stringResource\(R.string.settings_permissions_help\), color = MaterialTheme.colorScheme.onSurfaceVariant\)) Tj
+T*
+(                OutlinedButton\(onClick = onOpenPermissionCenter, modifier = Modifier.fillMaxWidth\(\)\) {) Tj
+T*
+(                    Text\(stringResource\(R.string.settings_open_permission_center\)\)) Tj
+T*
+(                }) Tj
+T*
+(            }) Tj
+T*
+(            InfoCard\(stringResource\(R.string.settings_ignore_title\)\) {) Tj
+T*
+(                Text\(stringResource\(R.string.settings_ignore_count, uiState.ignoredItemCount\)\)) Tj
+T*
+(                Text\(stringResource\(R.string.settings_ignore_help\), color = MaterialTheme.colorScheme.onSurfaceVariant\)) Tj
+T*
+(                OutlinedButton\() Tj
+T*
+(                    onClick = { onEvent\(SettingsUiEvent.ClearIgnoredItems\) },) Tj
+T*
+(                    enabled = uiState.ignoredItemCount > 0,) Tj
+T*
+(                    modifier = Modifier.fillMaxWidth\(\),) Tj
+T*
+(                \) { Text\(stringResource\(R.string.settings_ignore_clear\)\) }) Tj
+T*
+(            }) Tj
+T*
+(            InfoCard\(stringResource\(R.string.settings_privacy_title\)\) {) Tj
+T*
+(                Text\(stringResource\(R.string.privacy_local_only\)\)) Tj
+T*
+(                Text\(stringResource\(R.string.privacy_no_upload\)\)) Tj
+T*
+(                Text\(stringResource\(R.string.privacy_read_scope\)\)) Tj
+T*
+(                Text\(stringResource\(R.string.privacy_hash_disclosure\)\)) Tj
+T*
+(                Text\(stringResource\(R.string.privacy_no_chat_content\)\)) Tj
+T*
+(                Text\(stringResource\(R.string.privacy_no_private_dirs\)\)) Tj
+T*
+(            }) Tj
+T*
+(        }) Tj
+T*
+(    }) Tj
+T*
+(}) Tj
+T*
+(@Composable) Tj
+T*
+(private fun <T> ChoiceRow\() Tj
+T*
+(    choices: List<T>,) Tj
+T*
+(    selected: T,) Tj
+T*
+(    label: @Composable \(T\) -> String,) Tj
+T*
+(    onSelect: \(T\) -> Unit,) Tj
+T*
+(\) {) Tj
+T*
+(    Row\() Tj
+T*
+(        Modifier.fillMaxWidth\(\).horizontalScroll\(rememberScrollState\(\)\),) Tj
+T*
+(        horizontalArrangement = Arrangement.spacedBy\(8.dp\),) Tj
+T*
+(    \) {) Tj
+T*
+(        choices.forEach { choice ->) Tj
+T*
+(            FilterChip\() Tj
+T*
+(                selected = choice == selected,) Tj
+T*
+(                onClick = { onSelect\(choice\) },) Tj
+T*
+(                label = { Text\(label\(choice\)\) },) Tj
+ET
+endstream
+endobj
+45 0 obj
+<< /Length 2797 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (43) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(            \)) Tj
+T*
+(        }) Tj
+T*
+(    }) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.feature.settings) Tj
+T*
+(import androidx.lifecycle.ViewModel) Tj
+T*
+(import androidx.lifecycle.viewModelScope) Tj
+T*
+(import com.cleanguard.app.domain.model.LargeFileThreshold) Tj
+T*
+(import com.cleanguard.app.domain.model.persistence.ScanHistoryRetentionPolicy) Tj
+T*
+(import com.cleanguard.app.domain.repository.IgnoreRuleRepository) Tj
+T*
+(import com.cleanguard.app.domain.repository.ScanHistoryRepository) Tj
+T*
+(import com.cleanguard.app.domain.repository.SettingsRepository) Tj
+T*
+(import kotlinx.coroutines.flow.SharingStarted) Tj
+T*
+(import kotlinx.coroutines.flow.StateFlow) Tj
+T*
+(import kotlinx.coroutines.flow.combine) Tj
+T*
+(import kotlinx.coroutines.flow.stateIn) Tj
+T*
+(import kotlinx.coroutines.launch) Tj
+T*
+(data class SettingsUiState\() Tj
+T*
+(    val largeFileThreshold: LargeFileThreshold = LargeFileThreshold.DEFAULT,) Tj
+T*
+(    val historyRetentionPolicy: ScanHistoryRetentionPolicy = ScanHistoryRetentionPolicy.DEFAULT,) Tj
+T*
+(    val ignoredItemCount: Int = 0,) Tj
+T*
+(\)) Tj
+T*
+(sealed interface SettingsUiEvent {) Tj
+T*
+(    data class SelectLargeFileThreshold\(val value: LargeFileThreshold\) : SettingsUiEvent) Tj
+T*
+(    data class SelectHistoryRetention\(val value: ScanHistoryRetentionPolicy\) : SettingsUiEvent) Tj
+T*
+(    data object ClearIgnoredItems : SettingsUiEvent) Tj
+T*
+(}) Tj
+T*
+(class SettingsViewModel\() Tj
+T*
+(    private val settingsRepository: SettingsRepository,) Tj
+T*
+(    private val scanHistoryRepository: ScanHistoryRepository,) Tj
+T*
+(    private val ignoreRuleRepository: IgnoreRuleRepository,) Tj
+T*
+(    private val currentTimeMillis: \(\) -> Long = System::currentTimeMillis,) Tj
+T*
+(\) : ViewModel\(\) {) Tj
+T*
+(    private val activeIgnoredItems = ignoreRuleRepository.observeActive\(currentTimeMillis\(\)\)) Tj
+T*
+(    val uiState: StateFlow<SettingsUiState> = combine\() Tj
+T*
+(        settingsRepository.settings,) Tj
+T*
+(        activeIgnoredItems,) Tj
+T*
+(    \) { settings, ignoredItems ->) Tj
+T*
+(        SettingsUiState\() Tj
+T*
+(            largeFileThreshold = settings.largeFileThreshold,) Tj
+T*
+(            historyRetentionPolicy = settings.historyRetentionPolicy,) Tj
+T*
+(            ignoredItemCount = ignoredItems.size,) Tj
+T*
+(        \)) Tj
+T*
+(    }.stateIn\(viewModelScope, SharingStarted.WhileSubscribed\(5_000\), SettingsUiState\(\)\)) Tj
+T*
+(    init {) Tj
+T*
+(        viewModelScope.launch { ignoreRuleRepository.deleteExpired\(currentTimeMillis\(\)\) }) Tj
+T*
+(    }) Tj
+T*
+(    fun onEvent\(event: SettingsUiEvent\) {) Tj
+T*
+(        viewModelScope.launch {) Tj
+T*
+(            when \(event\) {) Tj
+ET
+endstream
+endobj
+46 0 obj
+<< /Length 2976 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (44) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(                is SettingsUiEvent.SelectLargeFileThreshold ->) Tj
+T*
+(                    settingsRepository.setLargeFileThreshold\(event.value\)) Tj
+T*
+(                is SettingsUiEvent.SelectHistoryRetention -> {) Tj
+T*
+(                    settingsRepository.setHistoryRetentionPolicy\(event.value\)) Tj
+T*
+(                    scanHistoryRepository.prune\(event.value\)) Tj
+T*
+(                }) Tj
+T*
+(                SettingsUiEvent.ClearIgnoredItems -> ignoreRuleRepository.deleteAll\(\)) Tj
+T*
+(            }) Tj
+T*
+(        }) Tj
+T*
+(    }) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app) Tj
+T*
+(import android.os.Bundle) Tj
+T*
+(import androidx.activity.ComponentActivity) Tj
+T*
+(import androidx.activity.compose.setContent) Tj
+T*
+(import androidx.activity.enableEdgeToEdge) Tj
+T*
+(import com.cleanguard.app.navigation.CleanGuardNavHost) Tj
+T*
+(import com.cleanguard.app.ui.theme.CleanGuardTheme) Tj
+T*
+(class MainActivity : ComponentActivity\(\) {) Tj
+T*
+(    override fun onCreate\(savedInstanceState: Bundle?\) {) Tj
+T*
+(        super.onCreate\(savedInstanceState\)) Tj
+T*
+(        enableEdgeToEdge\(\)) Tj
+T*
+(        val container = \(application as CleanGuardApplication\).container) Tj
+T*
+(        setContent {) Tj
+T*
+(            CleanGuardTheme {) Tj
+T*
+(                CleanGuardNavHost\(container\)) Tj
+T*
+(            }) Tj
+T*
+(        }) Tj
+T*
+(    }) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.navigation) Tj
+T*
+(sealed class CleanGuardDestination\(val route: String\) {) Tj
+T*
+(    data object Home : CleanGuardDestination\("home"\)) Tj
+T*
+(    data object Scanning : CleanGuardDestination\("scanning"\)) Tj
+T*
+(    data object ScanResults : CleanGuardDestination\("scan-results"\)) Tj
+T*
+(    data object CleanupDetail : CleanGuardDestination\("cleanup-detail"\)) Tj
+T*
+(    data object StorageInsights : CleanGuardDestination\("storage-insights"\)) Tj
+T*
+(    data object CleanupResult : CleanGuardDestination\("cleanup-result"\)) Tj
+T*
+(    data object DuplicateGroups : CleanGuardDestination\("duplicate-groups"\)) Tj
+T*
+(    data object ApkInsights : CleanGuardDestination\("apk-insights"\)) Tj
+T*
+(    data object DownloadInsights : CleanGuardDestination\("download-insights"\)) Tj
+T*
+(    data object ScanHistory : CleanGuardDestination\("scan-history"\)) Tj
+T*
+(    data object CleanupHistory : CleanGuardDestination\("cleanup-history"\)) Tj
+T*
+(    data object RecoveryCenter : CleanGuardDestination\("recovery-center"\)) Tj
+T*
+(    data object Settings : CleanGuardDestination\("settings"\)) Tj
+T*
+(    data object PermissionCenter : CleanGuardDestination\("permission-center"\)) Tj
+T*
+(    data object DuplicateDetail : CleanGuardDestination\("duplicate-detail/{groupId}"\) {) Tj
+T*
+(        fun createRoute\(groupId: String\): String = "duplicate-detail/${android.net.Uri.encode\(groupId\)}") Tj
+T*
+(    }) Tj
+T*
+(}) Tj
+ET
+endstream
+endobj
+47 0 obj
+<< /Length 3331 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (45) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(package com.cleanguard.app.navigation) Tj
+T*
+(import androidx.compose.runtime.Composable) Tj
+T*
+(import androidx.compose.runtime.remember) Tj
+T*
+(import androidx.compose.ui.platform.LocalContext) Tj
+T*
+(import androidx.lifecycle.viewmodel.compose.viewModel) Tj
+T*
+(import androidx.navigation.compose.NavHost) Tj
+T*
+(import androidx.navigation.compose.composable) Tj
+T*
+(import androidx.navigation.compose.rememberNavController) Tj
+T*
+(import androidx.navigation.NavType) Tj
+T*
+(import androidx.navigation.navArgument) Tj
+T*
+(import androidx.lifecycle.ViewModel) Tj
+T*
+(import androidx.lifecycle.ViewModelProvider) Tj
+T*
+(import com.cleanguard.app.di.AppContainer) Tj
+T*
+(import com.cleanguard.app.feature.cleanupdetail.CleanupDetailRoute) Tj
+T*
+(import com.cleanguard.app.feature.cleanupdetail.CleanupDetailViewModel) Tj
+T*
+(import com.cleanguard.app.feature.cleanupresult.CleanupResultRoute) Tj
+T*
+(import com.cleanguard.app.feature.cleanupresult.CleanupResultViewModel) Tj
+T*
+(import com.cleanguard.app.feature.cleanuphistory.CleanupHistoryRoute) Tj
+T*
+(import com.cleanguard.app.feature.cleanuphistory.CleanupHistoryViewModel) Tj
+T*
+(import com.cleanguard.app.feature.recovery.RecoveryCenterRoute) Tj
+T*
+(import com.cleanguard.app.feature.recovery.RecoveryCenterViewModel) Tj
+T*
+(import com.cleanguard.app.feature.home.HomeRoute) Tj
+T*
+(import com.cleanguard.app.feature.home.HomeViewModel) Tj
+T*
+(import com.cleanguard.app.feature.apkinsights.ApkInsightsRoute) Tj
+T*
+(import com.cleanguard.app.feature.apkinsights.ApkInsightsViewModel) Tj
+T*
+(import com.cleanguard.app.feature.downloadinsights.DownloadInsightsRoute) Tj
+T*
+(import com.cleanguard.app.feature.downloadinsights.DownloadInsightsViewModel) Tj
+T*
+(import com.cleanguard.app.feature.duplicates.DuplicateDetailRoute) Tj
+T*
+(import com.cleanguard.app.feature.duplicates.DuplicateDetailViewModel) Tj
+T*
+(import com.cleanguard.app.feature.duplicates.DuplicateGroupsRoute) Tj
+T*
+(import com.cleanguard.app.feature.duplicates.DuplicateGroupsViewModel) Tj
+T*
+(import com.cleanguard.app.feature.insights.StorageInsightsRoute) Tj
+T*
+(import com.cleanguard.app.feature.insights.StorageInsightsViewModel) Tj
+T*
+(import com.cleanguard.app.feature.results.ScanResultsRoute) Tj
+T*
+(import com.cleanguard.app.feature.results.ScanResultsViewModel) Tj
+T*
+(import com.cleanguard.app.feature.scanning.ScanningRoute) Tj
+T*
+(import com.cleanguard.app.feature.scanning.ScanningViewModel) Tj
+T*
+(import com.cleanguard.app.feature.scanhistory.ScanHistoryRoute) Tj
+T*
+(import com.cleanguard.app.feature.scanhistory.ScanHistoryViewModel) Tj
+T*
+(import com.cleanguard.app.feature.settings.SettingsRoute) Tj
+T*
+(import com.cleanguard.app.feature.settings.SettingsViewModel) Tj
+T*
+(import com.cleanguard.app.feature.permissions.PermissionCenterRoute) Tj
+T*
+(import com.cleanguard.app.feature.permissions.PermissionCenterViewModel) Tj
+T*
+(@Composable) Tj
+T*
+(fun CleanGuardNavHost\(container: AppContainer\) {) Tj
+T*
+(    val navController = rememberNavController\(\)) Tj
+T*
+(    val factory = remember\(container\) { CleanGuardViewModelFactory\(container\) }) Tj
+T*
+(    val context = LocalContext.current) Tj
+T*
+(    NavHost\() Tj
+T*
+(        navController = navController,) Tj
+ET
+endstream
+endobj
+48 0 obj
+<< /Length 3307 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (46) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(        startDestination = CleanGuardDestination.Home.route,) Tj
+T*
+(    \) {) Tj
+T*
+(        composable\(CleanGuardDestination.Home.route\) {) Tj
+T*
+(            HomeRoute\() Tj
+T*
+(                viewModel = viewModel<HomeViewModel>\(factory = factory\),) Tj
+T*
+(                onStartScan = { navController.navigate\(CleanGuardDestination.Scanning.route\) },) Tj
+T*
+(                onOpenStorageInsights = { navController.navigate\(CleanGuardDestination.StorageInsights.route\) },) Tj
+T*
+(                onOpenScanHistory = { navController.navigate\(CleanGuardDestination.ScanHistory.route\) },) Tj
+T*
+(                onOpenRecommendations = { navController.navigate\(CleanGuardDestination.ScanResults.route\) },) Tj
+T*
+(                onOpenCleanupHistory = { navController.navigate\(CleanGuardDestination.CleanupHistory.route\) },) Tj
+T*
+(                onOpenRecoveryCenter = { navController.navigate\(CleanGuardDestination.RecoveryCenter.route\) },) Tj
+T*
+(                onOpenSettings = { navController.navigate\(CleanGuardDestination.Settings.route\) },) Tj
+T*
+(                createDownloadTreeIntent = container.downloadTreeIntentFactory::create,) Tj
+T*
+(            \)) Tj
+T*
+(        }) Tj
+T*
+(        composable\(CleanGuardDestination.Settings.route\) {) Tj
+T*
+(            SettingsRoute\() Tj
+T*
+(                viewModel = viewModel<SettingsViewModel>\(factory = factory\),) Tj
+T*
+(                onBack = { navController.navigateUp\(\) },) Tj
+T*
+(                onOpenPermissionCenter = {) Tj
+T*
+(                    navController.navigate\(CleanGuardDestination.PermissionCenter.route\)) Tj
+T*
+(                },) Tj
+T*
+(            \)) Tj
+T*
+(        }) Tj
+T*
+(        composable\(CleanGuardDestination.PermissionCenter.route\) {) Tj
+T*
+(            PermissionCenterRoute\() Tj
+T*
+(                viewModel = viewModel<PermissionCenterViewModel>\(factory = factory\),) Tj
+T*
+(                onBack = { navController.navigateUp\(\) },) Tj
+T*
+(                createDownloadTreeIntent = container.downloadTreeIntentFactory::create,) Tj
+T*
+(                onOpenUsageAccessSettings = {) Tj
+T*
+(                    context.startActivity\(container.appSettingsIntentFactory.createUsageAccessSettings\(\)\)) Tj
+T*
+(                },) Tj
+T*
+(            \)) Tj
+T*
+(        }) Tj
+T*
+(        composable\(CleanGuardDestination.CleanupHistory.route\) {) Tj
+T*
+(            CleanupHistoryRoute\() Tj
+T*
+(                viewModel = viewModel<CleanupHistoryViewModel>\(factory = factory\),) Tj
+T*
+(                onBack = { navController.navigateUp\(\) },) Tj
+T*
+(                onOpenRecoveryCenter = {) Tj
+T*
+(                    navController.navigate\(CleanGuardDestination.RecoveryCenter.route\)) Tj
+T*
+(                },) Tj
+T*
+(            \)) Tj
+T*
+(        }) Tj
+T*
+(        composable\(CleanGuardDestination.RecoveryCenter.route\) {) Tj
+T*
+(            RecoveryCenterRoute\() Tj
+T*
+(                viewModel = viewModel<RecoveryCenterViewModel>\(factory = factory\),) Tj
+T*
+(                onBack = { navController.navigateUp\(\) },) Tj
+T*
+(            \)) Tj
+T*
+(        }) Tj
+T*
+(        composable\(CleanGuardDestination.ScanHistory.route\) {) Tj
+ET
+endstream
+endobj
+49 0 obj
+<< /Length 2974 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (47) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(            ScanHistoryRoute\() Tj
+T*
+(                viewModel = viewModel<ScanHistoryViewModel>\(factory = factory\),) Tj
+T*
+(                onBack = { navController.navigateUp\(\) },) Tj
+T*
+(            \)) Tj
+T*
+(        }) Tj
+T*
+(        composable\(CleanGuardDestination.Scanning.route\) {) Tj
+T*
+(            ScanningRoute\() Tj
+T*
+(                viewModel = viewModel<ScanningViewModel>\(factory = factory\),) Tj
+T*
+(                onBack = { navController.navigateUp\(\) },) Tj
+T*
+(                onViewResults = { navController.navigate\(CleanGuardDestination.ScanResults.route\) },) Tj
+T*
+(            \)) Tj
+T*
+(        }) Tj
+T*
+(        composable\(CleanGuardDestination.ScanResults.route\) {) Tj
+T*
+(            ScanResultsRoute\() Tj
+T*
+(                viewModel = viewModel<ScanResultsViewModel>\(factory = factory\),) Tj
+T*
+(                onBack = { navController.navigateUp\(\) },) Tj
+T*
+(                onViewSuggestions = { navController.navigate\(CleanGuardDestination.CleanupDetail.route\) },) Tj
+T*
+(                onOpenStorageInsights = { navController.navigate\(CleanGuardDestination.StorageInsights.route\) },) Tj
+T*
+(                onOpenDuplicateGroups = {) Tj
+T*
+(                    navController.navigate\(CleanGuardDestination.DuplicateGroups.route\)) Tj
+T*
+(                },) Tj
+T*
+(                onOpenApkInsights = {) Tj
+T*
+(                    navController.navigate\(CleanGuardDestination.ApkInsights.route\)) Tj
+T*
+(                },) Tj
+T*
+(                onOpenDownloadInsights = {) Tj
+T*
+(                    navController.navigate\(CleanGuardDestination.DownloadInsights.route\)) Tj
+T*
+(                },) Tj
+T*
+(            \)) Tj
+T*
+(        }) Tj
+T*
+(        composable\(CleanGuardDestination.ApkInsights.route\) {) Tj
+T*
+(            ApkInsightsRoute\() Tj
+T*
+(                viewModel = viewModel<ApkInsightsViewModel>\(factory = factory\),) Tj
+T*
+(                onBack = { navController.navigateUp\(\) },) Tj
+T*
+(            \)) Tj
+T*
+(        }) Tj
+T*
+(        composable\(CleanGuardDestination.DownloadInsights.route\) {) Tj
+T*
+(            DownloadInsightsRoute\() Tj
+T*
+(                viewModel = viewModel<DownloadInsightsViewModel>\(factory = factory\),) Tj
+T*
+(                onBack = { navController.navigateUp\(\) },) Tj
+T*
+(                onPreview = { file ->) Tj
+T*
+(                    file.contentUri?.let { uri ->) Tj
+T*
+(                        runCatching {) Tj
+T*
+(                            context.startActivity\() Tj
+T*
+(                                container.fileActionIntentFactory.createPreview\(uri, file.mimeType\),) Tj
+T*
+(                            \)) Tj
+T*
+(                        }) Tj
+T*
+(                    }) Tj
+T*
+(                },) Tj
+T*
+(                onShare = { file ->) Tj
+T*
+(                    file.contentUri?.let { uri ->) Tj
+ET
+endstream
+endobj
+50 0 obj
+<< /Length 2853 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (48) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(                        runCatching {) Tj
+T*
+(                            context.startActivity\() Tj
+T*
+(                                android.content.Intent.createChooser\() Tj
+T*
+(                                    container.fileActionIntentFactory.createShare\(uri, file.mimeType\),) Tj
+T*
+(                                    null,) Tj
+T*
+(                                \),) Tj
+T*
+(                            \)) Tj
+T*
+(                        }) Tj
+T*
+(                    }) Tj
+T*
+(                },) Tj
+T*
+(                onLocate = { treeUri ->) Tj
+T*
+(                    runCatching {) Tj
+T*
+(                        context.startActivity\(container.fileActionIntentFactory.createLocate\(treeUri\)\)) Tj
+T*
+(                    }) Tj
+T*
+(                },) Tj
+T*
+(            \)) Tj
+T*
+(        }) Tj
+T*
+(        composable\(CleanGuardDestination.DuplicateGroups.route\) {) Tj
+T*
+(            DuplicateGroupsRoute\() Tj
+T*
+(                viewModel = viewModel<DuplicateGroupsViewModel>\(factory = factory\),) Tj
+T*
+(                onBack = { navController.navigateUp\(\) },) Tj
+T*
+(                onOpenGroup = { groupId ->) Tj
+T*
+(                    navController.navigate\(CleanGuardDestination.DuplicateDetail.createRoute\(groupId\)\)) Tj
+T*
+(                },) Tj
+T*
+(            \)) Tj
+T*
+(        }) Tj
+T*
+(        composable\() Tj
+T*
+(            route = CleanGuardDestination.DuplicateDetail.route,) Tj
+T*
+(            arguments = listOf\(navArgument\("groupId"\) { type = NavType.StringType }\),) Tj
+T*
+(        \) { backStackEntry ->) Tj
+T*
+(            val groupId = backStackEntry.arguments?.getString\("groupId"\).orEmpty\(\)) Tj
+T*
+(            val detailFactory = remember\(container, groupId\) {) Tj
+T*
+(                object : ViewModelProvider.Factory {) Tj
+T*
+(                    @Suppress\("UNCHECKED_CAST"\)) Tj
+T*
+(                    override fun <T : ViewModel> create\(modelClass: Class<T>\): T =) Tj
+T*
+(                        DuplicateDetailViewModel\() Tj
+T*
+(                            groupId = groupId,) Tj
+T*
+(                            duplicateSessionRepository = container.duplicateSessionRepository,) Tj
+T*
+(                        \) as T) Tj
+T*
+(                }) Tj
+T*
+(            }) Tj
+T*
+(            DuplicateDetailRoute\() Tj
+T*
+(                viewModel = viewModel<DuplicateDetailViewModel>\() Tj
+T*
+(                    key = groupId,) Tj
+T*
+(                    factory = detailFactory,) Tj
+T*
+(                \),) Tj
+T*
+(                onBack = { navController.navigateUp\(\) },) Tj
+T*
+(                onReviewSelection = {) Tj
+T*
+(                    navController.navigate\(CleanGuardDestination.CleanupDetail.route\)) Tj
+T*
+(                },) Tj
+ET
+endstream
+endobj
+51 0 obj
+<< /Length 2840 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (49) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(            \)) Tj
+T*
+(        }) Tj
+T*
+(        composable\(CleanGuardDestination.CleanupDetail.route\) {) Tj
+T*
+(            CleanupDetailRoute\() Tj
+T*
+(                viewModel = viewModel<CleanupDetailViewModel>\(factory = factory\),) Tj
+T*
+(                onBack = { navController.navigateUp\(\) },) Tj
+T*
+(                onCleanupFinished = {) Tj
+T*
+(                    navController.navigate\(CleanGuardDestination.CleanupResult.route\)) Tj
+T*
+(                },) Tj
+T*
+(            \)) Tj
+T*
+(        }) Tj
+T*
+(        composable\(CleanGuardDestination.StorageInsights.route\) {) Tj
+T*
+(            StorageInsightsRoute\() Tj
+T*
+(                viewModel = viewModel<StorageInsightsViewModel>\(factory = factory\),) Tj
+T*
+(                onBack = { navController.navigateUp\(\) },) Tj
+T*
+(                onOpenUsageAccessSettings = {) Tj
+T*
+(                    context.startActivity\(container.appSettingsIntentFactory.createUsageAccessSettings\(\)\)) Tj
+T*
+(                },) Tj
+T*
+(                onOpenApplicationSettings = { packageName ->) Tj
+T*
+(                    context.startActivity\() Tj
+T*
+(                        container.appSettingsIntentFactory.createApplicationDetailsSettings\(packageName\),) Tj
+T*
+(                    \)) Tj
+T*
+(                },) Tj
+T*
+(            \)) Tj
+T*
+(        }) Tj
+T*
+(        composable\(CleanGuardDestination.CleanupResult.route\) {) Tj
+T*
+(            CleanupResultRoute\() Tj
+T*
+(                viewModel = viewModel<CleanupResultViewModel>\(factory = factory\),) Tj
+T*
+(                onBack = { navController.navigateUp\(\) },) Tj
+T*
+(                onReturnHome = {) Tj
+T*
+(                    navController.navigate\(CleanGuardDestination.Home.route\) {) Tj
+T*
+(                        popUpTo\(CleanGuardDestination.Home.route\) { inclusive = false }) Tj
+T*
+(                        launchSingleTop = true) Tj
+T*
+(                    }) Tj
+T*
+(                },) Tj
+T*
+(            \)) Tj
+T*
+(        }) Tj
+T*
+(    }) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.navigation) Tj
+T*
+(import androidx.lifecycle.ViewModel) Tj
+T*
+(import androidx.lifecycle.ViewModelProvider) Tj
+T*
+(import com.cleanguard.app.di.AppContainer) Tj
+T*
+(import com.cleanguard.app.domain.usecase.LoadStorageOverviewUseCase) Tj
+T*
+(import com.cleanguard.app.domain.usecase.LoadAppStorageUseCase) Tj
+T*
+(import com.cleanguard.app.domain.usecase.CreateCleanupPlanUseCase) Tj
+T*
+(import com.cleanguard.app.domain.usecase.ApplySafetyRulesUseCase) Tj
+T*
+(import com.cleanguard.app.domain.usecase.ScanMediaUseCase) Tj
+T*
+(import com.cleanguard.app.domain.usecase.UpdateLargeFileThresholdUseCase) Tj
+T*
+(import com.cleanguard.app.domain.usecase.ObserveScanHistoryUseCase) Tj
+ET
+endstream
+endobj
+52 0 obj
+<< /Length 3434 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (50) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(import com.cleanguard.app.feature.cleanupdetail.CleanupDetailViewModel) Tj
+T*
+(import com.cleanguard.app.feature.cleanupresult.CleanupResultViewModel) Tj
+T*
+(import com.cleanguard.app.feature.cleanuphistory.CleanupHistoryViewModel) Tj
+T*
+(import com.cleanguard.app.feature.recovery.RecoveryCenterViewModel) Tj
+T*
+(import com.cleanguard.app.feature.home.HomeViewModel) Tj
+T*
+(import com.cleanguard.app.feature.apkinsights.ApkInsightsViewModel) Tj
+T*
+(import com.cleanguard.app.feature.downloadinsights.DownloadInsightsViewModel) Tj
+T*
+(import com.cleanguard.app.feature.duplicates.DuplicateGroupsViewModel) Tj
+T*
+(import com.cleanguard.app.feature.insights.StorageInsightsViewModel) Tj
+T*
+(import com.cleanguard.app.feature.results.ScanResultsViewModel) Tj
+T*
+(import com.cleanguard.app.feature.scanning.ScanningViewModel) Tj
+T*
+(import com.cleanguard.app.feature.scanhistory.ScanHistoryViewModel) Tj
+T*
+(import com.cleanguard.app.feature.settings.SettingsViewModel) Tj
+T*
+(import com.cleanguard.app.feature.permissions.PermissionCenterViewModel) Tj
+T*
+(class CleanGuardViewModelFactory\() Tj
+T*
+(    private val container: AppContainer,) Tj
+T*
+(\) : ViewModelProvider.Factory {) Tj
+T*
+(    @Suppress\("UNCHECKED_CAST"\)) Tj
+T*
+(    override fun <T : ViewModel> create\(modelClass: Class<T>\): T = when {) Tj
+T*
+(        modelClass.isAssignableFrom\(HomeViewModel::class.java\) ->) Tj
+T*
+(            HomeViewModel\() Tj
+T*
+(                loadStorageOverview = LoadStorageOverviewUseCase\(container.storageRepository\),) Tj
+T*
+(                permissionRepository = container.permissionRepository,) Tj
+T*
+(                downloadAccessRepository = container.downloadAccessRepository,) Tj
+T*
+(                observeScanHistory = ObserveScanHistoryUseCase\() Tj
+T*
+(                    container.scanHistoryRepository,) Tj
+T*
+(                    container.appStorageHistoryRepository,) Tj
+T*
+(                \),) Tj
+T*
+(                scanSessionRepository = container.scanRepository,) Tj
+T*
+(                recommendationEngine = container.recommendationEngine,) Tj
+T*
+(                ignoreRuleRepository = container.ignoreRuleRepository,) Tj
+T*
+(            \)) Tj
+T*
+(        modelClass.isAssignableFrom\(ScanHistoryViewModel::class.java\) ->) Tj
+T*
+(            ScanHistoryViewModel\() Tj
+T*
+(                ObserveScanHistoryUseCase\() Tj
+T*
+(                    container.scanHistoryRepository,) Tj
+T*
+(                    container.appStorageHistoryRepository,) Tj
+T*
+(                \),) Tj
+T*
+(            \)) Tj
+T*
+(        modelClass.isAssignableFrom\(CleanupHistoryViewModel::class.java\) ->) Tj
+T*
+(            CleanupHistoryViewModel\(container.cleanupHistoryRepository\)) Tj
+T*
+(        modelClass.isAssignableFrom\(RecoveryCenterViewModel::class.java\) ->) Tj
+T*
+(            RecoveryCenterViewModel\() Tj
+T*
+(                historyRepository = container.cleanupHistoryRepository,) Tj
+T*
+(                recoveryRepository = container.mediaRecoveryRepository,) Tj
+T*
+(            \)) Tj
+T*
+(        modelClass.isAssignableFrom\(ScanningViewModel::class.java\) ->) Tj
+T*
+(            ScanningViewModel\() Tj
+T*
+(                scanMedia = ScanMediaUseCase\(container.mediaScanner\),) Tj
+T*
+(                applySafetyRules = ApplySafetyRulesUseCase\(container.safetyRuleRepository\),) Tj
+ET
+endstream
+endobj
+53 0 obj
+<< /Length 3443 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (51) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(                permissionRepository = container.permissionRepository,) Tj
+T*
+(                scanSessionRepository = container.scanRepository,) Tj
+T*
+(                downloadAccessRepository = container.downloadAccessRepository,) Tj
+T*
+(                safScanner = container.safScanner,) Tj
+T*
+(                settingsRepository = container.settingsRepository,) Tj
+T*
+(            \)) Tj
+T*
+(        modelClass.isAssignableFrom\(ScanResultsViewModel::class.java\) ->) Tj
+T*
+(            ScanResultsViewModel\() Tj
+T*
+(                scanRepository = container.scanRepository,) Tj
+T*
+(                recommendationEngine = container.recommendationEngine,) Tj
+T*
+(                duplicateSessionRepository = container.duplicateSessionRepository,) Tj
+T*
+(                updateLargeFileThreshold = UpdateLargeFileThresholdUseCase\() Tj
+T*
+(                    repository = container.scanRepository,) Tj
+T*
+(                    applySafetyRules = ApplySafetyRulesUseCase\(container.safetyRuleRepository\),) Tj
+T*
+(                    settingsRepository = container.settingsRepository,) Tj
+T*
+(                \),) Tj
+T*
+(                ignoreRuleRepository = container.ignoreRuleRepository,) Tj
+T*
+(            \)) Tj
+T*
+(        modelClass.isAssignableFrom\(CleanupDetailViewModel::class.java\) ->) Tj
+T*
+(            CleanupDetailViewModel\() Tj
+T*
+(                scanRepository = container.scanRepository,) Tj
+T*
+(                recommendationEngine = container.recommendationEngine,) Tj
+T*
+(                cleanupRepository = container.cleanupRepository,) Tj
+T*
+(                createCleanupPlan = CreateCleanupPlanUseCase\(\),) Tj
+T*
+(                initialSelectedIds = container.duplicateSessionRepository.consumeCleanupSelection\(\)) Tj
+T*
+(                    .takeIf { it.isNotEmpty\(\) },) Tj
+T*
+(                confirmedDuplicateIds = {) Tj
+T*
+(                    container.duplicateSessionRepository.groups.value) Tj
+T*
+(                        .flatMapTo\(hashSetOf\(\)\) { group -> group.files.map { it.itemId } }) Tj
+T*
+(                },) Tj
+T*
+(                ignoreRuleRepository = container.ignoreRuleRepository,) Tj
+T*
+(            \)) Tj
+T*
+(        modelClass.isAssignableFrom\(DuplicateGroupsViewModel::class.java\) ->) Tj
+T*
+(            DuplicateGroupsViewModel\() Tj
+T*
+(                scanRepository = container.scanRepository,) Tj
+T*
+(                verificationEngine = container.duplicateVerificationEngine,) Tj
+T*
+(                duplicateSessionRepository = container.duplicateSessionRepository,) Tj
+T*
+(            \)) Tj
+T*
+(        modelClass.isAssignableFrom\(ApkInsightsViewModel::class.java\) ->) Tj
+T*
+(            ApkInsightsViewModel\() Tj
+T*
+(                scanRepository = container.scanRepository,) Tj
+T*
+(                apkAnalyzer = container.apkAnalyzer,) Tj
+T*
+(            \)) Tj
+T*
+(        modelClass.isAssignableFrom\(DownloadInsightsViewModel::class.java\) ->) Tj
+T*
+(            DownloadInsightsViewModel\() Tj
+T*
+(                scanRepository = container.scanRepository,) Tj
+T*
+(                downloadAccessRepository = container.downloadAccessRepository,) Tj
+T*
+(                insightsEngine = container.downloadInsightsEngine,) Tj
+T*
+(            \)) Tj
+T*
+(        modelClass.isAssignableFrom\(StorageInsightsViewModel::class.java\) ->) Tj
+ET
+endstream
+endobj
+54 0 obj
+<< /Length 2999 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (52) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(            StorageInsightsViewModel\() Tj
+T*
+(                scanRepository = container.scanRepository,) Tj
+T*
+(                updateLargeFileThreshold = UpdateLargeFileThresholdUseCase\() Tj
+T*
+(                    repository = container.scanRepository,) Tj
+T*
+(                    applySafetyRules = ApplySafetyRulesUseCase\(container.safetyRuleRepository\),) Tj
+T*
+(                    settingsRepository = container.settingsRepository,) Tj
+T*
+(                \),) Tj
+T*
+(                loadAppStorage = LoadAppStorageUseCase\() Tj
+T*
+(                    repository = container.appStorageRepository,) Tj
+T*
+(                    historyRepository = container.appStorageHistoryRepository,) Tj
+T*
+(                \),) Tj
+T*
+(            \)) Tj
+T*
+(        modelClass.isAssignableFrom\(CleanupResultViewModel::class.java\) ->) Tj
+T*
+(            CleanupResultViewModel\(container.cleanupRepository\)) Tj
+T*
+(        modelClass.isAssignableFrom\(SettingsViewModel::class.java\) ->) Tj
+T*
+(            SettingsViewModel\() Tj
+T*
+(                settingsRepository = container.settingsRepository,) Tj
+T*
+(                scanHistoryRepository = container.scanHistoryRepository,) Tj
+T*
+(                ignoreRuleRepository = container.ignoreRuleRepository,) Tj
+T*
+(            \)) Tj
+T*
+(        modelClass.isAssignableFrom\(PermissionCenterViewModel::class.java\) ->) Tj
+T*
+(            PermissionCenterViewModel\() Tj
+T*
+(                permissionRepository = container.permissionRepository,) Tj
+T*
+(                downloadAccessRepository = container.downloadAccessRepository,) Tj
+T*
+(                appStorageRepository = container.appStorageRepository,) Tj
+T*
+(            \)) Tj
+T*
+(        else -> error\("Unknown ViewModel class: ${modelClass.name}"\)) Tj
+T*
+(    } as T) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.platform.intents) Tj
+T*
+(import android.content.Intent) Tj
+T*
+(import android.net.Uri) Tj
+T*
+(import android.provider.Settings) Tj
+T*
+(class AppSettingsIntentFactory {) Tj
+T*
+(    fun createUsageAccessSettings\(\): Intent = Intent\(Settings.ACTION_USAGE_ACCESS_SETTINGS\)) Tj
+T*
+(    fun createApplicationDetailsSettings\(packageName: String\): Intent = Intent\() Tj
+T*
+(        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,) Tj
+T*
+(        Uri.fromParts\("package", packageName, null\),) Tj
+T*
+(    \)) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.platform.intents) Tj
+T*
+(import android.content.Intent) Tj
+T*
+(import android.provider.DocumentsContract) Tj
+T*
+(import androidx.core.net.toUri) Tj
+T*
+(class DownloadTreeIntentFactory {) Tj
+T*
+(    fun create\(\): Intent = Intent\(Intent.ACTION_OPEN_DOCUMENT_TREE\).apply {) Tj
+T*
+(        addFlags\() Tj
+T*
+(            Intent.FLAG_GRANT_READ_URI_PERMISSION or) Tj
+T*
+(                Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION or) Tj
+T*
+(                Intent.FLAG_GRANT_PREFIX_URI_PERMISSION,) Tj
+ET
+endstream
+endobj
+55 0 obj
+<< /Length 2707 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (53) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(        \)) Tj
+T*
+(        putExtra\() Tj
+T*
+(            DocumentsContract.EXTRA_INITIAL_URI,) Tj
+T*
+(            "content://com.android.externalstorage.documents/document/primary%3ADownload".toUri\(\),) Tj
+T*
+(        \)) Tj
+T*
+(    }) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.platform.intents) Tj
+T*
+(import android.content.Intent) Tj
+T*
+(import android.provider.DocumentsContract) Tj
+T*
+(import androidx.core.net.toUri) Tj
+T*
+(class FileActionIntentFactory {) Tj
+T*
+(    fun createPreview\(contentUri: String, mimeType: String?\): Intent =) Tj
+T*
+(        Intent\(Intent.ACTION_VIEW\).apply {) Tj
+T*
+(            setDataAndType\(contentUri.toUri\(\), mimeType ?: "*/*"\)) Tj
+T*
+(            addFlags\(Intent.FLAG_GRANT_READ_URI_PERMISSION\)) Tj
+T*
+(        }) Tj
+T*
+(    fun createShare\(contentUri: String, mimeType: String?\): Intent =) Tj
+T*
+(        Intent\(Intent.ACTION_SEND\).apply {) Tj
+T*
+(            type = mimeType ?: "*/*") Tj
+T*
+(            putExtra\(Intent.EXTRA_STREAM, contentUri.toUri\(\)\)) Tj
+T*
+(            addFlags\(Intent.FLAG_GRANT_READ_URI_PERMISSION\)) Tj
+T*
+(        }) Tj
+T*
+(    fun createLocate\(treeUri: String?\): Intent = Intent\(Intent.ACTION_OPEN_DOCUMENT\).apply {) Tj
+T*
+(        addCategory\(Intent.CATEGORY_OPENABLE\)) Tj
+T*
+(        type = "*/*") Tj
+T*
+(        addFlags\(Intent.FLAG_GRANT_READ_URI_PERMISSION\)) Tj
+T*
+(        treeUri?.takeIf { it.isNotBlank\(\) }?.let {) Tj
+T*
+(            putExtra\(DocumentsContract.EXTRA_INITIAL_URI, it.toUri\(\)\)) Tj
+T*
+(        }) Tj
+T*
+(    }) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.platform.permissions) Tj
+T*
+(import android.content.Context) Tj
+T*
+(import android.content.pm.PackageManager) Tj
+T*
+(import android.os.Build) Tj
+T*
+(import androidx.core.content.ContextCompat) Tj
+T*
+(import com.cleanguard.app.domain.model.MediaPermissionStatus) Tj
+T*
+(import com.cleanguard.app.domain.model.MediaPermissionOverview) Tj
+T*
+(import com.cleanguard.app.domain.model.PermissionGrantState) Tj
+T*
+(import com.cleanguard.app.domain.repository.PermissionRepository) Tj
+T*
+(class PermissionManager\() Tj
+T*
+(    context: Context,) Tj
+T*
+(\) : PermissionRepository {) Tj
+T*
+(    private val appContext = context.applicationContext) Tj
+T*
+(    override fun getMediaPermissionStatus\(\): MediaPermissionStatus =) Tj
+T*
+(        MediaPermissionPolicy.resolve\(Build.VERSION.SDK_INT\) { permission ->) Tj
+T*
+(            ContextCompat.checkSelfPermission\(appContext, permission\) == PackageManager.PERMISSION_GRANTED) Tj
+T*
+(        }) Tj
+T*
+(    override fun permissionsForRequest\(\): List<String> =) Tj
+ET
+endstream
+endobj
+56 0 obj
+<< /Length 2758 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (54) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(        MediaPermissionPolicy.permissionsForRequest\(Build.VERSION.SDK_INT\)) Tj
+T*
+(    override fun getMediaPermissionOverview\(\): MediaPermissionOverview =) Tj
+T*
+(        MediaPermissionPolicy.overview\(Build.VERSION.SDK_INT\) { permission ->) Tj
+T*
+(            ContextCompat.checkSelfPermission\(appContext, permission\) == PackageManager.PERMISSION_GRANTED) Tj
+T*
+(        }) Tj
+T*
+(}) Tj
+T*
+(internal object MediaPermissionPolicy {) Tj
+T*
+(    private const val READ_EXTERNAL_STORAGE = "android.permission.READ_EXTERNAL_STORAGE") Tj
+T*
+(    private const val READ_MEDIA_IMAGES = "android.permission.READ_MEDIA_IMAGES") Tj
+T*
+(    private const val READ_MEDIA_VIDEO = "android.permission.READ_MEDIA_VIDEO") Tj
+T*
+(    private const val READ_MEDIA_AUDIO = "android.permission.READ_MEDIA_AUDIO") Tj
+T*
+(    private const val READ_MEDIA_VISUAL_USER_SELECTED =) Tj
+T*
+(        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED") Tj
+T*
+(    fun permissionsForRequest\(sdkInt: Int\): List<String> = when {) Tj
+T*
+(        sdkInt >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> listOf\() Tj
+T*
+(            READ_MEDIA_IMAGES,) Tj
+T*
+(            READ_MEDIA_VIDEO,) Tj
+T*
+(            READ_MEDIA_AUDIO,) Tj
+T*
+(            READ_MEDIA_VISUAL_USER_SELECTED,) Tj
+T*
+(        \)) Tj
+T*
+(        sdkInt >= Build.VERSION_CODES.TIRAMISU -> listOf\() Tj
+T*
+(            READ_MEDIA_IMAGES,) Tj
+T*
+(            READ_MEDIA_VIDEO,) Tj
+T*
+(            READ_MEDIA_AUDIO,) Tj
+T*
+(        \)) Tj
+T*
+(        else -> listOf\(READ_EXTERNAL_STORAGE\)) Tj
+T*
+(    }) Tj
+T*
+(    fun resolve\() Tj
+T*
+(        sdkInt: Int,) Tj
+T*
+(        isGranted: \(String\) -> Boolean,) Tj
+T*
+(    \): MediaPermissionStatus {) Tj
+T*
+(        val fullAccessPermissions = when {) Tj
+T*
+(            sdkInt >= Build.VERSION_CODES.TIRAMISU -> listOf\() Tj
+T*
+(                READ_MEDIA_IMAGES,) Tj
+T*
+(                READ_MEDIA_VIDEO,) Tj
+T*
+(                READ_MEDIA_AUDIO,) Tj
+T*
+(            \)) Tj
+T*
+(            else -> listOf\(READ_EXTERNAL_STORAGE\)) Tj
+T*
+(        }) Tj
+T*
+(        if \(fullAccessPermissions.all\(isGranted\)\) {) Tj
+T*
+(            return MediaPermissionStatus.FULL) Tj
+T*
+(        }) Tj
+T*
+(        val hasSelectedVisualAccess =) Tj
+T*
+(            sdkInt >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&) Tj
+T*
+(                isGranted\(READ_MEDIA_VISUAL_USER_SELECTED\)) Tj
+T*
+(        val hasAnyMediaAccess = fullAccessPermissions.any\(isGranted\)) Tj
+T*
+(        return if \(hasSelectedVisualAccess || hasAnyMediaAccess\) {) Tj
+T*
+(            MediaPermissionStatus.PARTIAL) Tj
+T*
+(        } else {) Tj
+T*
+(            MediaPermissionStatus.NONE) Tj
+ET
+endstream
+endobj
+57 0 obj
+<< /Length 2346 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (55) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(        }) Tj
+T*
+(    }) Tj
+T*
+(    fun overview\() Tj
+T*
+(        sdkInt: Int,) Tj
+T*
+(        isGranted: \(String\) -> Boolean,) Tj
+T*
+(    \): MediaPermissionOverview {) Tj
+T*
+(        if \(sdkInt < Build.VERSION_CODES.TIRAMISU\) {) Tj
+T*
+(            val state = if \(isGranted\(READ_EXTERNAL_STORAGE\)\) {) Tj
+T*
+(                PermissionGrantState.AUTHORIZED) Tj
+T*
+(            } else {) Tj
+T*
+(                PermissionGrantState.NOT_AUTHORIZED) Tj
+T*
+(            }) Tj
+T*
+(            return MediaPermissionOverview\(state, state, state\)) Tj
+T*
+(        }) Tj
+T*
+(        val selected = sdkInt >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&) Tj
+T*
+(            isGranted\(READ_MEDIA_VISUAL_USER_SELECTED\)) Tj
+T*
+(        fun visualState\(permission: String\): PermissionGrantState = when {) Tj
+T*
+(            isGranted\(permission\) -> PermissionGrantState.AUTHORIZED) Tj
+T*
+(            selected -> PermissionGrantState.PARTIAL) Tj
+T*
+(            else -> PermissionGrantState.NOT_AUTHORIZED) Tj
+T*
+(        }) Tj
+T*
+(        return MediaPermissionOverview\() Tj
+T*
+(            photos = visualState\(READ_MEDIA_IMAGES\),) Tj
+T*
+(            videos = visualState\(READ_MEDIA_VIDEO\),) Tj
+T*
+(            audio = if \(isGranted\(READ_MEDIA_AUDIO\)\) {) Tj
+T*
+(                PermissionGrantState.AUTHORIZED) Tj
+T*
+(            } else {) Tj
+T*
+(                PermissionGrantState.NOT_AUTHORIZED) Tj
+T*
+(            },) Tj
+T*
+(        \)) Tj
+T*
+(    }) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.ui.components) Tj
+T*
+(import androidx.compose.material3.ExperimentalMaterial3Api) Tj
+T*
+(import androidx.compose.material3.Text) Tj
+T*
+(import androidx.compose.material3.TextButton) Tj
+T*
+(import androidx.compose.material3.TopAppBar) Tj
+T*
+(import androidx.compose.runtime.Composable) Tj
+T*
+(@OptIn\(ExperimentalMaterial3Api::class\)) Tj
+T*
+(@Composable) Tj
+T*
+(fun CleanGuardTopBar\() Tj
+T*
+(    title: String,) Tj
+T*
+(    onBack: \(\(\) -> Unit\)? = null,) Tj
+T*
+(\) {) Tj
+T*
+(    TopAppBar\() Tj
+T*
+(        title = { Text\(title\) },) Tj
+T*
+(        navigationIcon = {) Tj
+T*
+(            if \(onBack != null\) {) Tj
+T*
+(                TextButton\(onClick = onBack\) {) Tj
+T*
+(                    Text\("??"\)) Tj
+ET
+endstream
+endobj
+58 0 obj
+<< /Length 2234 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (56) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(                }) Tj
+T*
+(            }) Tj
+T*
+(        },) Tj
+T*
+(    \)) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.ui.components) Tj
+T*
+(import androidx.compose.foundation.layout.Arrangement) Tj
+T*
+(import androidx.compose.foundation.layout.Column) Tj
+T*
+(import androidx.compose.foundation.layout.ColumnScope) Tj
+T*
+(import androidx.compose.foundation.layout.fillMaxWidth) Tj
+T*
+(import androidx.compose.foundation.layout.padding) Tj
+T*
+(import androidx.compose.material3.Card) Tj
+T*
+(import androidx.compose.material3.CardDefaults) Tj
+T*
+(import androidx.compose.material3.MaterialTheme) Tj
+T*
+(import androidx.compose.material3.Text) Tj
+T*
+(import androidx.compose.runtime.Composable) Tj
+T*
+(import androidx.compose.ui.Modifier) Tj
+T*
+(import androidx.compose.ui.unit.dp) Tj
+T*
+(@Composable) Tj
+T*
+(fun InfoCard\() Tj
+T*
+(    title: String,) Tj
+T*
+(    modifier: Modifier = Modifier,) Tj
+T*
+(    content: @Composable ColumnScope.\(\) -> Unit,) Tj
+T*
+(\) {) Tj
+T*
+(    Card\() Tj
+T*
+(        modifier = modifier.fillMaxWidth\(\),) Tj
+T*
+(        colors = CardDefaults.cardColors\(containerColor = MaterialTheme.colorScheme.surface\),) Tj
+T*
+(    \) {) Tj
+T*
+(        Column\() Tj
+T*
+(            modifier = Modifier.padding\(18.dp\),) Tj
+T*
+(            verticalArrangement = Arrangement.spacedBy\(12.dp\),) Tj
+T*
+(        \) {) Tj
+T*
+(            Text\(title, style = MaterialTheme.typography.titleMedium\)) Tj
+T*
+(            content\(\)) Tj
+T*
+(        }) Tj
+T*
+(    }) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.ui.components) Tj
+T*
+(import androidx.compose.foundation.layout.Arrangement) Tj
+T*
+(import androidx.compose.foundation.layout.Column) Tj
+T*
+(import androidx.compose.foundation.layout.fillMaxWidth) Tj
+T*
+(import androidx.compose.foundation.layout.padding) Tj
+T*
+(import androidx.compose.material3.MaterialTheme) Tj
+T*
+(import androidx.compose.material3.Surface) Tj
+T*
+(import androidx.compose.material3.Text) Tj
+T*
+(import androidx.compose.runtime.Composable) Tj
+T*
+(import androidx.compose.ui.Modifier) Tj
+T*
+(import androidx.compose.ui.unit.dp) Tj
+T*
+(@Composable) Tj
+T*
+(fun MetricTile\() Tj
+ET
+endstream
+endobj
+59 0 obj
+<< /Length 2346 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (57) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(    label: String,) Tj
+T*
+(    value: String,) Tj
+T*
+(    modifier: Modifier = Modifier,) Tj
+T*
+(\) {) Tj
+T*
+(    Surface\() Tj
+T*
+(        modifier = modifier,) Tj
+T*
+(        color = MaterialTheme.colorScheme.surfaceVariant.copy\(alpha = 0.55f\),) Tj
+T*
+(        shape = MaterialTheme.shapes.medium,) Tj
+T*
+(    \) {) Tj
+T*
+(        Column\() Tj
+T*
+(            modifier = Modifier.fillMaxWidth\(\).padding\(14.dp\),) Tj
+T*
+(            verticalArrangement = Arrangement.spacedBy\(4.dp\),) Tj
+T*
+(        \) {) Tj
+T*
+(            Text\(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant\)) Tj
+T*
+(            Text\(value, style = MaterialTheme.typography.titleMedium\)) Tj
+T*
+(        }) Tj
+T*
+(    }) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.ui.theme) Tj
+T*
+(import androidx.compose.ui.graphics.Color) Tj
+T*
+(val GuardGreen = Color\(0xFF176B5B\)) Tj
+T*
+(val GuardGreenDark = Color\(0xFF87D5C2\)) Tj
+T*
+(val GuardGreenContainer = Color\(0xFFD2F0E8\)) Tj
+T*
+(val GuardBlue = Color\(0xFF37618A\)) Tj
+T*
+(val GuardAmber = Color\(0xFF8A5A00\)) Tj
+T*
+(val GuardRed = Color\(0xFF9B4145\)) Tj
+T*
+(val GuardInk = Color\(0xFF18201E\)) Tj
+T*
+(val GuardSurface = Color\(0xFFF7FAF9\)) Tj
+T*
+(val GuardSurfaceDark = Color\(0xFF101514\)) Tj
+T*
+(package com.cleanguard.app.ui.theme) Tj
+T*
+(import androidx.compose.foundation.isSystemInDarkTheme) Tj
+T*
+(import androidx.compose.material3.MaterialTheme) Tj
+T*
+(import androidx.compose.material3.darkColorScheme) Tj
+T*
+(import androidx.compose.material3.lightColorScheme) Tj
+T*
+(import androidx.compose.runtime.Composable) Tj
+T*
+(import androidx.compose.ui.graphics.Color) Tj
+T*
+(private val LightColors = lightColorScheme\() Tj
+T*
+(    primary = GuardGreen,) Tj
+T*
+(    onPrimary = Color.White,) Tj
+T*
+(    primaryContainer = GuardGreenContainer,) Tj
+T*
+(    onPrimaryContainer = Color\(0xFF002019\),) Tj
+T*
+(    secondary = GuardBlue,) Tj
+T*
+(    onSecondary = Color.White,) Tj
+T*
+(    tertiary = GuardAmber,) Tj
+T*
+(    error = GuardRed,) Tj
+T*
+(    background = GuardSurface,) Tj
+T*
+(    onBackground = GuardInk,) Tj
+T*
+(    surface = Color.White,) Tj
+T*
+(    onSurface = GuardInk,) Tj
+T*
+(    surfaceVariant = Color\(0xFFE4ECE9\),) Tj
+ET
+endstream
+endobj
+60 0 obj
+<< /Length 2158 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (58) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(    onSurfaceVariant = Color\(0xFF414946\),) Tj
+T*
+(    outline = Color\(0xFF707976\),) Tj
+T*
+(\)) Tj
+T*
+(private val DarkColors = darkColorScheme\() Tj
+T*
+(    primary = GuardGreenDark,) Tj
+T*
+(    onPrimary = Color\(0xFF00382E\),) Tj
+T*
+(    primaryContainer = Color\(0xFF005143\),) Tj
+T*
+(    onPrimaryContainer = GuardGreenContainer,) Tj
+T*
+(    secondary = Color\(0xFFA2C9F2\),) Tj
+T*
+(    onSecondary = Color\(0xFF043354\),) Tj
+T*
+(    tertiary = Color\(0xFFFFBA47\),) Tj
+T*
+(    error = Color\(0xFFFFB3B5\),) Tj
+T*
+(    background = GuardSurfaceDark,) Tj
+T*
+(    onBackground = Color\(0xFFDFE4E1\),) Tj
+T*
+(    surface = Color\(0xFF171C1B\),) Tj
+T*
+(    onSurface = Color\(0xFFDFE4E1\),) Tj
+T*
+(    surfaceVariant = Color\(0xFF414946\),) Tj
+T*
+(    onSurfaceVariant = Color\(0xFFC0C9C5\),) Tj
+T*
+(    outline = Color\(0xFF8A938F\),) Tj
+T*
+(\)) Tj
+T*
+(@Composable) Tj
+T*
+(fun CleanGuardTheme\() Tj
+T*
+(    darkTheme: Boolean = isSystemInDarkTheme\(\),) Tj
+T*
+(    content: @Composable \(\) -> Unit,) Tj
+T*
+(\) {) Tj
+T*
+(    MaterialTheme\() Tj
+T*
+(        colorScheme = if \(darkTheme\) DarkColors else LightColors,) Tj
+T*
+(        typography = CleanGuardTypography,) Tj
+T*
+(        content = content,) Tj
+T*
+(    \)) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.ui.theme) Tj
+T*
+(import androidx.compose.material3.Typography) Tj
+T*
+(import androidx.compose.ui.text.TextStyle) Tj
+T*
+(import androidx.compose.ui.text.font.FontFamily) Tj
+T*
+(import androidx.compose.ui.text.font.FontWeight) Tj
+T*
+(import androidx.compose.ui.unit.sp) Tj
+T*
+(val CleanGuardTypography = Typography\() Tj
+T*
+(    displaySmall = TextStyle\() Tj
+T*
+(        fontFamily = FontFamily.SansSerif,) Tj
+T*
+(        fontWeight = FontWeight.SemiBold,) Tj
+T*
+(        fontSize = 34.sp,) Tj
+T*
+(        lineHeight = 40.sp,) Tj
+T*
+(    \),) Tj
+T*
+(    headlineMedium = TextStyle\() Tj
+T*
+(        fontFamily = FontFamily.SansSerif,) Tj
+T*
+(        fontWeight = FontWeight.SemiBold,) Tj
+T*
+(        fontSize = 26.sp,) Tj
+T*
+(        lineHeight = 32.sp,) Tj
+T*
+(    \),) Tj
+ET
+endstream
+endobj
+61 0 obj
+<< /Length 2210 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (59) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(    titleLarge = TextStyle\() Tj
+T*
+(        fontFamily = FontFamily.SansSerif,) Tj
+T*
+(        fontWeight = FontWeight.SemiBold,) Tj
+T*
+(        fontSize = 20.sp,) Tj
+T*
+(        lineHeight = 26.sp,) Tj
+T*
+(    \),) Tj
+T*
+(    titleMedium = TextStyle\() Tj
+T*
+(        fontFamily = FontFamily.SansSerif,) Tj
+T*
+(        fontWeight = FontWeight.Medium,) Tj
+T*
+(        fontSize = 16.sp,) Tj
+T*
+(        lineHeight = 22.sp,) Tj
+T*
+(    \),) Tj
+T*
+(    bodyLarge = TextStyle\() Tj
+T*
+(        fontFamily = FontFamily.SansSerif,) Tj
+T*
+(        fontWeight = FontWeight.Normal,) Tj
+T*
+(        fontSize = 16.sp,) Tj
+T*
+(        lineHeight = 24.sp,) Tj
+T*
+(    \),) Tj
+T*
+(    bodyMedium = TextStyle\() Tj
+T*
+(        fontFamily = FontFamily.SansSerif,) Tj
+T*
+(        fontWeight = FontWeight.Normal,) Tj
+T*
+(        fontSize = 14.sp,) Tj
+T*
+(        lineHeight = 21.sp,) Tj
+T*
+(    \),) Tj
+T*
+(    labelLarge = TextStyle\() Tj
+T*
+(        fontFamily = FontFamily.SansSerif,) Tj
+T*
+(        fontWeight = FontWeight.SemiBold,) Tj
+T*
+(        fontSize = 14.sp,) Tj
+T*
+(        lineHeight = 20.sp,) Tj
+T*
+(    \),) Tj
+T*
+(\)) Tj
+T*
+(package com.cleanguard.app.ui.util) Tj
+T*
+(import java.time.Instant) Tj
+T*
+(import java.time.ZoneId) Tj
+T*
+(import java.time.format.DateTimeFormatter) Tj
+T*
+(import java.util.Locale) Tj
+T*
+(private const val KIB = 1024.0) Tj
+T*
+(private const val MIB = KIB * 1024.0) Tj
+T*
+(private const val GIB = MIB * 1024.0) Tj
+T*
+(fun Long.formatBytes\(\): String = when {) Tj
+T*
+(    this >= GIB -> String.format\(Locale.SIMPLIFIED_CHINESE, "%.1f GB", this / GIB\)) Tj
+T*
+(    this >= MIB -> String.format\(Locale.SIMPLIFIED_CHINESE, "%.0f MB", this / MIB\)) Tj
+T*
+(    this >= KIB -> String.format\(Locale.SIMPLIFIED_CHINESE, "%.0f KB", this / KIB\)) Tj
+T*
+(    else -> "$this B") Tj
+T*
+(}) Tj
+T*
+(fun Long.formatDate\(\): String = DateTimeFormatter.ofPattern\("yyyy-MM-dd"\)) Tj
+T*
+(    .withLocale\(Locale.SIMPLIFIED_CHINESE\)) Tj
+T*
+(    .withZone\(ZoneId.systemDefault\(\)\)) Tj
+T*
+(    .format\(Instant.ofEpochMilli\(this\)\)) Tj
+T*
+(package com.cleanguard.app.ui.util) Tj
+ET
+endstream
+endobj
+62 0 obj
+<< /Length 2571 >>
+stream
+BT /F1 8 Tf 45 802 Td (CleanGuard V0.2.0) Tj ET
+BT /F1 8 Tf 530 802 Td (60) Tj ET
+BT
+/F1 7.2 Tf
+13.2 TL
+45 780 Td
+(import androidx.annotation.StringRes) Tj
+T*
+(import com.cleanguard.app.R) Tj
+T*
+(import com.cleanguard.app.domain.recommendation.RecommendationPriority) Tj
+T*
+(import com.cleanguard.app.domain.recommendation.RecommendationReason) Tj
+T*
+(@StringRes) Tj
+T*
+(fun RecommendationPriority.labelResource\(\): Int = when \(this\) {) Tj
+T*
+(    RecommendationPriority.HIGH -> R.string.recommendation_priority_high) Tj
+T*
+(    RecommendationPriority.MEDIUM -> R.string.recommendation_priority_medium) Tj
+T*
+(    RecommendationPriority.LOW -> R.string.recommendation_priority_low) Tj
+T*
+(    RecommendationPriority.NONE -> R.string.recommendation_priority_none) Tj
+T*
+(}) Tj
+T*
+(@StringRes) Tj
+T*
+(fun RecommendationReason.labelResource\(\): Int = when \(this\) {) Tj
+T*
+(    RecommendationReason.CONFIRMED_DUPLICATE -> R.string.recommendation_reason_confirmed_duplicate) Tj
+T*
+(    RecommendationReason.OLD_APK -> R.string.recommendation_reason_old_apk) Tj
+T*
+(    RecommendationReason.OLD_DOWNLOAD -> R.string.recommendation_reason_old_download) Tj
+T*
+(    RecommendationReason.LONG_UNUSED_DOWNLOAD -> R.string.recommendation_reason_long_unused_download) Tj
+T*
+(    RecommendationReason.LARGE_SCREEN_RECORDING -> R.string.recommendation_reason_large_screen_recording) Tj
+T*
+(    RecommendationReason.OLD_SCREENSHOT -> R.string.recommendation_reason_old_screenshot) Tj
+T*
+(    RecommendationReason.LARGE_FILE -> R.string.recommendation_reason_large_file) Tj
+T*
+(    RecommendationReason.VERY_LARGE_FILE -> R.string.recommendation_reason_very_large_file) Tj
+T*
+(    RecommendationReason.APP_STORAGE_GROWTH -> R.string.recommendation_reason_app_storage_growth) Tj
+T*
+(    RecommendationReason.RECENT_FILE -> R.string.recommendation_reason_recent_file) Tj
+T*
+(    RecommendationReason.USER_IGNORED -> R.string.recommendation_reason_user_ignored) Tj
+T*
+(}) Tj
+T*
+(package com.cleanguard.app.ui.util) Tj
+T*
+(import androidx.annotation.StringRes) Tj
+T*
+(import com.cleanguard.app.R) Tj
+T*
+(import com.cleanguard.app.domain.model.MediaScanExecutionType) Tj
+T*
+(@StringRes) Tj
+T*
+(fun MediaScanExecutionType.labelResource\(\): Int = when \(this\) {) Tj
+T*
+(    MediaScanExecutionType.FULL -> R.string.scan_type_full) Tj
+T*
+(    MediaScanExecutionType.INCREMENTAL -> R.string.scan_type_incremental) Tj
+T*
+(    MediaScanExecutionType.FULL_RESYNC -> R.string.scan_type_full_resync) Tj
+T*
+(    MediaScanExecutionType.API_29_FULL -> R.string.scan_type_api29_full) Tj
+T*
+(}) Tj
+ET
+endstream
+endobj
+63 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>
+endobj
+64 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 3 0 R >>
+endobj
+65 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 4 0 R >>
+endobj
+66 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 5 0 R >>
+endobj
+67 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 6 0 R >>
+endobj
+68 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 7 0 R >>
+endobj
+69 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 8 0 R >>
+endobj
+70 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 9 0 R >>
+endobj
+71 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 10 0 R >>
+endobj
+72 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 11 0 R >>
+endobj
+73 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 12 0 R >>
+endobj
+74 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 13 0 R >>
+endobj
+75 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 14 0 R >>
+endobj
+76 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 15 0 R >>
+endobj
+77 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 16 0 R >>
+endobj
+78 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 17 0 R >>
+endobj
+79 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 18 0 R >>
+endobj
+80 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 19 0 R >>
+endobj
+81 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 20 0 R >>
+endobj
+82 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 21 0 R >>
+endobj
+83 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 22 0 R >>
+endobj
+84 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 23 0 R >>
+endobj
+85 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 24 0 R >>
+endobj
+86 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 25 0 R >>
+endobj
+87 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 26 0 R >>
+endobj
+88 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 27 0 R >>
+endobj
+89 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 28 0 R >>
+endobj
+90 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 29 0 R >>
+endobj
+91 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 30 0 R >>
+endobj
+92 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 31 0 R >>
+endobj
+93 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 32 0 R >>
+endobj
+94 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 33 0 R >>
+endobj
+95 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 34 0 R >>
+endobj
+96 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 35 0 R >>
+endobj
+97 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 36 0 R >>
+endobj
+98 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 37 0 R >>
+endobj
+99 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 38 0 R >>
+endobj
+100 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 39 0 R >>
+endobj
+101 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 40 0 R >>
+endobj
+102 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 41 0 R >>
+endobj
+103 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 42 0 R >>
+endobj
+104 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 43 0 R >>
+endobj
+105 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 44 0 R >>
+endobj
+106 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 45 0 R >>
+endobj
+107 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 46 0 R >>
+endobj
+108 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 47 0 R >>
+endobj
+109 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 48 0 R >>
+endobj
+110 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 49 0 R >>
+endobj
+111 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 50 0 R >>
+endobj
+112 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 51 0 R >>
+endobj
+113 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 52 0 R >>
+endobj
+114 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 53 0 R >>
+endobj
+115 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 54 0 R >>
+endobj
+116 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 55 0 R >>
+endobj
+117 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 56 0 R >>
+endobj
+118 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 57 0 R >>
+endobj
+119 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 58 0 R >>
+endobj
+120 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 59 0 R >>
+endobj
+121 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 60 0 R >>
+endobj
+122 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 61 0 R >>
+endobj
+123 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 63 0 R >> >> /Contents 62 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Count 60 /Kids [64 0 R 65 0 R 66 0 R 67 0 R 68 0 R 69 0 R 70 0 R 71 0 R 72 0 R 73 0 R 74 0 R 75 0 R 76 0 R 77 0 R 78 0 R 79 0 R 80 0 R 81 0 R 82 0 R 83 0 R 84 0 R 85 0 R 86 0 R 87 0 R 88 0 R 89 0 R 90 0 R 91 0 R 92 0 R 93 0 R 94 0 R 95 0 R 96 0 R 97 0 R 98 0 R 99 0 R 100 0 R 101 0 R 102 0 R 103 0 R 104 0 R 105 0 R 106 0 R 107 0 R 108 0 R 109 0 R 110 0 R 111 0 R 112 0 R 113 0 R 114 0 R 115 0 R 116 0 R 117 0 R 118 0 R 119 0 R 120 0 R 121 0 R 122 0 R 123 0 R] >>
+endobj
+xref
+0 124
+0000000000 65535 f 
+0000000015 00000 n 
+0000175561 00000 n 
+0000000064 00000 n 
+0000003052 00000 n 
+0000005705 00000 n 
+0000008751 00000 n 
+0000011390 00000 n 
+0000014460 00000 n 
+0000017474 00000 n 
+0000020403 00000 n 
+0000023145 00000 n 
+0000025828 00000 n 
+0000028449 00000 n 
+0000031408 00000 n 
+0000033878 00000 n 
+0000036915 00000 n 
+0000039636 00000 n 
+0000042366 00000 n 
+0000045651 00000 n 
+0000048595 00000 n 
+0000051018 00000 n 
+0000053885 00000 n 
+0000056603 00000 n 
+0000059270 00000 n 
+0000062093 00000 n 
+0000064694 00000 n 
+0000067688 00000 n 
+0000070496 00000 n 
+0000072511 00000 n 
+0000074401 00000 n 
+0000076488 00000 n 
+0000079324 00000 n 
+0000081607 00000 n 
+0000084282 00000 n 
+0000086820 00000 n 
+0000090081 00000 n 
+0000092447 00000 n 
+0000095361 00000 n 
+0000098252 00000 n 
+0000101740 00000 n 
+0000104790 00000 n 
+0000107553 00000 n 
+0000110020 00000 n 
+0000113171 00000 n 
+0000116470 00000 n 
+0000119320 00000 n 
+0000122349 00000 n 
+0000125733 00000 n 
+0000129093 00000 n 
+0000132120 00000 n 
+0000135026 00000 n 
+0000137919 00000 n 
+0000141406 00000 n 
+0000144902 00000 n 
+0000147954 00000 n 
+0000150714 00000 n 
+0000153525 00000 n 
+0000155924 00000 n 
+0000158211 00000 n 
+0000160610 00000 n 
+0000162821 00000 n 
+0000165084 00000 n 
+0000167708 00000 n 
+0000167804 00000 n 
+0000167932 00000 n 
+0000168060 00000 n 
+0000168188 00000 n 
+0000168316 00000 n 
+0000168444 00000 n 
+0000168572 00000 n 
+0000168700 00000 n 
+0000168829 00000 n 
+0000168958 00000 n 
+0000169087 00000 n 
+0000169216 00000 n 
+0000169345 00000 n 
+0000169474 00000 n 
+0000169603 00000 n 
+0000169732 00000 n 
+0000169861 00000 n 
+0000169990 00000 n 
+0000170119 00000 n 
+0000170248 00000 n 
+0000170377 00000 n 
+0000170506 00000 n 
+0000170635 00000 n 
+0000170764 00000 n 
+0000170893 00000 n 
+0000171022 00000 n 
+0000171151 00000 n 
+0000171280 00000 n 
+0000171409 00000 n 
+0000171538 00000 n 
+0000171667 00000 n 
+0000171796 00000 n 
+0000171925 00000 n 
+0000172054 00000 n 
+0000172183 00000 n 
+0000172312 00000 n 
+0000172441 00000 n 
+0000172571 00000 n 
+0000172701 00000 n 
+0000172831 00000 n 
+0000172961 00000 n 
+0000173091 00000 n 
+0000173221 00000 n 
+0000173351 00000 n 
+0000173481 00000 n 
+0000173611 00000 n 
+0000173741 00000 n 
+0000173871 00000 n 
+0000174001 00000 n 
+0000174131 00000 n 
+0000174261 00000 n 
+0000174391 00000 n 
+0000174521 00000 n 
+0000174651 00000 n 
+0000174781 00000 n 
+0000174911 00000 n 
+0000175041 00000 n 
+0000175171 00000 n 
+0000175301 00000 n 
+0000175431 00000 n 
+trailer
+<< /Size 124 /Root 1 0 R >>
+startxref
+176057
+%%EOF

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CleanGuard 隐私政策</title>
+<meta name="description" content="CleanGuard 是一款在本机分析存储占用并协助清理的 Android 应用，无网络权限，不上传任何数据。">
+<meta name="robots" content="index, follow">
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1b1b1f;
+  --muted: #5b5b66;
+  --line: #e3e3e8;
+  --accent: #2f5fd0;
+  --code-bg: #f4f4f7;
+  --quote-bg: #f7f8fb;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14141a;
+    --fg: #e8e8ee;
+    --muted: #a5a5b2;
+    --line: #2c2c36;
+    --accent: #8fb0ff;
+    --code-bg: #1e1e26;
+    --quote-bg: #1a1a22;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  padding: 2rem 1.25rem 4rem;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  font-size: 16px;
+  line-height: 1.75;
+}
+main { max-width: 46rem; margin: 0 auto; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 1.25rem; margin-bottom: 2rem; }
+.app-name { font-size: 1.5rem; font-weight: 700; margin: 0 0 .35rem; letter-spacing: -.01em; }
+.meta { color: var(--muted); font-size: .875rem; margin: 0; }
+h1 { font-size: 1.75rem; margin: 0 0 .5rem; letter-spacing: -.015em; }
+h2 { font-size: 1.2rem; margin: 2.25rem 0 .75rem; padding-top: .25rem; }
+h3 { font-size: 1.02rem; margin: 1.6rem 0 .5rem; }
+p { margin: .85rem 0; }
+ul, ol { margin: .85rem 0; padding-left: 1.4rem; }
+li { margin: .4rem 0; }
+strong { font-weight: 650; }
+a { color: var(--accent); }
+code {
+  background: var(--code-bg);
+  padding: .12em .38em;
+  border-radius: 4px;
+  font-size: .87em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
+  line-height: 1.55;
+}
+pre code { background: none; padding: 0; font-size: .85rem; }
+blockquote {
+  margin: 1rem 0;
+  padding: .75rem 1rem;
+  background: var(--quote-bg);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 6px 6px 0;
+  color: var(--muted);
+}
+hr { border: none; border-top: 1px solid var(--line); margin: 2.25rem 0; }
+.table-wrap { overflow-x: auto; margin: 1.1rem 0; }
+table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+th, td {
+  border: 1px solid var(--line);
+  padding: .55rem .7rem;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: var(--code-bg); font-weight: 650; }
+footer {
+  margin-top: 3rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: .875rem;
+}
+footer p { margin: .4rem 0; }
+@media (max-width: 30rem) {
+  body { padding: 1.5rem 1rem 3rem; font-size: 15.5px; }
+  h1 { font-size: 1.45rem; }
+  h2 { font-size: 1.1rem; margin-top: 1.9rem; }
+}
+</style>
+</head>
+<body>
+<main>
+<h1 id="cleanguard-隐私政策">CleanGuard 隐私政策</h1>
+<p><strong>应用名称</strong>：CleanGuard <strong>包名</strong>：<code>com.cleanguard.app</code> <strong>版本</strong>：0.2.0 <strong>生效日期</strong>：2026-10-26 <strong>适用版本</strong>：CleanGuard V0.2.x <strong>状态</strong>：已由项目所有者批准（2026-10-26） <strong>公开 URL</strong>：&lt;https://jinge091118-bot.github.io/CleanGuard/privacy-policy.html&gt; <strong>支持邮箱</strong>：jinge091118@gmail.com</p>
+<hr>
+<h2 id="摘要">摘要</h2>
+<p>CleanGuard 是一款在本机分析存储占用并协助你清理的 Android 应用。</p>
+<p><strong>CleanGuard 没有网络访问能力。</strong> 应用未声明 <code>INTERNET</code> 权限，代码中不存在任何网络请求实现，也不包含分析、广告或崩溃上报 SDK。你的照片、视频、音频、文件与已安装应用信息不会被传输到任何服务器，也不会有任何数据离开你的设备 —— 唯一的例外是你主动使用系统「分享」或「预览」功能时，由你选择的接收应用获得该文件的临时只读访问权限。</p>
+<hr>
+<h2 id="1-应用请求的权限及其用途">1. 应用请求的权限及其用途</h2>
+<p>CleanGuard 采用最小权限原则。<strong>所有权限都需要你主动点击相关功能按钮后才会请求，应用启动时不会弹出任何权限请求。</strong> 你拒绝任何权限后，应用仍可正常打开，只是对应功能不可用。</p>
+<div class="table-wrap"><table><thead><tr>
+<th>权限</th>
+<th>适用系统</th>
+<th>用途</th>
+<th>不授权时的影响</th>
+</tr></thead><tbody>
+<tr>
+<td><code>READ_EXTERNAL_STORAGE</code></td>
+<td>Android 12 及以下</td>
+<td>读取系统媒体库索引</td>
+<td>无法统计照片/视频/音频占用</td>
+</tr>
+<tr>
+<td><code>READ_MEDIA_IMAGES</code></td>
+<td>Android 13 及以上</td>
+<td>同上</td>
+<td>同上</td>
+</tr>
+<tr>
+<td><code>READ_MEDIA_VIDEO</code></td>
+<td>Android 13 及以上</td>
+<td>同上</td>
+<td>同上</td>
+</tr>
+<tr>
+<td><code>READ_MEDIA_AUDIO</code></td>
+<td>Android 13 及以上</td>
+<td>统计音频占用</td>
+<td>不统计音频空间</td>
+</tr>
+<tr>
+<td><code>READ_MEDIA_VISUAL_USER_SELECTED</code></td>
+<td>Android 14 及以上</td>
+<td>识别你选择「仅部分照片」时的授权范围</td>
+<td>同上；仅用于判定状态</td>
+</tr>
+<tr>
+<td><code>PACKAGE_USAGE_STATS</code>（使用情况访问）</td>
+<td>全部</td>
+<td>读取系统提供的各应用汇总占用</td>
+<td>不显示应用占用增长，其他功能正常</td>
+</tr>
+</tbody></table></div>
+<p><strong>关于使用情况访问权限</strong>：Android 不提供该权限的运行时弹窗。CleanGuard 不会尝试绕过这一限制，而是在你点击「应用占用」相关入口后，引导你前往系统设置手动开启。</p>
+<p><strong>关于「仅选择部分照片」</strong>：在 Android 14 及以上系统中，你可以选择只授权部分照片和视频。CleanGuard 仅分析你选中的项目，并会在界面上明确标注当前处于部分授权状态、统计范围仅基于授权内容。</p>
+<hr>
+<h2 id="2-cleanguard-读取哪些数据">2. CleanGuard 读取哪些数据</h2>
+<h3 id="2-1-常规扫描-只读取索引元数据">2.1 常规扫描：只读取索引元数据</h3>
+<p>当执行「安全体检」时，CleanGuard 通过系统媒体库（MediaStore）查询以下字段：</p>
+<ul>
+<li>文件名</li>
+<li>文件类型（MIME）</li>
+<li>文件大小</li>
+<li>修改时间</li>
+<li>相对目录路径</li>
+</ul>
+<p><strong>常规扫描不会读取媒体文件的内容</strong>，不读取照片或视频的画面，不读取 EXIF 信息，不读取拍摄位置，不读取缩略图。</p>
+<h3 id="2-2-重复文件核对-会读取文件字节计算哈希">2.2 重复文件核对：会读取文件字节计算哈希</h3>
+<p>当你主动进入「重复文件」页面时，CleanGuard 会对候选文件计算 SHA-256，以确认它们的内容是否<strong>完全相同</strong>。</p>
+<ul>
+<li>快速比对：只读取文件头尾各最多 64 KiB</li>
+<li>完整比对：以 64 KiB 固定缓冲流式读取，<strong>不会把整个文件载入内存</strong></li>
+<li>计算结果（哈希值）与文件元数据一起缓存在本机数据库中，用于后续加速重复比对</li>
+<li><strong>不保存文件副本</strong>，不保存文件内容本身</li>
+</ul>
+<p>注意：这是 CleanGuard 中唯一会读取文件字节内容的常规功能，且只在主动进入重复文件页面时触发。</p>
+<h3 id="2-3-apk-洞察-解析安装包信息">2.3 APK 洞察：解析安装包信息</h3>
+<p>当你进入「APK 洞察」页面时，CleanGuard 会把扫描范围内的 <code>.apk</code> 文件复制到应用私有临时目录中，解析出包名、版本名、版本号和应用名称，随后立即删除临时副本。</p>
+<ul>
+<li>只解析上述四项元数据</li>
+<li><strong>不会读取已安装应用的完整列表</strong></li>
+<li>为查询单个 APK 的安装状态，CleanGuard 使用按包名单个查询，并已声明 <code>&lt;queries&gt;</code> 以获取桌面可见应用信息</li>
+<li>受 Android 11+ 包可见性限制而无法确认安装状态时，CleanGuard 显示「安装状态未知」，不会给出错误结论</li>
+</ul>
+<h3 id="2-4-应用占用-只读汇总字节数">2.4 应用占用：只读汇总字节数</h3>
+<p>当你进入「空间洞察」页面时，CleanGuard 通过系统存储统计接口读取：</p>
+<ul>
+<li>仅限<strong>有桌面图标、可正常启动</strong>的应用</li>
+<li>每项仅取应用占用、数据占用、缓存占用的<strong>汇总字节数</strong></li>
+</ul>
+<p><strong>CleanGuard 不会读取这些应用内部的具体文件</strong>，也不会清理其他应用的缓存。</p>
+<h3 id="2-5-下载目录-downloads">2.5 下载目录（Downloads）</h3>
+<p>Download 目录的扫描完全由你通过 Android 系统目录选择器主动授权。CleanGuard：</p>
+<ul>
+<li>只申请该目录的<strong>只读</strong>权限，不申请写入权限</li>
+<li>只读取文件名、类型、大小、修改时间</li>
+<li><strong>不会删除该目录中的任何文件</strong>，也不会修改其中任何文件</li>
+</ul>
+<hr>
+<h2 id="3-cleanguard-如何修改数据">3. CleanGuard 如何修改数据</h2>
+<p>CleanGuard <strong>没有永久删除文件的能力。</strong></p>
+<p>被选中的媒体项目会被移入 <strong>Android 系统回收站（Trash）</strong>，这是 Android 系统提供的标准机制，其保留时长由系统决定，你可以随时在系统设置中清空回收站。</p>
+<p>此外：</p>
+<ul>
+<li>每次处理都会先经过 CleanGuard 内的确认步骤，<strong>再经过 Android 系统的确认界面</strong></li>
+<li>系统确认界面被取消时，不会发生任何删除，也不会显示虚假的「已释放空间」</li>
+<li>移入系统回收站通常不会立即释放物理空间，实际释放时机由系统决定</li>
+<li>CleanGuard 的「恢复中心」只能恢复<strong>由 CleanGuard 自己移入系统回收站</strong>的项目，无法恢复你在系统相册中自行删除的文件</li>
+<li>风险等级为 DANGER 或 UNKNOWN 的条目永远不能进入处理流程；REVIEW 条目默认不选中</li>
+<li>不提供全局一键清理</li>
+</ul>
+<hr>
+<h2 id="4-数据存储与保留">4. 数据存储与保留</h2>
+<p>CleanGuard 使用本机数据库（Room）保存以下内容：</p>
+<ul>
+<li>媒体索引元数据（不含文件内容）</li>
+<li>扫描快照与历史趋势</li>
+<li>应用占用历史</li>
+<li>文件哈希缓存（用于加速重复比对）</li>
+<li>你设置的忽略规则</li>
+<li>清理历史记录（处理时间、数量、空间、关联媒体 URI）</li>
+</ul>
+<p><strong>这些数据全部保存在应用私有目录中，不参与云备份，也不参与设备到设备迁移。</strong> 应用在 Manifest 中显式关闭了备份（<code>allowBackup="false"</code>）并配置了全量排除的备份规则。</p>
+<p>你可以随时在「设置与隐私」中清除哈希缓存、忽略规则，或通过卸载应用删除全部本机数据。</p>
+<hr>
+<h2 id="5-数据是否离开设备">5. 数据是否离开设备</h2>
+<div class="table-wrap"><table><thead><tr>
+<th>场景</th>
+<th>是否离开设备</th>
+<th>说明</th>
+</tr></thead><tbody>
+<tr>
+<td>常规扫描</td>
+<td>否</td>
+<td>本地查询</td>
+</tr>
+<tr>
+<td>重复文件核对</td>
+<td>否</td>
+<td>本地流式计算哈希</td>
+</tr>
+<tr>
+<td>APK 洞察</td>
+<td>否</td>
+<td>临时文件仅存于应用私有目录，用后即删</td>
+</tr>
+<tr>
+<td>应用占用统计</td>
+<td>否</td>
+<td>读取系统提供的汇总数字</td>
+</tr>
+<tr>
+<td>下载目录扫描</td>
+<td>否</td>
+<td>本地只读遍历</td>
+</tr>
+<tr>
+<td>移入系统回收站</td>
+<td>否</td>
+<td>Android 系统本地机制</td>
+</tr>
+<tr>
+<td><strong>你主动点击「分享」</strong></td>
+<td><strong>是（由你决定）</strong></td>
+<td>系统会把该文件的只读 URI 授权给你在系统选择器中选定的应用</td>
+</tr>
+<tr>
+<td><strong>你主动点击「预览」</strong></td>
+<td><strong>是（由你决定）</strong></td>
+<td>系统会把该文件的只读 URI 授权给系统查看器</td>
+</tr>
+</tbody></table></div>
+<p>除上述两处由你显式触发的系统 Intent 外，CleanGuard 不会以任何方式传输数据。</p>
+<hr>
+<h2 id="6-cleanguard-不做的事">6. CleanGuard 不做的事</h2>
+<ul>
+<li>不请求 <code>INTERNET</code> 权限，不具备联网能力</li>
+<li>不请求 <code>MANAGE_EXTERNAL_STORAGE</code>（所有文件访问）</li>
+<li>不请求 <code>QUERY_ALL_PACKAGES</code>（全量应用查询）</li>
+<li>不请求 <code>WRITE_EXTERNAL_STORAGE</code>（外部存储写入）</li>
+<li>不请求 <code>MANAGE_MEDIA</code>（媒体管理）</li>
+<li>不使用 Root、Shell、Shizuku 或隐藏 API</li>
+<li>不使用无障碍服务</li>
+<li>不包含分析、广告或崩溃上报 SDK</li>
+<li>不在后台静默扫描，不开机自启，不提供云同步</li>
+<li>不读取聊天内容、通讯录、通话记录或剪贴板</li>
+<li>不访问其他应用私有目录</li>
+<li>不识别相似图片或近似视频，只确认内容<strong>完全相同</strong>的重复文件</li>
+</ul>
+<hr>
+<h2 id="7-儿童隐私">7. 儿童隐私</h2>
+<p>CleanGuard 不针对儿童设计，也不会有意收集儿童的个人信息。由于应用不具备网络访问能力，任何信息都不会被传输或共享。</p>
+<hr>
+<h2 id="8-政策变更">8. 政策变更</h2>
+<p>本政策随应用版本更新。若有实质性变更，会在应用更新说明中注明，并同步更新本页的生效日期。</p>
+<hr>
+<h2 id="9-联系我们">9. 联系我们</h2>
+<p>如果你对本政策有任何疑问，或者发现应用的实际行为与本文所述不一致，欢迎通过以下邮箱联系我们：</p>
+<p><strong>支持邮箱</strong>：jinge091118@gmail.com</p>
+<p>我们会在合理时间内回复。涉及隐私问题的反馈会被优先处理。</p>
+<p>本政策对应 CleanGuard V0.2.0，对应代码提交见项目仓库。完整的合规事实依据（权限清单、代码行为对照）记录在项目发布文档的 <code>docs/release/v0.2/</code> 目录中，其中 <code>COMPLIANCE-AUDIT.md</code> 逐条列出了每项声明对应的代码位置。</p>
+<footer>
+<p>本页面为 CleanGuard V0.2 的公开隐私政策，与应用内「设置 → 隐私说明」及 Google Play 商店页所列内容一致。</p>
+<p>政策正文源文件随应用源码一同发布，可在应用仓库的 <code>docs/release/v0.2/PRIVACY-POLICY.md</code> 查看。</p>
+</footer>
+</main>
+</body>
+</html>

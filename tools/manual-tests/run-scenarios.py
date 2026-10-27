@@ -362,6 +362,54 @@ def scenario_m11_no_trash_support(serial: str) -> Scenario:
     return scenario
 
 
+def scenario_m09_apk_identification(serial: str) -> Scenario:
+    """An APK in the authorized tree must be identified and compared to the installed app."""
+    scenario = Scenario(serial, "M-09", "下载目录 APK 识别")
+
+    # The candidate has to be a real, installable archive, so the app can read
+    # its manifest and compare the version against the installed package.
+    source = Path(__file__).resolve().parents[2] / "app/build/outputs/apk/release/app-release.apk"
+    if not source.exists():
+        scenario.check("找到待测安装包", False, f"缺少 {source.name}，请先构建 Release APK")
+        return scenario
+
+    target = "/sdcard/Download/cleanguard-m09-candidate.apk"
+    adb(serial, "push", str(source), target, timeout=300)
+    shell(serial, "content call --uri content://media/external --method scan_volume --arg external_primary")
+    time.sleep(6)
+
+    if not open_results(serial):
+        scenario.check("进入结果页", False)
+        return scenario
+
+    node = find(serial, "旧 APK")
+    if not node:
+        scenario.check("找到「旧 APK」入口", False, "结果页未展示 APK 分类")
+        return scenario
+    tap(serial, *node, settle=6)
+
+    scenario.expect_text("APK 洞察")
+    scenario.expect_text("安装包信息")
+    scenario.expect_text("仅在本机读取 APK 元数据")
+    scenario.expect_text("com.cleanguard.app")
+
+    texts = visible_text(serial)
+    # The installed build carries version code 2, so the comparison must land
+    # on "same as installed" rather than on a guessed bucket.
+    scenario.check(
+        "版本对照判定为与已安装相同",
+        any("与已安装版本相同" in text for text in texts),
+        f"可见状态: {[t for t in texts if '版本' in t][:3]}",
+    )
+    scenario.check(
+        "不声称未安装",
+        not any("未发现已安装版本" in text for text in texts),
+    )
+
+    shell(serial, f"rm -f {target}")
+    return scenario
+
+
 SCENARIOS = {
     "M-01": scenario_m01_partial_photos,
     "M-02": scenario_m02_saf,
@@ -372,6 +420,7 @@ SCENARIOS = {
     "M-07": scenario_m07_long_run,
     "M-08": scenario_m08_permission_revoke,
     "M-11": scenario_m11_no_trash_support,
+    "M-09": scenario_m09_apk_identification,
 }
 
 

@@ -37,6 +37,20 @@ Only generated, non-private fixtures may be used. Store them in a dedicated Clea
 
 Record actual MediaStore row counts before every run. A tier is not valid when indexing is still in progress or the expected row count is not present.
 
+The row count that defines a tier is the total the scanner sees, not the number
+of generated files. A physical handset normally already holds rows outside the
+fixture root, because the camera roll and chat archives are indexed as well.
+The generator therefore reads the pre-existing row count first and creates only
+the difference, so the total lands on the requested tier instead of overshooting
+it. Every measurement record states three numbers: the requested tier, the
+pre-existing row count, and the fixture row count that was added. A report that
+labels a run with the tier name alone is not acceptable when the totals differ.
+
+The generator waits for the fixture rows to be indexed by path. Counting the
+whole MediaStore collection would let the pre-existing rows satisfy the
+condition on their own, which lets the run start before the fixture is indexed
+and produces a measurement of the wrong dataset.
+
 ## Test build
 
 The `benchmark` app variant is release-like, non-debuggable, and locally debug-signed. Its benchmark-only manifest enables shell profiling. Production `main` and `release` manifests are unchanged.

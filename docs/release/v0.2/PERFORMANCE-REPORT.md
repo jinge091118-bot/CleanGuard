@@ -82,10 +82,10 @@ Collected with AndroidX Macrobenchmark, ten iterations per metric,
 profile. The plan calls for ten cold-start and ten warm-start iterations, and
 this series meets that count.
 
-| Metric | Median | Minimum | Maximum | Coefficient of variation |
-|---|---:|---:|---:|---:|
-| Time to initial display, cold start | 574.11 ms | 504.90 ms | 695.63 ms | 0.0996 |
-| Time to initial display, warm start | 240.35 ms | 173.46 ms | 262.68 ms | 0.1358 |
+| Metric | Iterations | Median | Minimum | Maximum | Coefficient of variation |
+|---|---:|---:|---:|---:|---:|
+| Time to initial display, cold start | 10 | 574.11 ms | 504.90 ms | 695.63 ms | 0.0996 |
+| Time to initial display, warm start | 10 | 240.35 ms | 173.46 ms | 262.68 ms | 0.1358 |
 
 Raw result file: `performance/2026-10-27-startup.json`.
 
@@ -98,6 +98,45 @@ ten iterations rather than a token number.
 These are the first measurements in this project that come from a confirmed
 physical device and may be used as R3 evidence. The remaining rows are
 collected in the same session and appended below as they complete.
+
+### Harness defect found while collecting the scan series
+
+The scan suite failed on this device for a reason that had nothing to do with
+the application, and the finding is recorded here because it affects any
+benchmark that drives a Compose interface on this ROM.
+
+The scan never started. The benchmark waited for the finished label and then
+timed out, twice, while the startup and scrolling suites passed. Driving the
+same screen by hand completes the scan of the ten thousand row dataset in a
+tenth of a second and shows the finished label, so the product was never
+implicated.
+
+The button was the problem. The Compose button exposes its label as a text
+node that reports itself as not clickable, and the button node around it
+reports the same:
+
+```
+TextView  clickable=false  text=开始安全体检  bounds=[426,1523][654,1578]
+Button    clickable=false                    bounds=[55,1476][1025,1625]
+View      clickable=true                     bounds=[55,1675][1025,1807]
+```
+
+The source is a plain Compose `Button`. An accessibility click is delivered to
+the label, which does not handle it, so the touch never reaches the button and
+the run sat on the home screen with the button visible for the entire timeout.
+A diagnostic that prints the visible text on failure is what identified this:
+the text showed the home screen and the button, which is only consistent with
+a click that never arrived.
+
+The benchmark now injects the touch at the coordinates of the label, which is
+the path a finger takes, and the benchmark package requests the inject events
+permission that the injection needs. The wait for the finished label was also
+shortened from fifteen minutes to three, because a scan that takes a tenth of
+a second cannot plausibly need fifteen minutes, and the long wait had made a
+broken click look like a slow device.
+
+The fix is committed but the series has not been recollected yet, so the scan
+rows in the table above stay open.
 
 ## Virtual-device diagnostic (not R3 evidence)
 Session date: 2026-10-23. Device serial `2023081000029`, adb-reported

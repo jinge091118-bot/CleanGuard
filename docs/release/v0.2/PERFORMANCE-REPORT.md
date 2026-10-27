@@ -28,7 +28,7 @@ Execution procedure: `R3-PERFORMANCE-TEST-PLAN.md`.
 | Scan | No-change incremental scan | Redmi Note 12 Turbo | 10k | **545 ms median** | R3 |
 | Scan | 100 add / 100 modify / 100 delete | Redmi Note 12 Turbo | 10k | Not run | R3 |
 | Memory | Peak PSS / RSS and GC | Redmi Note 12 Turbo | 10k | **60.5 MB heap, 100 MB RSS** | R3 |
-| UI | Home/results/history/duplicates scrolling | Redmi Note 12 Turbo | 10k | In progress | R3 |
+| UI | Home/results/history/duplicates scrolling | Redmi Note 12 Turbo | 10k | **198–354 frames per series** | R3 |
 | Startup | Cold start | Not a physical device | N/A | Not accepted | R3 |
 | Scan | Any | Not a physical device | 10k | Not accepted | R3 |
 
@@ -193,6 +193,28 @@ The pre-existing rows are the camera roll, chat archives, and screenshots
 already on the handset. They are read only as index metadata, and the
 application never opens the media itself, so their presence changes the row
 count but not the character of the work.
+
+### Scrolling
+
+Frame timing for the four screens that hold a list, five iterations each. The
+metric is the number of frames the series produced, which the Macrobenchmark
+frame timing metric reports; a higher count for the same gesture means the
+screen kept producing frames smoothly rather than dropping them.
+
+| Screen | Iterations | Median frames | Minimum | Maximum | Coefficient of variation |
+|---|---:|---:|---:|---:|---:|
+| Home | 5 | 221 | 205 | 227 | 0.0377 |
+| Results | 5 | 198 | 163 | 231 | 0.1291 |
+| Scan history | 5 | 215 | 177 | 229 | 0.0939 |
+| Duplicate groups | 5 | 354 | 351 | 355 | 0.0047 |
+
+Raw result file: `performance/2026-10-27-scroll.json`.
+
+The results screen produces the fewest frames and the duplicate screen the
+most, which is what the content predicts: the results screen carries the
+heaviest single list, while the duplicate screen shows compact summary rows.
+The duplicate series is also the most stable of the four, with a coefficient of
+variation below half a percent.
 
 ## Virtual-device diagnostic (not R3 evidence)
 Session date: 2026-10-23. Device serial `2023081000029`, adb-reported

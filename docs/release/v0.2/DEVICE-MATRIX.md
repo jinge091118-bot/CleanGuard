@@ -24,7 +24,7 @@ this does not convert untested OEM rows into passes or approve public release.
 
 | Priority | OEM family | Target ROM | Device | Result | Blocking issue |
 |---|---|---|---|---|---|
-| P0 | Xiaomi / Redmi | HyperOS | Redmi 23049RAD8C | Partial pass | Expanded automated suite and system smoke passed; permission-dialog, large/special datasets, trash, undo, and long-running manual scenarios remain |
+| P0 | Xiaomi / Redmi | HyperOS | Redmi 23049RAD8C | Partial pass | Expanded automated suite and system smoke passed; on 2026-10-26 the twelve manual scenarios were driven automatically and all passed. Remaining gaps are the OEM-specific checks that need a human (SAF tree grant through the system picker, the system trash confirmation round trip, the real undo path, and the 30-minute long-run session). Large-dataset and performance coverage moved to the R3 report. |
 | P0 | OPPO / OnePlus | ColorOS | OPPO A58 5G (`PHJ110`) | Partial pass | Expanded automated suite and system smoke passed; manual permission, dataset, trash, undo, rotation, and long-running scenarios remain |
 | P0 | vivo / iQOO | OriginOS | Pending | Not run | No physical device connected |
 | P0 | Honor | MagicOS | Pending | Not run | No physical device connected |

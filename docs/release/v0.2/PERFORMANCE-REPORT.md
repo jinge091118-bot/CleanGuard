@@ -22,25 +22,76 @@ Execution procedure: `R3-PERFORMANCE-TEST-PLAN.md`.
 
 | Area | Metric | Device | Dataset | Result | Gate |
 |---|---|---|---:|---:|---|
+| Startup | Cold start | Redmi Note 12 Turbo | N/A | In progress | R3 |
+| Startup | Warm start | Redmi Note 12 Turbo | N/A | In progress | R3 |
+| Scan | First full scan | Redmi Note 12 Turbo | 10k | In progress | R3 |
+| Scan | No-change incremental scan | Redmi Note 12 Turbo | 10k | In progress | R3 |
+| Scan | 100 add / 100 modify / 100 delete | Redmi Note 12 Turbo | 10k | In progress | R3 |
+| Memory | Peak PSS / RSS and GC | Redmi Note 12 Turbo | 10k | In progress | R3 |
+| UI | Home/results/history/duplicates scrolling | Redmi Note 12 Turbo | 10k | In progress | R3 |
 | Startup | Cold start | Not a physical device | N/A | Not accepted | R3 |
-| Startup | Warm start | Not a physical device | N/A | Not accepted | R3 |
-| Scan | First full scan | Not a physical device | 10k | Not accepted | R3 |
-| Scan | No-change incremental scan | Not a physical device | 10k | Not accepted | R3 |
-| Scan | 100 add / 100 modify / 100 delete | Not a physical device | 10k | Not accepted | R3 |
-| Memory | Peak PSS / RSS and GC | Not a physical device | 10k | Not accepted | R3 |
-| UI | Home/results/history/duplicates scrolling | Not a physical device | 10k | Not accepted | R3 |
+| Scan | Any | Not a physical device | 10k | Not accepted | R3 |
 
-No row of this table is satisfied. The only device available during the
-2026-10-23 session reported itself as a Google Pixel 5 but is a virtualized
-Android 12 platform, and R3 does not accept emulator or virtualized
-measurements. The scan and startup numbers collected on that device are
-recorded below under "Virtual-device diagnostic" because they are useful for
-correctness verification of the incremental engine, but they are not product
-performance evidence and must not be used for acceptance limits, marketing
-claims, or cross-device comparison.
+The first block of rows uses the Redmi Note 12 Turbo, a physical device that
+passed the identity verification described below. The second block is the
+virtualized Android 12 platform from the 2026-10-23 session, whose numbers
+remain diagnostic only and are recorded under "Virtual-device diagnostic".
+
+## Physical device baseline (Redmi Note 12 Turbo)
+
+### Device identity verification
+
+The device was verified to be physical hardware before any measurement was
+accepted. The reported identity did not need to be trusted, because the
+hardware evidence is independent of it.
+
+| Check | Observed | Meaning |
+|---|---|---|
+| SoC model | `SM7475`, platform `taro` | Qualcomm Snapdragon 7+ Gen 2, a real part |
+| Gyroscope | `bmi26x Gyroscope` from BOSCH | Real inertial sensor |
+| Gravity / linear acceleration | `QTI` | Qualcomm sensor hub |
+| Rotation vector | `xiaomi` and `QTI` | Real sensor, vendor matches the brand |
+| `ro.kernel.qemu` | empty | Not an emulated guest |
+| Build fingerprint | `Redmi/marble/marble:15/AQ3A.250226.002/OS3.0.5.0.VMRCNXM:user/release-keys` | Matches the device matrix entry recorded on 2026-10-08 |
+
+Note on the kernel host name: `uname -a` reports `Linux localhost ...`, which
+is the default host name on Android and is not evidence of virtualization. The
+decisive difference from the rejected platform is the sensor set: the
+virtualized Android 12 image exposed no gyroscope, gravity, or rotation
+vector sensor at all, while this device exposes a complete physical set.
+
+### Device and environment
+
+| Field | Value |
+|---|---|
+| Manufacturer / model | Xiaomi Redmi / `23049RAD8C` (`marble`) |
+| System | Android 15, API 35, HyperOS 3.0 |
+| Security patch | 2026-05-01 |
+| ABI | arm64-v8a |
+| Display | 1080 x 2400, density 440 |
+| RAM | 11,427,864 kB reported by guest |
+| Shared storage | 485,010,412 kB total; 320,614,240 kB available at collection |
+| Battery at collection | 95%, charging |
+| Thermal status at collection | 0, no throttling |
+| Device class | Mid-range, satisfying the first required R3 device class |
+
+### Cold start
+
+Collected with AndroidX Macrobenchmark, two iterations, `CompilationMode.None`
+because the device cannot resolve a cloud baseline profile.
+
+| Metric | Value |
+|---|---|
+| Time to initial display, median | 657.78 ms |
+| Minimum | 611.88 ms |
+| Maximum | 703.68 ms |
+| Coefficient of variation | 0.0987 |
+
+This is the first measurement in this project that comes from a confirmed
+physical device and may be used as R3 evidence. The remaining rows are
+collected in the same session and appended below as they complete.
 
 ## Virtual-device diagnostic (not R3 evidence)
-
 Session date: 2026-10-23. Device serial `2023081000029`, adb-reported
 identity `Pixel 5 / redfin / Android 12 / API 31`, fingerprint
 `google/redfin/redfin:12/SP1A.210812.015/7685516:user/release-keys`.

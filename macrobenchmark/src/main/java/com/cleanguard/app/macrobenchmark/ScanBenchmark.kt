@@ -14,6 +14,7 @@ import androidx.test.uiautomator.Until
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.regex.Pattern
 
 @RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalMetricApi::class)
@@ -91,11 +92,41 @@ class ScanBenchmark {
     }
 
     private fun startScanAndWait(device: UiDevice) {
-        findStartScanButton(device).click()
-        check(device.wait(Until.hasObject(By.text("安全规则判断完成")), SCAN_TIMEOUT_MS)) {
-            "CleanGuard scan did not finish within the R3 timeout."
+        val button = findStartScanButton(device)
+        val bounds = button.visibleBounds
+        val centerX = bounds.centerX()
+        val centerY = bounds.centerY()
+
+        // The label is a plain text node inside the Compose button, and it
+        // reports itself as not clickable. An accessibility click on it is
+        // delivered to the label, which does not handle it, so the tap never
+        // reaches the button and the scan never starts. Injecting the touch at
+        // the coordinates of the label reaches the button that contains it,
+        // which is the same path a finger takes.
+        device.executeShellCommand("input tap $centerX $centerY")
+
+        // The scan itself takes well under a second on this dataset, so a wait
+        // that runs for minutes means the click did not start a scan. The
+        // screen contents are reported so the failure says which state the
+        // app was actually in.
+        val finished = device.wait(Until.hasObject(By.text(SCAN_FINISHED_LABEL)), SCAN_TIMEOUT_MS)
+        if (!finished) {
+            val visible = visibleLabels(device).joinToString(" | ")
+            error(
+                "CleanGuard scan did not finish within the R3 timeout. " +
+                    "Tapped ($centerX, $centerY) within $bounds. " +
+                    "Visible text: $visible"
+            )
         }
+        println("SCAN_FINISHED")
     }
+
+    private fun visibleLabels(device: UiDevice): List<String> =
+        device.findObjects(By.text(Pattern.compile(".+")))
+            .mapNotNull { it.text }
+            .filter { it.isNotBlank() }
+            .distinct()
+            .take(24)
 
     private fun findStartScanButton(device: UiDevice): UiObject2 {
         repeat(MAX_HOME_SCROLLS) {
@@ -126,4 +157,18 @@ class ScanBenchmark {
 
 private const val SCAN_TRACE_SECTION = "CleanGuardScan"
 private const val MAX_HOME_SCROLLS = 8
-private const val SCAN_TIMEOUT_MS = 15 * 60 * 1_000L
+
+/**
+ * The scan of the ten thousand row dataset completes in about a tenth of a
+ * second, so a wait of a few minutes already separates a slow run from a
+ * click that never started a scan. The earlier value of fifteen minutes made
+ * a broken click look like a slow device.
+ */
+private const val SCAN_TIMEOUT_MS = 3 * 60 * 1_000L
+
+/**
+ * The label the scan screen shows once the local safety assessment has
+ * finished. It is defined here rather than in the app module because the
+ * benchmark module does not depend on the application resources.
+ */
+private const val SCAN_FINISHED_LABEL = "安全规则判断完成"

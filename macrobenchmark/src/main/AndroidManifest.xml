@@ -1,2 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+    The benchmark drives the application through the real touch path rather
+    than through an accessibility action. A Compose button exposes its label as
+    a text node that reports itself as not clickable, so an accessibility
+    click is delivered to the label and dropped before it reaches the button.
+    Injecting the touch at the coordinates of the label reaches the button
+    that contains it, which is what a finger does.
+
+    The injection needs the inject events permission, and the benchmark
+    package does not receive it implicitly. Without this declaration the
+    shell command that performs the tap fails silently, the scan never starts,
+    and the run waits out the full timeout.
+    -->
+    <uses-permission android:name="android.permission.INJECT_EVENTS" />
+
+</manifest>

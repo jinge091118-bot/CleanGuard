@@ -70,9 +70,53 @@ run_suite() {
   echo "=== running $label ==="
   timeout 3000 ./gradlew.bat --offline :macrobenchmark:connectedBenchmarkAndroidTest \
     "-Pandroid.testInstrumentationRunnerArguments.class=$class" \
-    "$@" 2>&1 | tail -6
+    "$@" 2>&1 | tail -8
   harvest_results "$label"
 }
+
+# HyperOS blocks installing an APK over USB unless the developer option is on,
+# and the block surfaces as a generic install failure that says nothing about
+# the cause. Checking the notification that reports the block turns a silent
+# failure into an actionable message.
+report_install_gate() {
+  local blocked
+  blocked=$("$ADB_BIN" -s "$SERIAL" shell "dumpsys notification --noredact 2>/dev/null | grep -c '应用安装拦截'" | tr -d '\r')
+  if [ "${blocked:-0}" -gt 0 ]; then
+    echo ""
+    echo "!!! HyperOS is blocking APK installation over USB." >&2
+    echo "!!! On the phone: 设置 → 更多设置 → 开发者选项 → 开启「USB 安装」。" >&2
+    echo "!!! See docs/release/v0.2/HYPEROS-INSTALL-GATE.md" >&2
+    echo ""
+  fi
+}
+
+preflight() {
+  echo "=== preflight ==="
+  local model
+  model=$("$ADB_BIN" -s "$SERIAL" shell "getprop ro.product.model" | tr -d '\r')
+  echo "device        : $model"
+
+  local rows=0
+  local collection
+  for collection in images video audio; do
+    local count
+    count=$("$ADB_BIN" -s "$SERIAL" shell "content query --uri content://media/external/$collection/media --projection _id 2>/dev/null | wc -l" | tr -d '\r')
+    rows=$(( rows + ${count:-0} ))
+  done
+  echo "media rows    : $rows"
+
+  local battery
+  battery=$("$ADB_BIN" -s "$SERIAL" shell "dumpsys battery | grep -E 'level'" | tr -d '\r')
+  echo "battery       : $battery"
+
+  local thermal
+  thermal=$("$ADB_BIN" -s "$SERIAL" shell "dumpsys thermalservice | grep -m1 'Thermal Status'" | tr -d '\r')
+  echo "thermal       : $thermal"
+
+  report_install_gate
+}
+
+preflight
 
 case "$SUITES" in
   startup)

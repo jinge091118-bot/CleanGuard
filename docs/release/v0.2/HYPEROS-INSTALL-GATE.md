@@ -48,9 +48,43 @@ SecurityException: Permission Denial: opening provider com.miui.securitycenter.p
 
 因此**该开关无法通过 adb 打开，必须在手机上手动设置**。
 
+### 2.1 补充：该开关实际由一个 persist 属性承载（2026-10-27 20:45 发现）
+
+在项目所有者手动开启过一次之后，进一步排查发现该开关的状态存放在系统属性里：
+
+```bash
+adb shell getprop persist.security.uks_opened
+# → 1   （开启时）
+
+adb shell setprop persist.security.uks_opened 1
+# → 之后 pm install 立即返回 Success
+```
+
+该属性由 MIUI 安全中心读取，**`setprop` 需要 root，因此 shell 身份下会失败**：
+
+```
+See dmesg for error reason.
+```
+
+实测行为（属性已为 1 时）：
+
+| 操作 | 结果 |
+|---|---|
+| `pm install`（第一次） | `INSTALL_FAILED_USER_RESTRICTED` |
+| `pm install`（紧接着第二次） | `Success` |
+
+即第一次失败、第二次成功 —— 看起来像属性写入有延迟或 MIUI 在安装时还有一次额外的校验。
+**采集脚本因此在 preflight 阶段主动设置该属性**，减少一次失败轮次。
+
+> ⚠️ 由于 `setprop` 需要 root，脚本里的这一步在普通 shell 身份下大概率无效。
+> **仍然需要项目所有者在手机上手动开启一次「USB 安装」**，脚本的设置只是best-effort 的补充。
+
 ---
 
 ## 3. 需要人工完成的操作
+
+> **状态：2026-10-27 20:40 已由项目所有者在手机上开启，采集随即恢复。**
+> 开启后 `pm install` 立即返回 `Success`，拦截通知计数归零。
 
 在红米手机上：
 

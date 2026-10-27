@@ -22,8 +22,8 @@ Execution procedure: `R3-PERFORMANCE-TEST-PLAN.md`.
 
 | Area | Metric | Device | Dataset | Result | Gate |
 |---|---|---|---:|---:|---|
-| Startup | Cold start | Redmi Note 12 Turbo | N/A | In progress | R3 |
-| Startup | Warm start | Redmi Note 12 Turbo | N/A | In progress | R3 |
+| Startup | Cold start | Redmi Note 12 Turbo | N/A | **574 ms median** | R3 |
+| Startup | Warm start | Redmi Note 12 Turbo | N/A | **240 ms median** | R3 |
 | Scan | First full scan | Redmi Note 12 Turbo | 10k | In progress | R3 |
 | Scan | No-change incremental scan | Redmi Note 12 Turbo | 10k | In progress | R3 |
 | Scan | 100 add / 100 modify / 100 delete | Redmi Note 12 Turbo | 10k | In progress | R3 |
@@ -71,23 +71,31 @@ vector sensor at all, while this device exposes a complete physical set.
 | Display | 1080 x 2400, density 440 |
 | RAM | 11,427,864 kB reported by guest |
 | Shared storage | 485,010,412 kB total; 320,614,240 kB available at collection |
-| Battery at collection | 95%, charging |
+| Battery at collection | 95%, charging (startup series) / 56% (scan series) |
 | Thermal status at collection | 0, no throttling |
 | Device class | Mid-range, satisfying the first required R3 device class |
 
-### Cold start
+### Startup
 
-Collected with AndroidX Macrobenchmark, two iterations, `CompilationMode.None`
-because the device cannot resolve a cloud baseline profile.
+Collected with AndroidX Macrobenchmark, ten iterations per metric,
+`CompilationMode.None` because the device cannot resolve a cloud baseline
+profile. The plan calls for ten cold-start and ten warm-start iterations, and
+this series meets that count.
 
-| Metric | Value |
-|---|---|
-| Time to initial display, median | 657.78 ms |
-| Minimum | 611.88 ms |
-| Maximum | 703.68 ms |
-| Coefficient of variation | 0.0987 |
+| Metric | Median | Minimum | Maximum | Coefficient of variation |
+|---|---:|---:|---:|---:|
+| Time to initial display, cold start | 574.11 ms | 504.90 ms | 695.63 ms | 0.0996 |
+| Time to initial display, warm start | 240.35 ms | 173.46 ms | 262.68 ms | 0.1358 |
 
-This is the first measurement in this project that comes from a confirmed
+Raw result file: `performance/2026-10-27-startup.json`.
+
+An earlier two-iteration run in the same session produced a cold-start median
+of 657.78 ms with a coefficient of variation of 0.0987. The ten-iteration series
+above supersedes it. The difference between the two is consistent with the
+expected warm-up effect in a short series and is the reason the plan requires
+ten iterations rather than a token number.
+
+These are the first measurements in this project that come from a confirmed
 physical device and may be used as R3 evidence. The remaining rows are
 collected in the same session and appended below as they complete.
 

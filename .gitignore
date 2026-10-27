@@ -10,6 +10,7 @@
 tmp/
 .pages-build/
 .demo-media/
+.screenshots/
 r3-results/
 __pycache__/
 *.pyc

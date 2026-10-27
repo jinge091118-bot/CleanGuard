@@ -1,0 +1,215 @@
+{
+    "context": {
+        "build": {
+            "brand": "Redmi",
+            "device": "marble",
+            "fingerprint": "Redmi/marble/marble:15/AQ3A.250226.002/OS3.0.5.0.VMRCNXM:user/release-keys",
+            "id": "AQ3A.250226.002",
+            "model": "23049RAD8C",
+            "type": "user",
+            "version": {
+                "codename": "REL",
+                "sdk": 35
+            }
+        },
+        "cpuCoreCount": 8,
+        "cpuLocked": false,
+        "cpuMaxFreqHz": 2918400000,
+        "memTotalBytes": 11702132736,
+        "sustainedPerformanceModeEnabled": false,
+        "artMainlineVersion": 352090000,
+        "osCodenameAbbreviated": "REL",
+        "compilationMode": "run-from-apk",
+        "payload": {}
+    },
+    "benchmarks": [
+        {
+            "name": "firstFullScan",
+            "params": {},
+            "className": "com.cleanguard.app.macrobenchmark.ScanBenchmark",
+            "totalRunTimeNs": 31887429727,
+            "metrics": {
+                "CleanGuardScanFirstMs": {
+                    "minimum": 637.445937,
+                    "maximum": 661.172344,
+                    "median": 658.626041,
+                    "coefficientOfVariation": 0.01996546141454106,
+                    "runs": [
+                        661.172344,
+                        637.445937,
+                        658.626041
+                    ]
+                },
+                "memoryGpuMaxKb": {
+                    "minimum": 45656.0,
+                    "maximum": 45656.0,
+                    "median": 45656.0,
+                    "coefficientOfVariation": 0.0,
+                    "runs": [
+                        45656.0,
+                        45656.0,
+                        45656.0
+                    ]
+                },
+                "memoryHeapSizeMaxKb": {
+                    "minimum": 61846.0,
+                    "maximum": 62058.0,
+                    "median": 61906.0,
+                    "coefficientOfVariation": 0.001764324976237047,
+                    "runs": [
+                        61906.0,
+                        61846.0,
+                        62058.0
+                    ]
+                },
+                "memoryRssAnonMaxKb": {
+                    "minimum": 101984.0,
+                    "maximum": 103464.0,
+                    "median": 102436.0,
+                    "coefficientOfVariation": 0.007390293615133798,
+                    "runs": [
+                        102436.0,
+                        101984.0,
+                        103464.0
+                    ]
+                },
+                "memoryRssFileMaxKb": {
+                    "minimum": 147972.0,
+                    "maximum": 148592.0,
+                    "median": 147992.0,
+                    "coefficientOfVariation": 0.0023776010692419065,
+                    "runs": [
+                        147972.0,
+                        147992.0,
+                        148592.0
+                    ]
+                }
+            },
+            "sampledMetrics": {},
+            "warmupIterations": 0,
+            "repeatIterations": 3,
+            "thermalThrottleSleepSeconds": 0,
+            "profilerOutputs": [
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 0",
+                    "filename": "ScanBenchmark_firstFullScan_iter000_2026-10-27-14-38-36.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 1",
+                    "filename": "ScanBenchmark_firstFullScan_iter001_2026-10-27-14-38-46.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 2",
+                    "filename": "ScanBenchmark_firstFullScan_iter002_2026-10-27-14-38-56.perfetto-trace"
+                }
+            ]
+        },
+        {
+            "name": "noChangeIncrementalScan",
+            "params": {},
+            "className": "com.cleanguard.app.macrobenchmark.ScanBenchmark",
+            "totalRunTimeNs": 52877483000,
+            "metrics": {
+                "CleanGuardScanFirstMs": {
+                    "minimum": 535.544583,
+                    "maximum": 559.91052,
+                    "median": 544.720313,
+                    "coefficientOfVariation": 0.016514212326505146,
+                    "runs": [
+                        559.91052,
+                        542.780938,
+                        535.544583,
+                        544.720313,
+                        549.488177
+                    ]
+                },
+                "memoryGpuMaxKb": {
+                    "minimum": 45656.0,
+                    "maximum": 45656.0,
+                    "median": 45656.0,
+                    "coefficientOfVariation": 0.0,
+                    "runs": [
+                        45656.0,
+                        45656.0,
+                        45656.0,
+                        45656.0,
+                        45656.0
+                    ]
+                },
+                "memoryHeapSizeMaxKb": {
+                    "minimum": 51634.0,
+                    "maximum": 51766.0,
+                    "median": 51680.0,
+                    "coefficientOfVariation": 0.0010375593865981003,
+                    "runs": [
+                        51670.0,
+                        51634.0,
+                        51739.0,
+                        51766.0,
+                        51680.0
+                    ]
+                },
+                "memoryRssAnonMaxKb": {
+                    "minimum": 94900.0,
+                    "maximum": 98424.0,
+                    "median": 95904.0,
+                    "coefficientOfVariation": 0.014911404495448003,
+                    "runs": [
+                        98424.0,
+                        95904.0,
+                        96256.0,
+                        94900.0,
+                        94956.0
+                    ]
+                },
+                "memoryRssFileMaxKb": {
+                    "minimum": 136316.0,
+                    "maximum": 149044.0,
+                    "median": 137244.0,
+                    "coefficientOfVariation": 0.03871964731136482,
+                    "runs": [
+                        149044.0,
+                        137300.0,
+                        136316.0,
+                        137168.0,
+                        137244.0
+                    ]
+                }
+            },
+            "sampledMetrics": {},
+            "warmupIterations": 0,
+            "repeatIterations": 5,
+            "thermalThrottleSleepSeconds": 0,
+            "profilerOutputs": [
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 0",
+                    "filename": "ScanBenchmark_noChangeIncrementalScan_iter000_2026-10-27-14-39-15.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 1",
+                    "filename": "ScanBenchmark_noChangeIncrementalScan_iter001_2026-10-27-14-39-26.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 2",
+                    "filename": "ScanBenchmark_noChangeIncrementalScan_iter002_2026-10-27-14-39-36.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 3",
+                    "filename": "ScanBenchmark_noChangeIncrementalScan_iter003_2026-10-27-14-39-46.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 4",
+                    "filename": "ScanBenchmark_noChangeIncrementalScan_iter004_2026-10-27-14-39-57.perfetto-trace"
+                }
+            ]
+        }
+    ]
+}

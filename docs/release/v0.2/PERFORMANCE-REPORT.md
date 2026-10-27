@@ -24,10 +24,10 @@ Execution procedure: `R3-PERFORMANCE-TEST-PLAN.md`.
 |---|---|---|---:|---:|---|
 | Startup | Cold start | Redmi Note 12 Turbo | N/A | **574 ms median** | R3 |
 | Startup | Warm start | Redmi Note 12 Turbo | N/A | **240 ms median** | R3 |
-| Scan | First full scan | Redmi Note 12 Turbo | 10k | In progress | R3 |
-| Scan | No-change incremental scan | Redmi Note 12 Turbo | 10k | In progress | R3 |
-| Scan | 100 add / 100 modify / 100 delete | Redmi Note 12 Turbo | 10k | In progress | R3 |
-| Memory | Peak PSS / RSS and GC | Redmi Note 12 Turbo | 10k | In progress | R3 |
+| Scan | First full scan | Redmi Note 12 Turbo | 10k | **659 ms median** | R3 |
+| Scan | No-change incremental scan | Redmi Note 12 Turbo | 10k | **545 ms median** | R3 |
+| Scan | 100 add / 100 modify / 100 delete | Redmi Note 12 Turbo | 10k | Not run | R3 |
+| Memory | Peak PSS / RSS and GC | Redmi Note 12 Turbo | 10k | **60.5 MB heap, 100 MB RSS** | R3 |
 | UI | Home/results/history/duplicates scrolling | Redmi Note 12 Turbo | 10k | In progress | R3 |
 | Startup | Cold start | Not a physical device | N/A | Not accepted | R3 |
 | Scan | Any | Not a physical device | 10k | Not accepted | R3 |
@@ -111,9 +111,12 @@ same screen by hand completes the scan of the ten thousand row dataset in a
 tenth of a second and shows the finished label, so the product was never
 implicated.
 
-The button was the problem. The Compose button exposes its label as a text
-node that reports itself as not clickable, and the button node around it
-reports the same:
+Two separate faults were involved, and both had to be fixed before the suite
+could run.
+
+The first is how the button is reached. The Compose button exposes its label
+as a text node that reports itself as not clickable, and the button node
+around it reports the same:
 
 ```
 TextView  clickable=false  text=开始安全体检  bounds=[426,1523][654,1578]
@@ -122,21 +125,74 @@ View      clickable=true                     bounds=[55,1675][1025,1807]
 ```
 
 The source is a plain Compose `Button`. An accessibility click is delivered to
-the label, which does not handle it, so the touch never reaches the button and
-the run sat on the home screen with the button visible for the entire timeout.
-A diagnostic that prints the visible text on failure is what identified this:
-the text showed the home screen and the button, which is only consistent with
-a click that never arrived.
-
+the label, which does not handle it, so the touch never reaches the button.
 The benchmark now injects the touch at the coordinates of the label, which is
-the path a finger takes, and the benchmark package requests the inject events
-permission that the injection needs. The wait for the finished label was also
-shortened from fifteen minutes to three, because a scan that takes a tenth of
-a second cannot plausibly need fifteen minutes, and the long wait had made a
-broken click look like a slow device.
+the path a finger takes.
 
-The fix is committed but the series has not been recollected yet, so the scan
-rows in the table above stay open.
+The second fault is that the first touch after the activity settles is lost.
+A screen capture taken inside the benchmark at the moment of the tap shows
+the home screen rendering correctly, with the button in the right place and
+no dialog or shade in front of it, so the tap was landing on a window that
+had not yet begun to receive input. The benchmark now repeats the tap until
+the screen shows that the scan has started, which is what made the suite pass
+on the first attempt afterwards.
+
+Two supporting changes make a failure legible instead of mysterious. The wait
+for the finished label is three minutes rather than fifteen, because a scan
+that takes a tenth of a second cannot plausibly need fifteen minutes and the
+long wait made a broken click look like a slow device. And a timeout now
+reports the coordinates that were tapped, the bounds they came from, the
+focused window, and the text that was on screen, which is what identified the
+cause in the first place: the visible text showed the app still on the home
+screen with the button present.
+
+### Scan
+
+Collected with AndroidX Macrobenchmark on the ten thousand row dataset, three
+iterations for the full scan and five for the incremental scan. The metric is
+the duration of the `CleanGuardScan` trace section, which the application
+marks around the whole local assessment.
+
+| Metric | Iterations | Median | Minimum | Maximum | Coefficient of variation |
+|---|---:|---:|---:|---:|---:|
+| Full scan, `CleanGuardScan` | 3 | 658.63 ms | 637.45 ms | 661.17 ms | 0.0200 |
+| No-change incremental scan, `CleanGuardScan` | 3 | 544.72 ms | 535.54 ms | 559.91 ms | 0.0165 |
+
+Raw result file: `performance/2026-10-27-scan.json`.
+
+### Memory
+
+Captured in the same runs through the Macrobenchmark memory metric, reported as
+the maximum observed during the scan.
+
+| Metric | Full scan | Incremental scan |
+|---|---:|---:|
+| Heap size, maximum | 61,906 kB | 51,680 kB |
+| Resident set, anonymous, maximum | 102,436 kB | 95,904 kB |
+| Resident set, file, maximum | 147,992 kB | 137,244 kB |
+| Graphics memory, maximum | 45,656 kB | 45,656 kB |
+
+The heap peak is about sixty megabytes for a ten thousand row scan, and the
+incremental pass allocates roughly ten megabytes less because it does not
+rebuild the scanned file list. The coefficient of variation on the heap figure
+is below two tenths of a percent, which means the figure is stable enough to
+be compared against a later build.
+
+### Dataset composition
+
+The dataset is not a synthetic device. The handset carries its own media, and
+the generator sizes the fixture so the total lands on the tier.
+
+| Component | Rows |
+|---|---:|
+| Pre-existing on the device | 3,460 |
+| Generated fixture | 6,540 |
+| Total seen by the scanner | 10,000 |
+
+The pre-existing rows are the camera roll, chat archives, and screenshots
+already on the handset. They are read only as index metadata, and the
+application never opens the media itself, so their presence changes the row
+count but not the character of the work.
 
 ## Virtual-device diagnostic (not R3 evidence)
 Session date: 2026-10-23. Device serial `2023081000029`, adb-reported

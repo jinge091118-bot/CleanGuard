@@ -9,12 +9,10 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
-import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.util.regex.Pattern
 
 @RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalMetricApi::class)
@@ -92,58 +90,72 @@ class ScanBenchmark {
     }
 
     private fun startScanAndWait(device: UiDevice) {
-        val button = findStartScanButton(device)
+        val button = Navigation.find(device, Navigation.SCAN_BUTTON_LABEL)
+            ?: error("Could not find the scan button on the home screen.")
         val bounds = button.visibleBounds
         val centerX = bounds.centerX()
         val centerY = bounds.centerY()
 
-        // The label is a plain text node inside the Compose button, and it
-        // reports itself as not clickable. An accessibility click on it is
-        // delivered to the label, which does not handle it, so the tap never
-        // reaches the button and the scan never starts. Injecting the touch at
-        // the coordinates of the label reaches the button that contains it,
-        // which is the same path a finger takes.
-        device.executeShellCommand("input tap $centerX $centerY")
+        // The touch is injected at the coordinates of the label and repeated
+        // until the screen changes. Both details matter on this device, and
+        // the reasoning is recorded in the navigation helper.
+        var attempts = 0
+        var started = false
+        while (attempts < MAX_SCAN_TAP_ATTEMPTS && !started) {
+            attempts += 1
+            device.click(centerX, centerY)
+            device.waitForIdle()
+            Thread.sleep(1200)
+            started = device.hasObject(By.text(Navigation.SCAN_FINISHED_LABEL)) ||
+                device.hasObject(By.text(Navigation.SCAN_STARTED_LABEL))
+        }
+        println("SCAN_TAP_ATTEMPTS=$attempts")
+
+        // Give the tap a moment to land before the screen is inspected, so a
+        // screen that is still the home page means the tap did not reach the
+        // button rather than that the inspection was too early.
+        val afterTap = Navigation.visibleLabels(device).joinToString(" | ")
+        val focus = focusedWindow(device)
+        captureScreen(device, "after-tap")
 
         // The scan itself takes well under a second on this dataset, so a wait
         // that runs for minutes means the click did not start a scan. The
         // screen contents are reported so the failure says which state the
         // app was actually in.
-        val finished = device.wait(Until.hasObject(By.text(SCAN_FINISHED_LABEL)), SCAN_TIMEOUT_MS)
+        val finished = device.wait(Until.hasObject(By.text(Navigation.SCAN_FINISHED_LABEL)), SCAN_TIMEOUT_MS)
         if (!finished) {
-            val visible = visibleLabels(device).joinToString(" | ")
+            val visible = Navigation.visibleLabels(device).joinToString(" | ")
             error(
                 "CleanGuard scan did not finish within the R3 timeout. " +
                     "Tapped ($centerX, $centerY) within $bounds. " +
-                    "Visible text: $visible"
+                    "Focused window: $focus. " +
+                    "Text right after the tap: $afterTap. " +
+                    "Text at timeout: $visible"
             )
         }
         println("SCAN_FINISHED")
     }
 
-    private fun visibleLabels(device: UiDevice): List<String> =
-        device.findObjects(By.text(Pattern.compile(".+")))
-            .mapNotNull { it.text }
-            .filter { it.isNotBlank() }
-            .distinct()
-            .take(24)
+    /**
+     * The window that currently holds the input focus. A shade or a system
+     * dialog in front of the application swallows every touch, which looks
+     * exactly like a button that cannot be clicked.
+     */
+    private fun focusedWindow(device: UiDevice): String =
+        device.executeShellCommand(
+            "dumpsys window | grep -E 'mCurrentFocus|mFocusedApp' | head -2"
+        ).trim().replace("\n", " ; ")
 
-    private fun findStartScanButton(device: UiDevice): UiObject2 {
-        repeat(MAX_HOME_SCROLLS) {
-            device.findObject(By.text("开始安全体检"))
-                ?.takeIf { it.visibleBounds.height() > 0 && it.visibleBounds.bottom > 0 }
-                ?.let { return it }
-            val centerX = device.displayWidth / 2
-            device.swipe(
-                centerX,
-                (device.displayHeight * 0.8f).toInt(),
-                centerX,
-                (device.displayHeight * 0.2f).toInt(),
-                20,
-            )
-            device.waitForIdle()
-        }
-        error("Could not find the Start Safety Check button on the home screen.")
+    /**
+     * Write a screenshot into the shared download area, where the host can
+     * collect it. The image shows what was on the display at the moment the
+     * tap was issued, which settles whether the tap reached the application
+     * or was swallowed by something in front of it.
+     */
+    private fun captureScreen(device: UiDevice, name: String) {
+        val path = "/sdcard/Download/cleanguard-$name.png"
+        device.executeShellCommand("screencap -p $path")
+        println("SCREENSHOT_PATH=$path")
     }
 
     private fun scanMetrics() = listOf(
@@ -156,7 +168,6 @@ class ScanBenchmark {
 }
 
 private const val SCAN_TRACE_SECTION = "CleanGuardScan"
-private const val MAX_HOME_SCROLLS = 8
 
 /**
  * The scan of the ten thousand row dataset completes in about a tenth of a
@@ -167,8 +178,6 @@ private const val MAX_HOME_SCROLLS = 8
 private const val SCAN_TIMEOUT_MS = 3 * 60 * 1_000L
 
 /**
- * The label the scan screen shows once the local safety assessment has
- * finished. It is defined here rather than in the app module because the
- * benchmark module does not depend on the application resources.
+ * How many times the start button is pressed before the run is given up on.
  */
-private const val SCAN_FINISHED_LABEL = "安全规则判断完成"
+private const val MAX_SCAN_TAP_ATTEMPTS = 4

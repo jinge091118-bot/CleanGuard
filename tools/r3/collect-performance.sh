@@ -23,6 +23,11 @@ export MSYS2_ARG_CONV_EXCL="*"
 ADB_BIN="${ADB_BIN:-I:/Android/Sdk/platform-tools/adb.exe}"
 TARGET_PACKAGE="com.cleanguard.app"
 SERIAL="${1:-}"
+
+# How many times an install is attempted before the collection gives up. The
+# HyperOS gate rejects the first attempt after it comes back, so a single
+# retry is usually enough.
+INSTALL_ATTEMPTS="${INSTALL_ATTEMPTS:-4}"
 OUTPUT="${2:-}"
 SUITES="${3:-all}"
 
@@ -108,18 +113,46 @@ enable_usb_install() {
 
 # The package names have to be known before the suites run, because Gradle
 # refuses to reuse a package that was installed with a different build variant.
+#
+# The install is retried. The HyperOS gate that blocks installation over USB
+# comes back on its own after a while, and the first attempt after it
+# returns is rejected even though the gate is open. Retrying turns that into
+# a delay rather than a failed collection.
+install_one() {
+  local apk="$1"
+  local remote="$2"
+  local attempt
+  local output
+
+  "$ADB_BIN" -s "$SERIAL" push "$apk" "$remote" >/dev/null
+  for attempt in $(seq 1 "$INSTALL_ATTEMPTS"); do
+    output=$("$ADB_BIN" -s "$SERIAL" shell "pm install -r $remote" | tr -d '\r')
+    if echo "$output" | grep -q "Success"; then
+      echo "installed $apk"
+      return 0
+    fi
+    echo "install attempt $attempt failed: $output"
+    # The gate is backed by a persistent property. Writing it is best-effort
+    # because it needs root, but it is worth attempting before the next try.
+    enable_usb_install
+    sleep 3
+  done
+  echo "!!! could not install $apk after $INSTALL_ATTEMPTS attempts" >&2
+  echo "!!! On the phone: 设置 → 更多设置 → 开发者选项 → 开启「USB 安装」。" >&2
+  return 1
+}
+
 install_packages() {
   local target_apk="$1"
   local bench_apk="$2"
 
   echo "installing the benchmark build of the app"
   "$ADB_BIN" -s "$SERIAL" uninstall "$TARGET_PACKAGE" >/dev/null 2>&1 || true
-  "$ADB_BIN" -s "$SERIAL" push "$target_apk" /data/local/tmp/cleanguard-target.apk >/dev/null
-  "$ADB_BIN" -s "$SERIAL" shell "pm install -r /data/local/tmp/cleanguard-target.apk"
+  install_one "$target_apk" /data/local/tmp/cleanguard-target.apk || return 1
 
   echo "installing the macrobenchmark package"
-  "$ADB_BIN" -s "$SERIAL" push "$bench_apk" /data/local/tmp/cleanguard-benchmark.apk >/dev/null
-  "$ADB_BIN" -s "$SERIAL" shell "pm install -r /data/local/tmp/cleanguard-benchmark.apk"
+  install_one "$bench_apk" /data/local/tmp/cleanguard-benchmark.apk || return 1
+  return 0
 }
 
 report_install_gate() {

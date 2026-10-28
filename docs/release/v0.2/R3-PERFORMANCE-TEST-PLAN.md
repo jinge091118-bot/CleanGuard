@@ -1,6 +1,9 @@
 # CleanGuard V0.2 R3 Performance Test Plan
 
-Status: **In progress**
+Status: **In progress** — the ten thousand and fifty thousand row tiers are
+measured on a confirmed physical handset, with the raw result files kept in
+`performance/`. The hundred thousand row tier, which this plan lists as a
+stress target rather than a requirement, has not been measured.
 
 This plan controls R3 physical-device performance validation. Emulator runs validate only the test harness; they are never accepted as product performance evidence.
 

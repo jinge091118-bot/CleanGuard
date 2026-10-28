@@ -38,13 +38,20 @@ hundred additions, hundred modifications, and hundred deletions sequence were
 all measured on that device, and the raw result files are kept beside
 `PERFORMANCE-REPORT.md`.
 
-Three things are still outstanding for R3. The fifty thousand and hundred
-thousand row tiers have not been measured yet; the series is being repeated on
-the fifty thousand tier. The device matrix calls for a flagship physical
-device in addition to the mid-range one, and that device is not available. A
-third device covering Android 10 to 12 is preferable but not required.
+Two of the three dataset tiers are now measured on that handset. The ten
+thousand row tier carries the startup series, the scan series, the memory
+figures, the scrolling series, and the mutation sequence. The fifty thousand
+row tier carries the same set, which is the tier the plan assigns the
+mutation sequence to. A script compares every figure in the report against
+the raw result files, and all forty of them agree.
 
-The harness itself needed three corrections before the suites could run on
+Two things are still outstanding for R3. The hundred thousand row tier, which
+the plan lists as a stress target rather than a requirement, has not been
+measured. The device matrix calls for a flagship physical device in addition
+to the mid-range one, and that device is not available. A third device
+covering Android 10 to 12 is preferable but not required.
+
+The harness itself needed several corrections before the suites could run on
 this handset, and they are recorded in `PERFORMANCE-REPORT.md` because they
 affect any benchmark against a Compose interface on this ROM. The 2026-10-23
 session on the virtualized Android 12 platform remains diagnostic only and

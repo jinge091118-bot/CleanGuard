@@ -45,6 +45,18 @@ def metrics(document: dict, benchmark: str) -> dict:
 def build_checks(report: str) -> list[tuple[str, str, bool]]:
     checks: list[tuple[str, str, bool]] = []
 
+    def quoted(value: int) -> bool:
+        """Whether the report quotes a millisecond figure the way the file holds it.
+
+        The report writes large figures with a thousands separator because they
+        are easier to read that way, while the result file holds them without
+        one. Both spellings are accepted, so a genuine change of value is
+        still caught.
+        """
+        plain = f"{value} ms"
+        grouped = f"{value:,} ms"
+        return plain in report or grouped in report
+
     startup = load("2026-10-27-startup.json")
     cold = metrics(startup, "coldStartup")["timeToInitialDisplayMs"]
     checks.append(("cold start median", f"{cold['median']:.2f} ms", "574.11 ms" in report))
@@ -82,14 +94,14 @@ def build_checks(report: str) -> list[tuple[str, str, bool]]:
     )
 
     scroll = load("2026-10-27-scroll.json")
-    for benchmark, quoted in [
+    for benchmark, expected_frames in [
         ("scrollHome", "221"),
         ("scrollResults", "198"),
         ("scrollHistory", "215"),
         ("scrollDuplicates", "354"),
     ]:
         frames = metrics(scroll, benchmark)["frameCount"]
-        checks.append((f"{benchmark} frames", f"{frames['median']:.0f}", f"| {quoted} |" in report))
+        checks.append((f"{benchmark} frames", f"{frames['median']:.0f}", f"| {expected_frames} |" in report))
 
     mutation_path = PERFORMANCE_DIR / "2026-10-28-mutation.json"
     if mutation_path.exists():
@@ -97,7 +109,44 @@ def build_checks(report: str) -> list[tuple[str, str, bool]]:
         for run in mutation.get("runs", []):
             label = run.get("label", "?")
             milliseconds = f"{run['wall_clock_ms']} ms"
-            checks.append((f"mutation {label}", milliseconds, milliseconds in report))
+            checks.append((f"mutation {label}", milliseconds, quoted(run["wall_clock_ms"])))
+
+    scan_50k_path = PERFORMANCE_DIR / "2026-10-28-scan-50k.json"
+    if scan_50k_path.exists():
+        scan_50k = load("2026-10-28-scan-50k.json")
+        full = metrics(scan_50k, "firstFullScan")
+        incremental = metrics(scan_50k, "noChangeIncrementalScan")
+        full_scan = full["CleanGuardScanFirstMs"]
+        incremental_scan = incremental["CleanGuardScanFirstMs"]
+        checks.append(("50k full scan median", f"{full_scan['median']:.2f} ms", "2,274.16 ms" in report))
+        checks.append(("50k full scan iterations", str(len(full_scan["runs"])), "| Full scan, `CleanGuardScan` | 3 |" in report))
+        checks.append(
+            ("50k incremental median", f"{incremental_scan['median']:.2f} ms", "2,583.44 ms" in report)
+        )
+        checks.append(
+            ("50k incremental iterations", str(len(incremental_scan["runs"])),
+             "| No-change incremental scan, `CleanGuardScan` | 5 |" in report)
+        )
+        checks.append(
+            ("50k full scan heap", f"{full['memoryHeapSizeMaxKb']['median']:.0f} kB", "93,120 kB" in report)
+        )
+        checks.append(
+            ("50k incremental heap", f"{incremental['memoryHeapSizeMaxKb']['median']:.0f} kB", "116,230 kB" in report)
+        )
+        checks.append(
+            ("50k full scan resident set", f"{full['memoryRssAnonMaxKb']['median']:.0f} kB", "130,700 kB" in report)
+        )
+        checks.append(
+            ("50k incremental resident set", f"{incremental['memoryRssAnonMaxKb']['median']:.0f} kB", "168,180 kB" in report)
+        )
+
+    mutation_50k_path = PERFORMANCE_DIR / "2026-10-28-mutation-50k.json"
+    if mutation_50k_path.exists():
+        mutation = json.loads(mutation_50k_path.read_text(encoding="utf-8"))
+        for run in mutation.get("runs", []):
+            label = run.get("label", "?")
+            milliseconds = f"{run['wall_clock_ms']} ms"
+            checks.append((f"50k mutation {label}", milliseconds, quoted(run["wall_clock_ms"])))
 
     return checks
 

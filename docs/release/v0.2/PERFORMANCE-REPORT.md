@@ -29,6 +29,10 @@ Execution procedure: `R3-PERFORMANCE-TEST-PLAN.md`.
 | Scan | 100 add / 100 modify / 100 delete | Redmi Note 12 Turbo | 10k | **279–550 ms per mutation** | R3 |
 | Memory | Peak PSS / RSS and GC | Redmi Note 12 Turbo | 10k | **60.5 MB heap, 100 MB RSS** | R3 |
 | UI | Home/results/history/duplicates scrolling | Redmi Note 12 Turbo | 10k | **198–354 frames per series** | R3 |
+| Scan | First full scan | Redmi Note 12 Turbo | 50k | **2,274 ms median** | R3 |
+| Scan | No-change incremental scan | Redmi Note 12 Turbo | 50k | **2,583 ms median** | R3 |
+| Scan | 100 add / 100 modify / 100 delete | Redmi Note 12 Turbo | 50k | **2,046–2,257 ms per mutation** | R3 |
+| Memory | Peak PSS / RSS and GC | Redmi Note 12 Turbo | 50k | **91–114 MB heap, 128–164 MB RSS** | R3 |
 | Startup | Cold start | Not a physical device | N/A | Not accepted | R3 |
 | Scan | Any | Not a physical device | 10k | Not accepted | R3 |
 
@@ -186,6 +190,72 @@ scan that reports a read error cannot be compared against one that does not.
 The three mutation phases are measured against the same ten thousand row
 dataset, and the plan asks for this scenario on the fifty thousand tier or
 larger. The series is being repeated on that tier.
+
+## Fifty thousand row tier
+
+The plan puts the mutation scenario on the fifty thousand tier, so it was
+repeated there. The dataset is the same fifty thousand total rows the scanner
+sees, made up of three thousand four hundred and sixty four rows that were
+already on the handset and forty six thousand five hundred and thirty six
+generated ones spread over shard directories.
+
+### Scan at fifty thousand rows
+
+| Metric | Iterations | Median | Minimum | Maximum | Coefficient of variation |
+|---|---:|---:|---:|---:|---:|
+| Full scan, `CleanGuardScan` | 3 | 2,274.16 ms | 2,117.59 ms | 2,304.07 ms | 0.0449 |
+| No-change incremental scan, `CleanGuardScan` | 5 | 2,583.44 ms | 2,521.54 ms | 2,590.58 ms | 0.0114 |
+
+Raw result file: `performance/2026-10-28-scan-50k.json`.
+
+**The incremental scan is slower than the full scan at this size**, which is
+the opposite of what the ten thousand row tier shows. At ten thousand rows the
+incremental scan takes five hundred and forty five milliseconds against the
+full scan's six hundred and fifty-nine. At fifty thousand rows the
+incremental scan takes two thousand five hundred and eighty-three
+milliseconds against the full scan's two thousand two hundred and seventy-four.
+
+The reason is visible in the work each one does. The incremental scanner
+compares the current state of the collection against what it recorded before,
+so it walks the whole index to find the rows that moved, and the saving from
+processing only the changed rows is smaller than the cost of the walk. At ten
+thousand rows the walk is short enough for the saving to dominate; at fifty
+thousand it is not.
+
+This is a useful result rather than a disappointing one, because it says where
+the ceiling is. The scanner stays well under three seconds for fifty thousand
+rows, and the memory figures below show it is not trading memory for speed to
+get there.
+
+### Memory at fifty thousand rows
+
+| Metric | Full scan | Incremental scan |
+|---|---:|---:|
+| Heap size, maximum | 93,120 kB | 116,230 kB |
+| Resident set, anonymous, maximum | 130,700 kB | 168,180 kB |
+| Resident set, file, maximum | 152,160 kB | 141,992 kB |
+| Graphics memory, maximum | 45,656 kB | 45,656 kB |
+
+The heap grows from about sixty megabytes at ten thousand rows to about one
+hundred and sixteen at fifty thousand, which is roughly proportional to the
+number of rows rather than a step change. A device that reports four
+gigabytes of memory has room for this with a wide margin.
+
+### Incremental scan after mutations at fifty thousand rows
+
+| Phase | Wall clock | Scan duration | Execution | Changed | Removed | Rows held | Read errors |
+|---|---:|---:|---|---:|---:|---:|---:|
+| Baseline | 4,445 ms | 1,565 ms | Full | 50,000 | 0 | 50,000 | 0 |
+| After 100 additions | 2,257 ms | 2,069 ms | Incremental | 100 | 0 | 50,100 | 0 |
+| After 100 modifications | 2,046 ms | 1,893 ms | Incremental | 100 | 0 | 50,100 | 0 |
+| After the second 100 additions | 2,089 ms | 1,928 ms | Incremental | 100 | 0 | 50,200 | 0 |
+| After 100 deletions | 2,114 ms | 1,946 ms | Incremental | 0 | 100 | 50,100 | 0 |
+
+Raw result file: `performance/2026-10-28-mutation-50k.json`.
+
+The counts are exact in every phase, and no row failed to read. The four
+mutation phases all take about two seconds, which is the cost of the index
+walk described above rather than the cost of the hundred rows that changed.
 
 ### Memory
 

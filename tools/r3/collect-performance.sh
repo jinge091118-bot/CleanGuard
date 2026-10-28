@@ -25,9 +25,11 @@ TARGET_PACKAGE="com.cleanguard.app"
 SERIAL="${1:-}"
 
 # How many times an install is attempted before the collection gives up. The
-# HyperOS gate rejects the first attempt after it comes back, so a single
-# retry is usually enough.
-INSTALL_ATTEMPTS="${INSTALL_ATTEMPTS:-4}"
+# HyperOS gate rejects the attempt most of the time rather than every time,
+# so a handful of retries is usually enough. A run where the gate was closed
+# entirely failed fourteen attempts in a row, and a run where it was open
+# succeeded on the seventh.
+INSTALL_ATTEMPTS="${INSTALL_ATTEMPTS:-10}"
 OUTPUT="${2:-}"
 SUITES="${3:-all}"
 

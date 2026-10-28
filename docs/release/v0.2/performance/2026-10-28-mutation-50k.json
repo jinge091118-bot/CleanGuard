@@ -1,0 +1,58 @@
+{
+  "scenario": "R3 incremental scan after 100 additions, 100 modifications, and 100 deletions",
+  "device": "23049RAD8C (Redmi Note 12 Turbo, Android 15, API 35, HyperOS 3.0)",
+  "dataset_tier": "50000 total MediaStore rows",
+  "measured_on": "2026-10-28",
+  "runs": [
+    {
+      "label": "baseline",
+      "wall_clock_ms": 4445,
+      "metadata_duration_ms": 1565,
+      "execution_type": "FULL",
+      "changed_item_count": 50000,
+      "removed_item_count": 0,
+      "item_count": 50000,
+      "error_count": 0
+    },
+    {
+      "label": "after_add_100",
+      "wall_clock_ms": 2257,
+      "metadata_duration_ms": 2069,
+      "execution_type": "INCREMENTAL",
+      "changed_item_count": 100,
+      "removed_item_count": 0,
+      "item_count": 50100,
+      "error_count": 0
+    },
+    {
+      "label": "after_modify_100",
+      "wall_clock_ms": 2046,
+      "metadata_duration_ms": 1893,
+      "execution_type": "INCREMENTAL",
+      "changed_item_count": 100,
+      "removed_item_count": 0,
+      "item_count": 50100,
+      "error_count": 0
+    },
+    {
+      "label": "after_add_100_for_delete",
+      "wall_clock_ms": 2089,
+      "metadata_duration_ms": 1928,
+      "execution_type": "INCREMENTAL",
+      "changed_item_count": 100,
+      "removed_item_count": 0,
+      "item_count": 50200,
+      "error_count": 0
+    },
+    {
+      "label": "after_delete_100",
+      "wall_clock_ms": 2114,
+      "metadata_duration_ms": 1946,
+      "execution_type": "INCREMENTAL",
+      "changed_item_count": 0,
+      "removed_item_count": 100,
+      "item_count": 50100,
+      "error_count": 0
+    }
+  ]
+}

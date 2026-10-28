@@ -16,6 +16,7 @@
 | `ic_launcher_192.png` | 192×192 | 高密度图标 | ✓ |
 | `ic_launcher_48.png` | 48×48 | 备用 | ✓ |
 | `home_capacity.png` | 1080×2400 | 商店首图（封面） | ✓ 无文件名 |
+| `home_permission.png` | 1080×2400 | 首页下半部：下载目录授权路径与清理记录入口 | ✓ 无文件名 |
 | `scan_stats.png` | 1080×2400 | 体检统计 | ✓ 无文件名 |
 | `results_clues.png` | 1080×2400 | 空间线索与风险分组 | ✓ 无文件名 |
 | `insights.png` | 1080×2400 | 空间洞察 | ✓ 无文件名 |

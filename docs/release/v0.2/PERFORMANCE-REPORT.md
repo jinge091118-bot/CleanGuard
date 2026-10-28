@@ -425,13 +425,16 @@ The zero-fixture emulator scan smoke reported a 571.56 ms median for the full-sc
 - Macrobenchmark module: ready.
 - Release-like non-debuggable `benchmark` app variant: ready.
 - Benchmark-only shell profiling declaration: ready; production manifest unchanged.
-- Cold and warm startup collection: smoke verified.
-- Home frame collection: smoke verified.
-- First-full-scan trace and memory collection: zero-fixture smoke verified.
-- No-change incremental trace and memory collection: zero-fixture smoke verified.
-- Physical-device runs: pending.
-- 10k/50k/100k fixture execution: pending.
-- 100 add/modify/delete, GC review, and secondary-screen evidence: pending.
+- Cold and warm startup collection: smoke verified, then measured on the physical device.
+- Home frame collection: smoke verified, then measured on the physical device.
+- First-full-scan trace and memory collection: zero-fixture smoke verified, then measured on the physical device.
+- No-change incremental trace and memory collection: zero-fixture smoke verified, then measured on the physical device.
+- Physical-device runs: done for the ten thousand and fifty thousand row tiers.
+- 10k/50k/100k fixture execution: 10k and 50k done; 100k in progress.
+- 100 add/modify/delete: measured on both tiers, with the exact counts the plan asks for.
+- Secondary-screen evidence: measured on both tiers, all four list screens.
+- GC review: the memory series is collected, but the Perfetto traces have not been read for scheduling analysis.
+- Figure verification: a script compares every figure in this report against the raw result files, and all of them agree.
 
 ## Engineering verification
 
@@ -449,4 +452,9 @@ The build emitted only the existing environment/tooling warnings documented by t
 
 Use Android Macrobenchmark and Perfetto; use Android Studio Profiler only where additional diagnosis is necessary. Record traces and test conditions without collecting user media content.
 
-R3 is not complete and the release checklist remains unchecked.
+R3 is not complete. The ten thousand and fifty thousand row tiers are measured
+on a confirmed physical handset, and the raw result files sit beside this
+report. What remains is the hundred thousand row tier, which the plan lists
+as a stress target rather than a requirement, a second physical device class
+in the matrix, and the reading of the collected Perfetto traces for scheduling
+analysis. The release checklist therefore remains unchecked.

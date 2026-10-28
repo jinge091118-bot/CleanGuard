@@ -65,6 +65,26 @@ affect any benchmark against a Compose interface on this ROM. The 2026-10-23
 session on the virtualized Android 12 platform remains diagnostic only and
 is not accepted as evidence.
 
+The flagship device in the matrix is not available and no substitute exists.
+A cloud device cannot stand in for it, because the application was already
+measured on this handset and the findings that mattered are specific to a
+physical ROM: the probabilistic installation gate, the Compose button that
+reports itself as not clickable, and the way the storage layer slows down as a
+directory fills. The row stays open and is recorded as untested rather than
+filled with a cloud measurement. The decision and its reasoning are in
+`OVERSEAS-FIRST-DISTRIBUTION.md`.
+
+The distribution order changed on 2026-10-28. The project owner decided to
+validate the market on Google Play first and to keep the application free
+with no network access, with monetization deferred until the download and
+rating data justify it. That decision is recorded in
+`OVERSEAS-FIRST-DISTRIBUTION.md`, and the mainland China path is paused
+rather than cancelled in `CHINA-MARKET-DISTRIBUTION.md`. One consequence is
+recorded here because it constrains what may be added: the application stays
+free and keeps its no-network promise for this release, so no advertising or
+analytics code may be added, and monetization, if it happens, is a one-time
+purchase rather than a subscription.
+
 R4 is checked. On 2026-10-26 the project owner approved the privacy policy
 text, the Data Safety answers, the photo/video permission declaration, the
 reviewer notes, and the store listing. The privacy policy is published at

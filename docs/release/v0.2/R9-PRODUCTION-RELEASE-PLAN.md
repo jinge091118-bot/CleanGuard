@@ -60,6 +60,16 @@ python3 tools/release/verify-aab.py <路径>/app-release.aab
 > ⚠️ 解析 versionName 时，长度字节是二进制，正则要用 `(.)` 而非 `[0-9]{1,2}`。
 > 证书主体是 DER，需用 `keytool -printcert` 读。
 
+**权限也必须校验**，因为本版本的承诺是「免费 + 无网络」：
+
+```bash
+python3 tools/release/verify-no-network-permission.py
+```
+
+它读 release 构建的合并清单，报告任何网络、广告或分析权限。
+**依赖库会自己把 `AD_ID` 和 `ACCESS_ADSERVICES_*` 合并进来**，
+所以这一步不能靠「我没写 INTERNET」来代替。
+
 **校验不通过就不要上传。** versionCode 传错会导致无法覆盖旧版本，且线上无法降级。
 
 ---
@@ -74,6 +84,10 @@ python3 tools/release/verify-aab.py <路径>/app-release.aab
 4. 上传商店素材（`store-assets/` 已备好 11 个文件）
 5. 填写 Data Safety（答案已备好，照抄）
 6. 提交审核
+
+**本版本为完全免费版本，不含任何应用内商品、广告或分析代码。** 上传前须确认
+合并后的清单里没有 `INTERNET`、`AD_ID` 或任何 `ACCESS_ADSERVICES_*` 权限 ——
+若出现了，说明有依赖把它们合并进来了，必须先移除。
 
 ### 3.2 分阶段放量
 

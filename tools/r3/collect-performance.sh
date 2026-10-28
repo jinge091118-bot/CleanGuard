@@ -139,6 +139,31 @@ install_one() {
   done
   echo "!!! could not install $apk after $INSTALL_ATTEMPTS attempts" >&2
   echo "!!! On the phone: 设置 → 更多设置 → 开发者选项 → 开启「USB 安装」。" >&2
+  echo "!!! The option reverts on its own after a while, so it has to be" >&2
+  echo "!!! turned on again before every collection." >&2
+  return 1
+}
+
+# Install a package that is not part of the benchmark pair, such as the
+# instrumentation package the application test suite needs.
+install_extra() {
+  local apk="$1"
+  local remote="$2"
+  local attempt
+  local output
+
+  "$ADB_BIN" -s "$SERIAL" push "$apk" "$remote" >/dev/null
+  for attempt in $(seq 1 "$INSTALL_ATTEMPTS"); do
+    output=$("$ADB_BIN" -s "$SERIAL" shell "pm install -r $remote" | tr -d '\r')
+    if echo "$output" | grep -q "Success"; then
+      echo "installed $apk"
+      return 0
+    fi
+    enable_usb_install
+    sleep 3
+  done
+  echo "!!! could not install $apk after $INSTALL_ATTEMPTS attempts" >&2
+  echo "!!! On the phone: 设置 → 更多设置 → 开发者选项 → 开启「USB 安装」。" >&2
   return 1
 }
 

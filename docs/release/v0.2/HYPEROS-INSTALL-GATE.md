@@ -94,6 +94,48 @@ See dmesg for error reason.
 **另一个观测**：拦截发生时通知栏会出现「应用安装拦截」条目，但**该条目不是实时的** ——
 拦截计数归零时安装依然可能被拒。**不要依赖通知做判定**。
 
+### 2.3 该门禁会在跨会话后重新生效（2026-10-28 21:10 确认）
+
+**这是最需要注意的一条：门禁不是「开一次就永久有效」。**
+
+时间线：
+
+| 时间 | 事件 |
+|---|---|
+| 10-27 20:40 | 项目所有者在开发者选项里开启「USB 安装」，当次采集成功 |
+| 10-27 22:38 | `pm install` 仍正常 |
+| 10-27 22:55 | 拦截自行回来 |
+| 10-28 19:45 | 新会话开始，`pm install` **再次失败**（连开过一次的开关也已失效） |
+
+10-28 当天连续尝试了十余种绕过方式，**全部无效**：
+
+| 尝试 | 结果 |
+|---|---|
+| `pm install -r` | `INSTALL_FAILED_USER_RESTRICTED` |
+| `pm install`（先卸载，非 `-r`） | `INSTALL_FAILED_USER_RESTRICTED` |
+| `adb install`（主机侧本地文件） | `INSTALL_FAILED_USER_RESTRICTED` |
+| `setprop persist.security.uks_opened 1` 后立即重试（×6） | 全部失败 |
+| 每次重试前都 `setprop` | 全部失败 |
+| 卸载 `com.cleanguard.app.test` 后再装 | 仍然失败 |
+
+**但普通应用包能装上，instrumentation 包装不上**：
+
+```
+com.cleanguard.app              → Success
+com.cleanguard.app.test         → INSTALL_FAILED_USER_RESTRICTED
+com.cleanguard.app.macrobenchmark → INSTALL_FAILED_USER_RESTRICTED
+```
+
+即门禁对 **instrumentation 包**（`android:targetPackage` 指向别的包、声明了 `<instrumentation>`）
+拦截更严，而对普通应用包较宽松。
+
+**结论**：
+1. **每次采集前都需要项目所有者在手机上确认一次「USB 安装」处于开启状态**。
+   这不是可选步骤，是采集的前置条件。
+2. `setprop` 只能作为 best-effort 补充 —— 未经 root 的写入无效。
+3. 采集脚本已内置重试与明确提示，安装彻底失败时会直接说明该做什么，
+   而不是抛出一个泛化的构建失败。
+
 ---
 
 ## 3. 需要人工完成的操作

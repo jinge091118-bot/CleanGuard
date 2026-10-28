@@ -40,6 +40,7 @@ class R3ScanMutationScenarioTest {
     fun measureIncrementalScanAfterAddModifyAndDelete() {
         runBlocking {
             val context = InstrumentationRegistry.getInstrumentation().targetContext
+            grantMediaPermissions()
             val database = Room.inMemoryDatabaseBuilder(
                 context,
                 CleanGuardDatabase::class.java,
@@ -60,17 +61,9 @@ class R3ScanMutationScenarioTest {
                 val baseline = measure(scanner, "baseline")
                 assertTrue("The baseline scan returned no items.", baseline.items.isNotEmpty())
 
-                // 100 additions.
-                repeat(MUTATION_COUNT) { index ->
-                    createdUris += insertFixture(
-                        context = context,
-                        collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                        displayName = "cleanguard-r3-added-$index.jpg",
-                        mimeType = "image/jpeg",
-                        relativePath = "Pictures/CleanGuardR3/",
-                        content = ByteArray(4 * 1024) { (it + index).toByte() },
-                    )
-                }
+                // 100 additions. The first hundred are the rows that will be
+                // modified afterwards.
+                val modifyTargets = addRows(context, createdUris, "added", MUTATION_COUNT)
                 indexMediaStore(context)
                 val afterAdd = measure(scanner, "after_add_100")
                 assertEquals(
@@ -80,7 +73,7 @@ class R3ScanMutationScenarioTest {
                 )
 
                 // 100 modifications of rows that are already indexed.
-                val modified = createdUris.take(MUTATION_COUNT / 2)
+                val modified = modifyTargets.take(MUTATION_COUNT)
                 modified.forEachIndexed { index, uri ->
                     updateFixture(
                         context = context,
@@ -96,22 +89,60 @@ class R3ScanMutationScenarioTest {
                     afterModify.metadata.changedItemCount >= modified.size,
                 )
 
-                // 100 deletions of rows that are already indexed.
-                val deleted = createdUris.drop(MUTATION_COUNT / 2).take(MUTATION_COUNT / 2)
-                deleted.forEach { uri ->
+                // The deletions need rows of their own. The hundred rows that
+                // were just modified are kept, because deleting them would
+                // undo the modification that was just measured, so a second
+                // hundred rows are added and then removed.
+                val deleteTargets = addRows(context, createdUris, "removed", MUTATION_COUNT)
+                indexMediaStore(context)
+                measure(scanner, "after_add_100_for_delete")
+
+                deleteTargets.forEach { uri ->
                     context.contentResolver.delete(uri, null, null)
                 }
                 indexMediaStore(context)
                 val afterDelete = measure(scanner, "after_delete_100")
                 assertTrue(
                     "The incremental scan did not observe the removed rows.",
-                    afterDelete.metadata.removedItemCount >= deleted.size,
+                    afterDelete.metadata.removedItemCount >= deleteTargets.size,
                 )
             } finally {
                 createdUris.forEach { uri ->
                     runCatching { context.contentResolver.delete(uri, null, null) }
                 }
                 database.close()
+            }
+        }
+    }
+
+    /**
+     * Grant the media permissions the scanner needs.
+     *
+     * Installing the application for a test run resets the runtime
+     * permissions, and a scanner without them sees an empty collection. The
+     * baseline scan then reports no items and the measurement is meaningless,
+     * so the permissions are granted here rather than assumed from the device
+     * state.
+     *
+     * The grant is issued as a shell command rather than through the package
+     * manager API, because the API route is refused on this ROM and leaves
+     * the permission denied. The automation connection can run the command.
+     */
+    private fun grantMediaPermissions() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val target = instrumentation.targetContext.packageName
+        val permissions = if (Build.VERSION.SDK_INT >= 33) {
+            listOf(
+                "android.permission.READ_MEDIA_IMAGES",
+                "android.permission.READ_MEDIA_VIDEO",
+                "android.permission.READ_MEDIA_AUDIO",
+            )
+        } else {
+            listOf("android.permission.READ_EXTERNAL_STORAGE")
+        }
+        permissions.forEach { permission ->
+            runCatching {
+                instrumentation.uiAutomation.executeShellCommand("pm grant $target $permission")
             }
         }
     }
@@ -133,6 +164,30 @@ class R3ScanMutationScenarioTest {
                 "errors=${result.errors.size}",
         )
         return result
+    }
+
+    /**
+     * Add a batch of rows to the fixture root and return their identifiers.
+     */
+    private fun addRows(
+        context: Context,
+        sink: MutableList<Uri>,
+        label: String,
+        count: Int,
+    ): List<Uri> {
+        val uris = mutableListOf<Uri>()
+        repeat(count) { index ->
+            uris += insertFixture(
+                context = context,
+                collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                displayName = "cleanguard-r3-$label-$index.jpg",
+                mimeType = "image/jpeg",
+                relativePath = "Pictures/CleanGuardR3/",
+                content = ByteArray(4 * 1024) { (it + index).toByte() },
+            )
+        }
+        sink += uris
+        return uris
     }
 
     private fun insertFixture(

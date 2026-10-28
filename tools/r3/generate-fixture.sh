@@ -219,6 +219,13 @@ write_collection() {
 
 # Write the files of one shard. The first index is the index of the first
 # file in the shard, and the indices run from there.
+#
+# The shard is completed by writing the indices that are missing rather than
+# by appending after the files that are present. The number of files present
+# does not say where the writer should continue, because a connection that
+# dropped partway through can leave a gap in the middle of the range, and
+# continuing from the count would write over files that already exist and
+# never close the gap.
 write_shard() {
   local dir="$1"
   local ext="$2"
@@ -229,61 +236,24 @@ write_shard() {
   adb shell "mkdir -p $dir" >/dev/null 2>&1 || true
 
   local attempt=0
+  local missing=1
   while [ "$attempt" -lt "$WRITE_ATTEMPTS" ]; do
     attempt=$(( attempt + 1 ))
-    local existing
-    existing=$(count_files "$dir")
-    if [ "$existing" -ge "$count" ]; then
-      repair_range "$dir" "$ext" "$first" "$last"
+    missing=$(repair_range "$dir" "$ext" "$first" "$last")
+    if [ "$missing" -eq 0 ]; then
       return 0
     fi
-    echo "  $(basename "$dir"): $existing of $count present, writing the rest"
-
-    local ranges=""
-    local start=$(( first + existing ))
-    while [ "$start" -le "$last" ]; do
-      local end=$(( start + BATCH_SIZE - 1 ))
-      if [ "$end" -gt "$last" ]; then
-        end=$last
-      fi
-      ranges="$ranges $start:$end"
-      start=$(( end + 1 ))
-    done
-
-    # The ranges are handed to the device in groups, so at most MAX_PARALLEL
-    # branches run at once. A dropped connection must not abort the run, so
-    # the failure is reported and the loop counts again.
-    local group=""
-    local index=0
-    for range in $ranges; do
-      group="$group $range"
-      index=$(( index + 1 ))
-      if [ "$index" -ge "$MAX_PARALLEL" ]; then
-        adb shell "cd $dir && for r in$group; do s=\${r%%:*}; e=\${r##*:}; (for i in \$(seq \$s \$e); do printf '$FIXTURE_MARKER%08d' \$i > r3-\$i.$ext; done) & done; wait" || true
-        group=""
-        index=0
-      fi
-    done
-    if [ -n "$group" ]; then
-      adb shell "cd $dir && for r in$group; do s=\${r%%:*}; e=\${r##*:}; (for i in \$(seq \$s \$e); do printf '$FIXTURE_MARKER%08d' \$i > r3-\$i.$ext; done) & done; wait" || true
-    fi
+    echo "  $(basename "$dir"): $missing of $count files missing, writing them"
   done
 
-  local existing
-  existing=$(count_files "$dir")
-  if [ "$existing" -lt "$count" ]; then
-    echo "!!! $dir holds $existing of $count files after $WRITE_ATTEMPTS attempts" >&2
-    return 1
-  fi
-  repair_range "$dir" "$ext" "$first" "$last"
-  return 0
+  echo "!!! $dir is missing $missing of $count files after $WRITE_ATTEMPTS attempts" >&2
+  return 1
 }
 
-# Write the indices that are missing from a range inside a shard.
+# Write the indices that are missing from a range inside a shard, and report
+# how many were still missing afterwards.
 #
-# The count alone does not say which indices are missing. A dropped connection
-# can leave a gap in the middle of a range and the writer only appends, so
-# the missing indices are found by comparing the indices that are present
+# The missing indices are found by comparing the indices that are present
 # against the indices that are wanted. The comparison stays on the device
 # because the listing is large.
 repair_range() {
@@ -296,13 +266,20 @@ repair_range() {
   adb shell "mkdir -p $state" >/dev/null 2>&1 || true
   local missing
   missing=$(adb shell "cd $dir && ls 2>/dev/null | sed 's/^r3-//; s/\.[^.]*\$//' | sort -n > $state/present.txt; seq $first $last > $state/wanted.txt; comm -13 $state/present.txt $state/wanted.txt > $state/missing.txt; wc -l < $state/missing.txt" | tr -d '\r' | tail -1)
-
   missing="${missing:-0}"
   if ! [ "$missing" -gt 0 ] 2>/dev/null; then
+    echo 0
     return 0
   fi
-  echo "  $(basename "$dir"): repairing $missing missing files"
+
   adb shell "cd $dir && while read i; do [ -n \"\$i\" ] && printf '$FIXTURE_MARKER%08d' \"\$i\" > r3-\$i.$ext; done < $state/missing.txt" || true
+
+  # The count is taken again rather than assumed, because the write can be
+  # interrupted partway through and the caller has to know what is still
+  # missing.
+  local remaining
+  remaining=$(adb shell "cd $dir && ls 2>/dev/null | sed 's/^r3-//; s/\.[^.]*\$//' | sort -n > $state/present.txt; comm -13 $state/present.txt $state/wanted.txt | wc -l" | tr -d '\r' | tail -1)
+  echo "${remaining:-0}"
 }
 
 # How many files a shard directory already holds.

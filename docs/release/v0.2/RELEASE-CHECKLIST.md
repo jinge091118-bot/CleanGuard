@@ -30,14 +30,25 @@ conditional continuation to R3 because additional OEM devices were unavailable.
 The scope, safeguards, and release limitation are recorded in
 `R2-RISK-ACCEPTANCE.md`; no untested OEM row is treated as passed.
 
-R3 remains unchecked. On 2026-10-23 the only device reachable for the R3
-session reported itself as a Google Pixel 5 but proved to be a virtualized
-Android 12 platform, so it cannot satisfy the physical-device requirement.
-The 10k-tier dataset, the direct scanner measurement path, and the
-100 add / 100 modify / 100 delete sequence were completed on that device and
-are recorded in `PERFORMANCE-REPORT.md` as functional correctness evidence
-only. No R3 performance row is satisfied, and the 50k and 100k tiers plus
-both required physical device classes remain outstanding.
+R3 is partially satisfied. On 2026-10-27 and 2026-10-28 the Redmi Note 12
+Turbo, a confirmed physical handset, was used for the performance session. The
+startup series, the first full scan, the no-change incremental scan, the
+memory figures, the scrolling series on all four list screens, and the
+hundred additions, hundred modifications, and hundred deletions sequence were
+all measured on that device, and the raw result files are kept beside
+`PERFORMANCE-REPORT.md`.
+
+Three things are still outstanding for R3. The fifty thousand and hundred
+thousand row tiers have not been measured yet; the series is being repeated on
+the fifty thousand tier. The device matrix calls for a flagship physical
+device in addition to the mid-range one, and that device is not available. A
+third device covering Android 10 to 12 is preferable but not required.
+
+The harness itself needed three corrections before the suites could run on
+this handset, and they are recorded in `PERFORMANCE-REPORT.md` because they
+affect any benchmark against a Compose interface on this ROM. The 2026-10-23
+session on the virtualized Android 12 platform remains diagnostic only and
+is not accepted as evidence.
 
 R4 is checked. On 2026-10-26 the project owner approved the privacy policy
 text, the Data Safety answers, the photo/video permission declaration, the

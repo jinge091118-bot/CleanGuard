@@ -26,7 +26,7 @@ Execution procedure: `R3-PERFORMANCE-TEST-PLAN.md`.
 | Startup | Warm start | Redmi Note 12 Turbo | N/A | **240 ms median** | R3 |
 | Scan | First full scan | Redmi Note 12 Turbo | 10k | **659 ms median** | R3 |
 | Scan | No-change incremental scan | Redmi Note 12 Turbo | 10k | **545 ms median** | R3 |
-| Scan | 100 add / 100 modify / 100 delete | Redmi Note 12 Turbo | 10k | Not run | R3 |
+| Scan | 100 add / 100 modify / 100 delete | Redmi Note 12 Turbo | 10k | **279–550 ms per mutation** | R3 |
 | Memory | Peak PSS / RSS and GC | Redmi Note 12 Turbo | 10k | **60.5 MB heap, 100 MB RSS** | R3 |
 | UI | Home/results/history/duplicates scrolling | Redmi Note 12 Turbo | 10k | **198–354 frames per series** | R3 |
 | Startup | Cold start | Not a physical device | N/A | Not accepted | R3 |
@@ -159,6 +159,33 @@ marks around the whole local assessment.
 | No-change incremental scan, `CleanGuardScan` | 3 | 544.72 ms | 535.54 ms | 559.91 ms | 0.0165 |
 
 Raw result file: `performance/2026-10-27-scan.json`.
+
+### Incremental scan after mutations
+
+The plan requires the incremental scan to be measured after a hundred
+additions, a hundred modifications, and a hundred deletions. Each operation
+acts on a hundred distinct rows: the first hundred rows are modified, and a
+second hundred rows are added and then deleted, so the deletion does not undo
+the modification that was just measured.
+
+| Phase | Wall clock | Scan duration | Execution | Changed | Removed | Rows held | Read errors |
+|---|---:|---:|---|---:|---:|---:|---:|
+| Baseline | 1194 ms | 509 ms | Full | 10,003 | 0 | 10,003 | 0 |
+| After 100 additions | 550 ms | 439 ms | Incremental | 100 | 0 | 10,103 | 0 |
+| After 100 modifications | 428 ms | 333 ms | Incremental | 100 | 0 | 10,103 | 0 |
+| After the second 100 additions | 392 ms | 347 ms | Incremental | 100 | 0 | 10,203 | 0 |
+| After 100 deletions | 279 ms | 241 ms | Incremental | 0 | 100 | 10,103 | 0 |
+
+Raw result file: `performance/2026-10-28-mutation.json`.
+
+The counts are exact in every phase: a hundred rows are reported as changed
+after each addition and after the modification, and a hundred as removed after
+the deletion. No row failed to read at any point, which matters because a
+scan that reports a read error cannot be compared against one that does not.
+
+The three mutation phases are measured against the same ten thousand row
+dataset, and the plan asks for this scenario on the fifty thousand tier or
+larger. The series is being repeated on that tier.
 
 ### Memory
 

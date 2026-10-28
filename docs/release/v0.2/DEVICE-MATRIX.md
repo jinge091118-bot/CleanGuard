@@ -67,6 +67,8 @@ this does not convert untested OEM rows into passes or approve public release.
 | Added platform evidence | Full -> unchanged incremental -> modify -> delete reconciliation; exact duplicate quick/full hash; cache reuse and stale-version invalidation |
 | Release state after test | Test packages and empty fixture directories removed; signed Release APK restored; final cold start 549 ms; media permissions denied |
 | OEM prerequisite | HyperOS per-app “后台弹出界面” was required only for the instrumentation host Activity |
+| R3 performance session | 2026-10-27 and 2026-10-28. This handset is the confirmed physical device for the R3 performance evidence: startup, first full scan, no-change incremental scan, memory, scrolling on all four list screens, and the hundred additions, hundred modifications, and hundred deletions sequence. Figures and raw result files are in `PERFORMANCE-REPORT.md` and `performance/`. The fifty thousand tier is being repeated on it. |
+| R3 harness findings | Two faults had to be corrected before the suites could run on this ROM: a Compose button exposes its label as a node that reports itself as not clickable, and the first touch after the activity settles is lost to the window transition. Both are described in `PERFORMANCE-REPORT.md`, and the collection tooling records the details in `HYPEROS-INSTALL-GATE.md`. |
 
 ### OPPO / ColorOS physical device
 

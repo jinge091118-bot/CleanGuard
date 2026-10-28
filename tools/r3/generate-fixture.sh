@@ -49,6 +49,11 @@ FIXTURE_MARKER="CleanGuardR3"
 BATCH_SIZE="${BATCH_SIZE:-250}"
 MAX_PARALLEL="${MAX_PARALLEL:-8}"
 
+# How many times a collection is written before the run gives up. A long
+# write can lose its connection partway through, and the collection is
+# completed by a later attempt rather than abandoned.
+WRITE_ATTEMPTS="${WRITE_ATTEMPTS:-6}"
+
 SERIAL="${1:-}"
 TOTAL_ROWS="${2:-10000}"
 
@@ -97,10 +102,19 @@ count_non_fixture_rows() {
   echo $(( total - $(count_fixture_rows) ))
 }
 
-# Remove the previous fixture. The files are deleted together with their
-# directory, and the index is refreshed so the rows that pointed at them
-# disappear as well.
-adb shell "rm -rf $FIXTURE_ROOT && mkdir -p $FIXTURE_ROOT/images $FIXTURE_ROOT/videos $FIXTURE_ROOT/audio"
+# Bring the fixture root into a known state.
+#
+# The previous fixture is removed only when the caller asks for a fresh
+# start. A run that was interrupted is resumed instead, because writing tens
+# of thousands of files takes long enough that the connection can drop, and
+# starting over would throw away the work. The rows that the interrupted run
+# left in the index are cleared by a re-index, and the files themselves are
+# reused, because the file names are numbered and the writer only creates the
+# indices that are missing.
+if [ "${FRESH_FIXTURE:-0}" = "1" ]; then
+  adb shell "rm -rf $FIXTURE_ROOT"
+fi
+adb shell "mkdir -p $FIXTURE_ROOT/images $FIXTURE_ROOT/videos $FIXTURE_ROOT/audio"
 adb shell "content call --uri content://media/external --method scan_volume --arg external_primary"
 sleep 10
 
@@ -128,6 +142,14 @@ echo "fixture rows  : images=$IMAGE_ROWS videos=$VIDEO_ROWS audio=$AUDIO_ROWS to
 # so there is no per-file transport cost, and several batches run at once.
 # The parallel launch happens inside one device-side command, because starting
 # the branches from the host costs one transport round trip per batch.
+#
+# A long run of this kind is not reliably completed by a single shell
+# command. The connection can drop partway through, and the device side
+# branches die with it, which leaves the directory holding only the files
+# that were written before the drop. The collection therefore counts what is
+# already there, writes only the missing indices, and repeats until the
+# directory holds the expected number of files. The file names are numbered
+# in order, so the count says which indices are still missing.
 write_collection() {
   local dir="$1"
   local ext="$2"
@@ -137,40 +159,93 @@ write_collection() {
     return 0
   fi
 
-  local ranges=""
-  local start=1
-  local batch=0
-  while [ "$start" -le "$count" ]; do
-    local end=$(( start + BATCH_SIZE - 1 ))
-    if [ "$end" -gt "$count" ]; then
-      end=$count
+  local attempt=0
+  local existing=0
+  while [ "$attempt" -lt "$WRITE_ATTEMPTS" ]; do
+    attempt=$(( attempt + 1 ))
+    existing=$(count_files "$dir")
+    if [ "$existing" -ge "$count" ]; then
+      return 0
     fi
-    ranges="$ranges $start:$end"
-    start=$(( end + 1 ))
-    batch=$(( batch + 1 ))
+    echo "  $dir: $existing of $count present, writing the rest"
+
+    local ranges=""
+    local start=$(( existing + 1 ))
+    while [ "$start" -le "$count" ]; do
+      local end=$(( start + BATCH_SIZE - 1 ))
+      if [ "$end" -gt "$count" ]; then
+        end=$count
+      fi
+      ranges="$ranges $start:$end"
+      start=$(( end + 1 ))
+    done
+
+    # The ranges are handed to the device in groups, so at most MAX_PARALLEL
+    # branches run at once. A dropped connection must not abort the run, so
+    # the failure is reported and the loop counts again.
+    local group=""
+    local index=0
+    for range in $ranges; do
+      group="$group $range"
+      index=$(( index + 1 ))
+      if [ "$index" -ge "$MAX_PARALLEL" ]; then
+        adb shell "cd $dir && for r in$group; do s=\${r%%:*}; e=\${r##*:}; (for i in \$(seq \$s \$e); do printf '$FIXTURE_MARKER%08d' \$i > r3-\$i.$ext; done) & done; wait" || true
+        group=""
+        index=0
+      fi
+    done
+    if [ -n "$group" ]; then
+      adb shell "cd $dir && for r in$group; do s=\${r%%:*}; e=\${r##*:}; (for i in \$(seq \$s \$e); do printf '$FIXTURE_MARKER%08d' \$i > r3-\$i.$ext; done) & done; wait" || true
+    fi
   done
 
-  # The ranges are handed to the device in groups, so at most MAX_PARALLEL
-  # branches run at once.
-  local group=""
-  local index=0
-  for range in $ranges; do
-    group="$group $range"
-    index=$(( index + 1 ))
-    if [ "$index" -ge "$MAX_PARALLEL" ]; then
-      adb shell "cd $dir && for r in$group; do s=\${r%%:*}; e=\${r##*:}; (for i in \$(seq \$s \$e); do printf '$FIXTURE_MARKER%08d' \$i > r3-\$i.$ext; done) & done; wait"
-      group=""
-      index=0
-    fi
-  done
-  if [ -n "$group" ]; then
-    adb shell "cd $dir && for r in$group; do s=\${r%%:*}; e=\${r##*:}; (for i in \$(seq \$s \$e); do printf '$FIXTURE_MARKER%08d' \$i > r3-\$i.$ext; done) & done; wait"
+  existing=$(count_files "$dir")
+  if [ "$existing" -lt "$count" ]; then
+    # The count alone does not say which indices are missing. A dropped
+    # connection can leave a gap in the middle of a range, and the writer only
+    # appends, so the gap is found by comparing the indices that are present
+    # against the indices that are wanted. The comparison stays on the device
+    # because the listing is large.
+    repair_missing "$dir" "$ext" "$count"
+    existing=$(count_files "$dir")
   fi
+  if [ "$existing" -lt "$count" ]; then
+    echo "!!! $dir holds $existing of $count files after $WRITE_ATTEMPTS attempts" >&2
+    return 1
+  fi
+  return 0
 }
 
-write_collection "$FIXTURE_ROOT/images" "jpg" "$IMAGE_ROWS"
-write_collection "$FIXTURE_ROOT/videos" "mp4" "$VIDEO_ROWS"
-write_collection "$FIXTURE_ROOT/audio"  "mp3" "$AUDIO_ROWS"
+# Write the indices that are missing from a fixture directory.
+repair_missing() {
+  local dir="$1"
+  local ext="$2"
+  local count="$3"
+  local state="/data/local/tmp/cleanguard-fixture"
+
+  adb shell "mkdir -p $state" >/dev/null 2>&1 || true
+  local missing
+  missing=$(adb shell "cd $dir && ls 2>/dev/null | sed 's/^r3-//; s/\.[^.]*\$//' | sort -n > $state/present.txt; seq 1 $count > $state/wanted.txt; comm -13 $state/present.txt $state/wanted.txt > $state/missing.txt; wc -l < $state/missing.txt" | tr -d '\r' | tail -1)
+
+  missing="${missing:-0}"
+  if ! [ "$missing" -gt 0 ] 2>/dev/null; then
+    return 0
+  fi
+  echo "  $dir: repairing $missing missing files"
+  adb shell "cd $dir && while read i; do [ -n \"\$i\" ] && printf '$FIXTURE_MARKER%08d' \"\$i\" > r3-\$i.$ext; done < $state/missing.txt" || true
+}
+
+# How many files a fixture directory already holds.
+count_files() {
+  local dir="$1"
+  local rows
+  rows=$(adb shell "ls $dir 2>/dev/null | wc -l" | tr -d '\r')
+  echo "${rows:-0}"
+}
+
+write_collection "$FIXTURE_ROOT/images" "jpg" "$IMAGE_ROWS" || exit 3
+write_collection "$FIXTURE_ROOT/videos" "mp4" "$VIDEO_ROWS" || exit 3
+write_collection "$FIXTURE_ROOT/audio"  "mp3" "$AUDIO_ROWS" || exit 3
 
 echo "files written; triggering MediaStore index"
 adb shell "content call --uri content://media/external --method scan_volume --arg external_primary"

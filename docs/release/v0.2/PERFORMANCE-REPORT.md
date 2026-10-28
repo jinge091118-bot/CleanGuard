@@ -533,9 +533,9 @@ The build emitted only the existing environment/tooling warnings documented by t
 
 Use Android Macrobenchmark and Perfetto; use Android Studio Profiler only where additional diagnosis is necessary. Record traces and test conditions without collecting user media content.
 
-R3 is not complete. The ten thousand and fifty thousand row tiers are measured
-on a confirmed physical handset, and the raw result files sit beside this
-report. What remains is the hundred thousand row tier, which the plan lists
-as a stress target rather than a requirement, a second physical device class
-in the matrix, and the reading of the collected Perfetto traces for scheduling
-analysis. The release checklist therefore remains unchecked.
+R3 is not complete. All three dataset tiers are measured on a confirmed
+physical handset, and the raw result files sit beside this report. What
+remains is a second physical device class in the matrix, the reading of the
+collected Perfetto traces for scheduling analysis, and the mutation sequence at
+the hundred thousand tier, which the plan does not require there. The release
+checklist therefore remains unchecked.

@@ -1,9 +1,10 @@
 # CleanGuard V0.2 R3 Performance Test Plan
 
-Status: **In progress** — the ten thousand and fifty thousand row tiers are
-measured on a confirmed physical handset, with the raw result files kept in
-`performance/`. The hundred thousand row tier, which this plan lists as a
-stress target rather than a requirement, has not been measured.
+Status: **In progress** — all three dataset tiers are measured on a confirmed
+physical handset, with the raw result files kept in `performance/`. What
+remains is a second physical device class: the matrix calls for a flagship
+device in addition to the mid-range one, and a device covering Android 10 to
+12 is preferable but not required.
 
 This plan controls R3 physical-device performance validation. Emulator runs validate only the test harness; they are never accepted as product performance evidence.
 

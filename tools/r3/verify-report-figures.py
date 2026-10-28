@@ -154,6 +154,49 @@ def build_checks(report: str) -> list[tuple[str, str, bool]]:
                 (f"50k {benchmark} frames", f"{frames['median']:.0f}", f"| {expected_frames} |" in report)
             )
 
+    scan_100k_path = PERFORMANCE_DIR / "2026-10-28-scan-100k.json"
+    if scan_100k_path.exists():
+        scan_100k = load("2026-10-28-scan-100k.json")
+        full = metrics(scan_100k, "firstFullScan")
+        incremental = metrics(scan_100k, "noChangeIncrementalScan")
+        full_scan = full["CleanGuardScanFirstMs"]
+        incremental_scan = incremental["CleanGuardScanFirstMs"]
+        checks.append(("100k full scan median", f"{full_scan['median']:.2f} ms", "5,304.00 ms" in report))
+        checks.append(("100k full scan iterations", str(len(full_scan["runs"])), "| Full scan, `CleanGuardScan` | 3 |" in report))
+        checks.append(
+            ("100k incremental median", f"{incremental_scan['median']:.2f} ms", "9,382.75 ms" in report)
+        )
+        checks.append(
+            ("100k incremental iterations", str(len(incremental_scan["runs"])),
+             "| No-change incremental scan, `CleanGuardScan` | 5 |" in report)
+        )
+        checks.append(
+            ("100k full scan heap", f"{full['memoryHeapSizeMaxKb']['median']:.0f} kB", "134,593 kB" in report)
+        )
+        checks.append(
+            ("100k incremental heap", f"{incremental['memoryHeapSizeMaxKb']['median']:.0f} kB", "194,729 kB" in report)
+        )
+        checks.append(
+            ("100k full scan resident set", f"{full['memoryRssAnonMaxKb']['median']:.0f} kB", "182,288 kB" in report)
+        )
+        checks.append(
+            ("100k incremental resident set", f"{incremental['memoryRssAnonMaxKb']['median']:.0f} kB", "261,656 kB" in report)
+        )
+
+    scroll_100k_path = PERFORMANCE_DIR / "2026-10-28-scroll-100k.json"
+    if scroll_100k_path.exists():
+        scroll_100k = load("2026-10-28-scroll-100k.json")
+        for benchmark, expected_frames in [
+            ("scrollHome", "208"),
+            ("scrollResults", "228"),
+            ("scrollHistory", "230"),
+            ("scrollDuplicates", "359"),
+        ]:
+            frames = metrics(scroll_100k, benchmark)["frameCount"]
+            checks.append(
+                (f"100k {benchmark} frames", f"{frames['median']:.0f}", f"| {expected_frames} |" in report)
+            )
+
     mutation_50k_path = PERFORMANCE_DIR / "2026-10-28-mutation-50k.json"
     if mutation_50k_path.exists():
         mutation = json.loads(mutation_50k_path.read_text(encoding="utf-8"))

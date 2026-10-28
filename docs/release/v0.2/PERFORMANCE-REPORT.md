@@ -29,6 +29,7 @@ Execution procedure: `R3-PERFORMANCE-TEST-PLAN.md`.
 | Scan | 100 add / 100 modify / 100 delete | Redmi Note 12 Turbo | 10k | **279–550 ms per mutation** | R3 |
 | Memory | Peak PSS / RSS and GC | Redmi Note 12 Turbo | 10k | **60.5 MB heap, 100 MB RSS** | R3 |
 | UI | Home/results/history/duplicates scrolling | Redmi Note 12 Turbo | 10k | **198–354 frames per series** | R3 |
+| UI | Home/results/history/duplicates scrolling | Redmi Note 12 Turbo | 50k | **190–353 frames per series** | R3 |
 | Scan | First full scan | Redmi Note 12 Turbo | 50k | **2,274 ms median** | R3 |
 | Scan | No-change incremental scan | Redmi Note 12 Turbo | 50k | **2,583 ms median** | R3 |
 | Scan | 100 add / 100 modify / 100 delete | Redmi Note 12 Turbo | 50k | **2,046–2,257 ms per mutation** | R3 |
@@ -256,6 +257,22 @@ Raw result file: `performance/2026-10-28-mutation-50k.json`.
 The counts are exact in every phase, and no row failed to read. The four
 mutation phases all take about two seconds, which is the cost of the index
 walk described above rather than the cost of the hundred rows that changed.
+
+### Scrolling at fifty thousand rows
+
+| Screen | Iterations | Median frames | Minimum | Maximum | Coefficient of variation |
+|---|---:|---:|---:|---:|---:|
+| Home | 5 | 209 | 169 | 211 | 0.0910 |
+| Results | 5 | 211 | 204 | 217 | 0.0229 |
+| Scan history | 5 | 190 | 189 | 254 | 0.1389 |
+| Duplicate groups | 5 | 353 | 351 | 357 | 0.0065 |
+
+Raw result file: `performance/2026-10-28-scroll-50k.json`.
+
+The frame counts are close to the ten thousand row figures, which is the
+expected result. The scrolling screens hold summaries and lists that do not
+grow with the size of the media library, so a dataset five times larger
+produces the same amount of work while a list is being moved.
 
 ### Memory
 

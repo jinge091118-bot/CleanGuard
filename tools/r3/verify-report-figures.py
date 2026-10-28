@@ -140,6 +140,20 @@ def build_checks(report: str) -> list[tuple[str, str, bool]]:
             ("50k incremental resident set", f"{incremental['memoryRssAnonMaxKb']['median']:.0f} kB", "168,180 kB" in report)
         )
 
+    scroll_50k_path = PERFORMANCE_DIR / "2026-10-28-scroll-50k.json"
+    if scroll_50k_path.exists():
+        scroll_50k = load("2026-10-28-scroll-50k.json")
+        for benchmark, expected_frames in [
+            ("scrollHome", "209"),
+            ("scrollResults", "211"),
+            ("scrollHistory", "190"),
+            ("scrollDuplicates", "353"),
+        ]:
+            frames = metrics(scroll_50k, benchmark)["frameCount"]
+            checks.append(
+                (f"50k {benchmark} frames", f"{frames['median']:.0f}", f"| {expected_frames} |" in report)
+            )
+
     mutation_50k_path = PERFORMANCE_DIR / "2026-10-28-mutation-50k.json"
     if mutation_50k_path.exists():
         mutation = json.loads(mutation_50k_path.read_text(encoding="utf-8"))

@@ -25,6 +25,12 @@ This checklist is the release-control source for CleanGuard V0.2. Feature work i
 - [ ] R9 - V0.2 production release
 - [ ] R10 - V0.3 decision gate
 
+The plan for each of these gates exists. R5 and R6 are in
+`R5-INTERNAL-TEST-PLAN.md` and `R6-CLOSED-TEST-PLAN.md`. R7, R8, and R9 are in
+`R7-BETA-FEEDBACK-REVIEW-PLAN.md`, `R8-STABILIZATION-PLAN.md`, and
+`R9-PRODUCTION-RELEASE-PLAN.md`. R10 is scoped in
+`R10-V03-PROJECT-EVALUATION.md`.
+
 R2 is intentionally left unchecked. On 2026-10-19 the project owner approved
 conditional continuation to R3 because additional OEM devices were unavailable.
 The scope, safeguards, and release limitation are recorded in

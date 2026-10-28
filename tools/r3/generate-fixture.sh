@@ -54,6 +54,11 @@ MAX_PARALLEL="${MAX_PARALLEL:-8}"
 # completed by a later attempt rather than abandoned.
 WRITE_ATTEMPTS="${WRITE_ATTEMPTS:-6}"
 
+# How many files one shard directory holds. The emulated storage layer slows
+# down sharply as a directory fills, and a shard of this size keeps the write
+# rate at the level an empty directory reaches.
+FILES_PER_SHARD="${FILES_PER_SHARD:-1500}"
+
 SERIAL="${1:-}"
 TOTAL_ROWS="${2:-10000}"
 
@@ -115,6 +120,39 @@ if [ "${FRESH_FIXTURE:-0}" = "1" ]; then
   adb shell "rm -rf $FIXTURE_ROOT"
 fi
 adb shell "mkdir -p $FIXTURE_ROOT/images $FIXTURE_ROOT/videos $FIXTURE_ROOT/audio"
+
+# An earlier layout kept every file of a collection in one directory. Those
+# files are moved into the shard layout, because the row count must not
+# change when the layout does, and leaving them where they are would
+# duplicate the rows.
+migrate_flat_files() {
+  local base="$1"
+  local ext="$2"
+  local moved=0
+  local shard=0
+  local first=1
+  while [ "$shard" -lt 64 ]; do
+    local dir
+    dir=$(printf "%s/shard-%02d" "$base" "$shard")
+    adb shell "mkdir -p $dir" >/dev/null 2>&1 || true
+    # Files whose index falls in this shard's range are moved into it.
+    local last=$(( first + FILES_PER_SHARD - 1 ))
+    local moved_here
+    moved_here=$(adb shell "cd $base && for i in \$(seq $first $last); do [ -f r3-\$i.$ext ] && mv r3-\$i.$ext $dir/ 2>/dev/null && echo x; done | wc -l" | tr -d '\r')
+    moved_here="${moved_here:-0}"
+    moved=$(( moved + moved_here ))
+    first=$(( last + 1 ))
+    shard=$(( shard + 1 ))
+  done
+  if [ "$moved" -gt 0 ]; then
+    echo "  moved $moved existing files of $(basename "$base") into the shard layout"
+  fi
+}
+
+migrate_flat_files "$FIXTURE_ROOT/images" "jpg"
+migrate_flat_files "$FIXTURE_ROOT/videos" "mp4"
+migrate_flat_files "$FIXTURE_ROOT/audio" "mp3"
+
 adb shell "content call --uri content://media/external --method scan_volume --arg external_primary"
 sleep 10
 
@@ -138,20 +176,24 @@ echo "requested tier: $TOTAL_ROWS total rows"
 echo "pre-existing  : $BASELINE rows already on the device"
 echo "fixture rows  : images=$IMAGE_ROWS videos=$VIDEO_ROWS audio=$AUDIO_ROWS total=$FIXTURE_ROWS"
 
-# Write one batch of files. Each batch is a single device-side shell command
-# so there is no per-file transport cost, and several batches run at once.
-# The parallel launch happens inside one device-side command, because starting
-# the branches from the host costs one transport round trip per batch.
+# Write the files of one collection.
 #
-# A long run of this kind is not reliably completed by a single shell
-# command. The connection can drop partway through, and the device side
-# branches die with it, which leaves the directory holding only the files
-# that were written before the drop. The collection therefore counts what is
-# already there, writes only the missing indices, and repeats until the
-# directory holds the expected number of files. The file names are numbered
-# in order, so the count says which indices are still missing.
+# The files are spread over several directories. The emulated storage layer
+# slows down sharply as a single directory fills: creating sixty files in a
+# directory that already held six thousand took forty five seconds, while the
+# same sixty files in an empty directory took two. The number of rows the
+# scanner sees does not depend on how they are distributed, so the files are
+# sharded and each shard stays small.
+#
+# A long write is not reliably carried by a single shell command. The
+# connection can drop partway through, and the device side branches die with
+# it, which leaves the directory holding only the files that were written
+# before the drop. Each shard therefore counts what is already there, writes
+# only the missing indices, and repeats until it holds the expected number of
+# files. The file names are numbered in order across the whole collection, so
+# the count says which indices are still missing.
 write_collection() {
-  local dir="$1"
+  local base="$1"
   local ext="$2"
   local count="$3"
 
@@ -159,22 +201,50 @@ write_collection() {
     return 0
   fi
 
+  local shard=0
+  local first=1
+  while [ "$first" -le "$count" ]; do
+    local shard_count=$FILES_PER_SHARD
+    if [ $(( first + shard_count - 1 )) -gt "$count" ]; then
+      shard_count=$(( count - first + 1 ))
+    fi
+    local dir
+    dir=$(printf "%s/shard-%02d" "$base" "$shard")
+    write_shard "$dir" "$ext" "$shard_count" "$first" || return 1
+    first=$(( first + shard_count ))
+    shard=$(( shard + 1 ))
+  done
+  return 0
+}
+
+# Write the files of one shard. The first index is the index of the first
+# file in the shard, and the indices run from there.
+write_shard() {
+  local dir="$1"
+  local ext="$2"
+  local count="$3"
+  local first="$4"
+  local last=$(( first + count - 1 ))
+
+  adb shell "mkdir -p $dir" >/dev/null 2>&1 || true
+
   local attempt=0
-  local existing=0
   while [ "$attempt" -lt "$WRITE_ATTEMPTS" ]; do
     attempt=$(( attempt + 1 ))
+    local existing
     existing=$(count_files "$dir")
     if [ "$existing" -ge "$count" ]; then
+      repair_range "$dir" "$ext" "$first" "$last"
       return 0
     fi
-    echo "  $dir: $existing of $count present, writing the rest"
+    echo "  $(basename "$dir"): $existing of $count present, writing the rest"
 
     local ranges=""
-    local start=$(( existing + 1 ))
-    while [ "$start" -le "$count" ]; do
+    local start=$(( first + existing ))
+    while [ "$start" -le "$last" ]; do
       local end=$(( start + BATCH_SIZE - 1 ))
-      if [ "$end" -gt "$count" ]; then
-        end=$count
+      if [ "$end" -gt "$last" ]; then
+        end=$last
       fi
       ranges="$ranges $start:$end"
       start=$(( end + 1 ))
@@ -199,43 +269,43 @@ write_collection() {
     fi
   done
 
+  local existing
   existing=$(count_files "$dir")
-  if [ "$existing" -lt "$count" ]; then
-    # The count alone does not say which indices are missing. A dropped
-    # connection can leave a gap in the middle of a range, and the writer only
-    # appends, so the gap is found by comparing the indices that are present
-    # against the indices that are wanted. The comparison stays on the device
-    # because the listing is large.
-    repair_missing "$dir" "$ext" "$count"
-    existing=$(count_files "$dir")
-  fi
   if [ "$existing" -lt "$count" ]; then
     echo "!!! $dir holds $existing of $count files after $WRITE_ATTEMPTS attempts" >&2
     return 1
   fi
+  repair_range "$dir" "$ext" "$first" "$last"
   return 0
 }
 
-# Write the indices that are missing from a fixture directory.
-repair_missing() {
+# Write the indices that are missing from a range inside a shard.
+#
+# The count alone does not say which indices are missing. A dropped connection
+# can leave a gap in the middle of a range and the writer only appends, so
+# the missing indices are found by comparing the indices that are present
+# against the indices that are wanted. The comparison stays on the device
+# because the listing is large.
+repair_range() {
   local dir="$1"
   local ext="$2"
-  local count="$3"
+  local first="$3"
+  local last="$4"
   local state="/data/local/tmp/cleanguard-fixture"
 
   adb shell "mkdir -p $state" >/dev/null 2>&1 || true
   local missing
-  missing=$(adb shell "cd $dir && ls 2>/dev/null | sed 's/^r3-//; s/\.[^.]*\$//' | sort -n > $state/present.txt; seq 1 $count > $state/wanted.txt; comm -13 $state/present.txt $state/wanted.txt > $state/missing.txt; wc -l < $state/missing.txt" | tr -d '\r' | tail -1)
+  missing=$(adb shell "cd $dir && ls 2>/dev/null | sed 's/^r3-//; s/\.[^.]*\$//' | sort -n > $state/present.txt; seq $first $last > $state/wanted.txt; comm -13 $state/present.txt $state/wanted.txt > $state/missing.txt; wc -l < $state/missing.txt" | tr -d '\r' | tail -1)
 
   missing="${missing:-0}"
   if ! [ "$missing" -gt 0 ] 2>/dev/null; then
     return 0
   fi
-  echo "  $dir: repairing $missing missing files"
+  echo "  $(basename "$dir"): repairing $missing missing files"
   adb shell "cd $dir && while read i; do [ -n \"\$i\" ] && printf '$FIXTURE_MARKER%08d' \"\$i\" > r3-\$i.$ext; done < $state/missing.txt" || true
 }
 
-# How many files a fixture directory already holds.
+# How many files a shard directory already holds.
 count_files() {
   local dir="$1"
   local rows

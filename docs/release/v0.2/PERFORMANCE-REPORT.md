@@ -156,7 +156,7 @@ marks around the whole local assessment.
 | Metric | Iterations | Median | Minimum | Maximum | Coefficient of variation |
 |---|---:|---:|---:|---:|---:|
 | Full scan, `CleanGuardScan` | 3 | 658.63 ms | 637.45 ms | 661.17 ms | 0.0200 |
-| No-change incremental scan, `CleanGuardScan` | 3 | 544.72 ms | 535.54 ms | 559.91 ms | 0.0165 |
+| No-change incremental scan, `CleanGuardScan` | 5 | 544.72 ms | 535.54 ms | 559.91 ms | 0.0165 |
 
 Raw result file: `performance/2026-10-27-scan.json`.
 
